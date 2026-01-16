@@ -1,0 +1,126 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  check-branch-name:
+    name: Branch Naming
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch naming convention
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "Checking branch: $BRANCH_NAME"
+
+          # Pattern: (feature|fix|hotfix|docs|chore)/description
+          PATTERN="^(feature|fix|hotfix|docs|chore)/[a-z0-9][a-z0-9-]*$"
+
+          if [[ "$BRANCH_NAME" =~ $PATTERN ]]; then
+            echo "✅ Branch name '$BRANCH_NAME' follows naming convention"
+          else
+            echo "❌ Branch name '$BRANCH_NAME' does not follow naming convention"
+            echo ""
+            echo "Branch names must match: (feature|fix|hotfix|docs|chore)/description"
+            echo ""
+            echo "Examples:"
+            echo "  ✅ feature/add-dark-mode"
+            echo "  ✅ fix/audit-bug"
+            echo "  ✅ hotfix/critical-security-fix"
+            echo "  ✅ docs/update-readme"
+            echo "  ✅ chore/update-dependencies"
+            echo ""
+            echo "  ❌ add-dark-mode (missing type prefix)"
+            echo "  ❌ feature/Add-Dark-Mode (must be lowercase)"
+            echo "  ❌ feature/add_dark_mode (use hyphens, not underscores)"
+            exit 1
+          fi
+
+  check-pr-size:
+    name: PR Size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR size
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+
+          # Get lines changed (additions + deletions)
+          STATS=$(git diff --shortstat origin/$BASE...HEAD)
+          echo "Change stats: $STATS"
+
+          # Extract insertions and deletions
+          INSERTIONS=$(echo "$STATS" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo "0")
+          DELETIONS=$(echo "$STATS" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo "0")
+
+          TOTAL=$((INSERTIONS + DELETIONS))
+          echo "Total lines changed: $TOTAL"
+
+          if [ "$TOTAL" -gt 500 ]; then
+            echo ""
+            echo "⚠️ WARNING: This PR has $TOTAL lines changed (recommended: ~200-300)"
+            echo ""
+            echo "Consider breaking this into smaller PRs for easier review."
+            echo "Large PRs are harder to review and more likely to introduce bugs."
+            # Warning only, don't fail
+          else
+            echo "✅ PR size is good: $TOTAL lines changed"
+          fi
+
+  check-changeset:
+    name: Changeset Required
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changeset
+        run: |
+          BASE="${{ github.base_ref }}"
+
+          # Check if a changeset file was added
+          CHANGESET_FILES=$(git diff --name-only origin/$BASE...HEAD | grep "^\.changeset/.*\.md$" | grep -v "README.md" || true)
+
+          if [ -n "$CHANGESET_FILES" ]; then
+            echo "✅ Changeset found:"
+            echo "$CHANGESET_FILES"
+            exit 0
+          fi
+
+          # Check if this is a docs-only, config-only, or chore change that doesn't need a changeset
+          CHANGED_FILES=$(git diff --name-only origin/$BASE...HEAD)
+
+          # Files/patterns that don't require changesets
+          SKIP_PATTERNS="^\.github/|^docs/|^\..*|^README\.md$|^CONTRIBUTING\.md$|^LICENSE$"
+
+          NEEDS_CHANGESET=false
+          while IFS= read -r file; do
+            if [ -n "$file" ] && ! echo "$file" | grep -qE "$SKIP_PATTERNS"; then
+              NEEDS_CHANGESET=true
+              echo "File requires changeset: $file"
+            fi
+          done <<< "$CHANGED_FILES"
+
+          if [ "$NEEDS_CHANGESET" = true ]; then
+            echo ""
+            echo "❌ No changeset found"
+            echo ""
+            echo "This PR includes code changes that require a changeset."
+            echo ""
+            echo "To add a changeset, run:"
+            echo "  npx changeset"
+            echo ""
+            echo "Then select the version bump type (patch/minor/major) and describe your changes."
+            echo "Commit the generated .changeset/*.md file with your PR."
+            echo ""
+            echo "See CONTRIBUTING.md for more details on the release process."
+            exit 1
+          else
+            echo "✅ No changeset needed for docs/config changes only"
+          fi

@@ -1,0 +1,7 @@
+# Conditional skip project - scan should skip when file is missing
+scans:
+  - name: conditional-check
+    command: echo "This should be skipped"
+    if: nonexistent.txt
+  - name: always-run
+    command: echo "This always runs"

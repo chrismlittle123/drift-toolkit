@@ -1,0 +1,6 @@
+# Missing file project - protected file does not exist
+integrity:
+  protected:
+    - file: CODEOWNERS
+      approved: approved/CODEOWNERS
+      severity: critical

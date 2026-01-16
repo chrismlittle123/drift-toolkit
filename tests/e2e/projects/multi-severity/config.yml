@@ -1,0 +1,4 @@
+version: 2
+settings:
+  enabled: false
+  debug: true

@@ -1,0 +1,5 @@
+# Protected configuration files - require owner approval
+/check.toml @chrismlittle123
+/eslint.config.js @chrismlittle123
+/.eslintrc* @chrismlittle123
+/.github/CODEOWNERS @chrismlittle123

@@ -1,0 +1,58 @@
+# Example drift.config.yaml for your drift-config repository
+# This file defines what to check across all repos in your organization
+
+# Integrity checks - ensure critical files match approved versions
+integrity:
+  # Protected files that must match exactly
+  protected:
+    # CODEOWNERS must be controlled centrally
+    - file: CODEOWNERS
+      approved: approved/CODEOWNERS
+      severity: critical
+
+    # Standardize CI workflows
+    - file: .github/workflows/ci.yml
+      approved: approved/.github/workflows/ci.yml
+      severity: high
+
+    # Security policy
+    - file: SECURITY.md
+      approved: approved/SECURITY.md
+      severity: medium
+
+  # Discover new files that might need protection
+  discover:
+    - pattern: ".github/workflows/*.yml"
+      suggestion: "Workflow files should be reviewed for security"
+    - pattern: "*.config.js"
+      suggestion: "Config files may need standardization"
+
+# Scans - custom checks to run on each repo
+scans:
+  # Check for required files
+  - name: has-readme
+    command: test -f README.md
+
+  - name: has-license
+    command: test -f LICENSE
+
+  # Security scans (only if package.json exists)
+  - name: npm-audit
+    command: npm audit --audit-level=high
+    if: package.json
+    timeout: 120
+
+  # Check for secrets in code
+  - name: no-secrets
+    command: |
+      ! grep -rE "(api_key|apikey|secret|password)\s*[:=]\s*['\"][^'\"]+['\"]" \
+        --include="*.js" --include="*.ts" --include="*.py" \
+        . 2>/dev/null || true
+
+  # Ensure .gitignore exists and has common entries
+  - name: gitignore-check
+    command: |
+      test -f .gitignore && \
+      grep -q "node_modules" .gitignore 2>/dev/null || \
+      grep -q "__pycache__" .gitignore 2>/dev/null || \
+      grep -q ".env" .gitignore 2>/dev/null

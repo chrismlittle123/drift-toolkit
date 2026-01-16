@@ -1,0 +1,6 @@
+# Scan pass project - all scans should pass
+scans:
+  - name: has-readme
+    command: test -f README.md
+  - name: echo-test
+    command: echo "hello world"

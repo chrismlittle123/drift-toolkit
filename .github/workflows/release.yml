@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for changesets
+        id: check
+        run: |
+          if [ -n "$(ls -A .changeset/*.md 2>/dev/null | grep -v README.md)" ]; then
+            echo "has_changesets=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changesets=false" >> $GITHUB_OUTPUT
+          fi
+
+      # If changesets exist: version bump, publish immediately
+      - name: Version and Publish
+        if: steps.check.outputs.has_changesets == 'true'
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Run changeset version (bumps version, updates CHANGELOG, removes changesets)
+          npm run version
+
+          # Commit the version bump
+          git add -A
+          git commit -m "chore: release" || echo "No changes to commit"
+          git push
+
+          # Build and publish
+          npm run build
+          npx changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+          HUSKY: 0
+
+      - name: Get version after publish
+        if: steps.check.outputs.has_changesets == 'true'
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Push git tag
+        if: steps.check.outputs.has_changesets == 'true'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # changeset publish creates the tag locally, we just need to push it
+          # If tag doesn't exist (shouldn't happen), create it
+          if ! git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            git tag -a "v$VERSION" -m "Release v$VERSION"
+          fi
+          git push origin "v$VERSION"
+        env:
+          HUSKY: 0
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.has_changesets == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." \
+            --latest
+
+      # If no changesets but unpublished version: publish (handles manual version bumps)
+      - name: Publish if unpublished
+        if: steps.check.outputs.has_changesets == 'false'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
+
+          if [ "$VERSION" != "$NPM_VERSION" ]; then
+            echo "Publishing unpublished version $VERSION"
+            npm run build
+            npx changeset publish
+
+            # Create tag if it doesn't exist
+            if ! git rev-parse "v$VERSION" >/dev/null 2>&1; then
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git tag -a "v$VERSION" -m "Release v$VERSION"
+              git push origin "v$VERSION"
+
+              gh release create "v$VERSION" \
+                --title "v$VERSION" \
+                --notes "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." \
+                --latest
+            fi
+          else
+            echo "Version $VERSION already published"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+          HUSKY: 0

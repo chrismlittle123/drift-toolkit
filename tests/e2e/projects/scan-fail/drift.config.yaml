@@ -1,0 +1,6 @@
+# Scan fail project - scans should fail
+scans:
+  - name: missing-file-check
+    command: test -f DOES_NOT_EXIST.md
+  - name: false-command
+    command: exit 1
