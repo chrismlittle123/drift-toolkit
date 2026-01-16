@@ -4,7 +4,9 @@ export interface ScanDefinition {
   name: string;
   description?: string;
   command: string;
-  if?: string | string[]; // file existence condition
+  if?: string | string[]; // @deprecated use if_file instead
+  if_file?: string | string[]; // skip if file(s) don't exist
+  if_command?: string; // skip if command exits non-zero
   tiers?: string[];
   outputFormat?: "json" | "text" | "exitcode";
   severity?: Severity;

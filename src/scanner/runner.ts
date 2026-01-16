@@ -13,14 +13,30 @@ function shouldSkip(
   targetPath: string,
   context?: RepoContext
 ): string | null {
-  // Check file existence conditions
-  if (scan.if) {
-    const conditions = Array.isArray(scan.if) ? scan.if : [scan.if];
+  // Check file existence conditions (if_file or deprecated if)
+  const fileConditions = scan.if_file ?? scan.if;
+  if (fileConditions) {
+    const conditions = Array.isArray(fileConditions)
+      ? fileConditions
+      : [fileConditions];
     for (const condition of conditions) {
       const filePath = join(targetPath, condition);
       if (!existsSync(filePath)) {
         return `file not found: ${condition}`;
       }
+    }
+  }
+
+  // Check command conditions (if_command)
+  if (scan.if_command) {
+    try {
+      execSync(scan.if_command, {
+        cwd: targetPath,
+        stdio: "pipe",
+        timeout: 10000, // 10 second timeout for condition commands
+      });
+    } catch {
+      return `condition failed: ${scan.if_command}`;
     }
   }
 
