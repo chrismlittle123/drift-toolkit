@@ -1,7 +1,7 @@
 {
   "name": "drift-toolkit",
-  "version": "0.0.1",
-  "description": "Monitor repository standards and detect drift across your entire GitHub organization",
+  "version": "0.0.2",
+  "description": "Detect when code or infrastructure drifts from your standards.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
