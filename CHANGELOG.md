@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.4
+
+### Patch Changes
+
+- deeb010: Align ESLint config with typescript-internal registry and refactor long functions
+
 ## 0.0.3
 
 ### Minor Changes
