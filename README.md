@@ -2,7 +2,7 @@
 
 Detect when code, process, or infrastructure drifts from your standards—or decays into neglect.
 
-drift-toolkit scans your entire GitHub organisation across three domains: **Code**, **Process**, and **Infra**. For each, it answers two questions: *Is it correct?* and *Is it alive?*
+drift-toolkit scans your entire GitHub organisation across three domains: **Code**, **Process**, and **Infra**. For each, it answers two questions: _Is it correct?_ and _Is it alive?_
 
 [![npm version](https://img.shields.io/npm/v/drift-toolkit.svg)](https://www.npmjs.com/package/drift-toolkit)
 [![CI](https://github.com/chrismlittle123/drift-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/chrismlittle123/drift-toolkit/actions/workflows/ci.yml)

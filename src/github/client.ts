@@ -5,6 +5,7 @@ import { join } from "path";
 import { z } from "zod";
 import { TIMEOUTS, GITHUB_API } from "../constants.js";
 import { extractExecError } from "../utils/index.js";
+import { fetchWithRetry, sanitizeError } from "./api-utils.js";
 
 export interface GitHubRepo {
   name: string;
@@ -14,9 +15,6 @@ export interface GitHubRepo {
   disabled: boolean;
 }
 
-/**
- * Zod schema for validating GitHub API repo response
- */
 const GITHUB_REPO_SCHEMA = z.object({
   name: z.string(),
   full_name: z.string(),
@@ -26,146 +24,6 @@ const GITHUB_REPO_SCHEMA = z.object({
 });
 
 const GITHUB_REPO_ARRAY_SCHEMA = z.array(GITHUB_REPO_SCHEMA);
-
-/**
- * Configuration for API retry behavior
- */
-const RETRY_CONFIG = {
-  maxRetries: 3,
-  initialDelayMs: 1000,
-  maxDelayMs: 10000,
-  retryableStatusCodes: [429, 500, 502, 503, 504],
-};
-
-/**
- * Sleep for the specified number of milliseconds
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
-}
-
-/**
- * Calculate delay for exponential backoff with jitter
- */
-function calculateBackoffDelay(attempt: number): number {
-  const exponentialDelay = RETRY_CONFIG.initialDelayMs * Math.pow(2, attempt);
-  const jitter = Math.random() * 0.3 * exponentialDelay; // 30% jitter
-  return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelayMs);
-}
-
-/**
- * Parse rate limit reset time from GitHub response headers
- */
-function getRateLimitResetDelay(
-  response: Awaited<ReturnType<typeof fetch>>
-): number | null {
-  const resetHeader = response.headers.get("x-ratelimit-reset");
-  if (resetHeader) {
-    const resetTime = parseInt(resetHeader, 10) * 1000; // Convert to ms
-    const now = Date.now();
-    if (resetTime > now) {
-      return Math.min(resetTime - now + 1000, RETRY_CONFIG.maxDelayMs); // Add 1s buffer
-    }
-  }
-  return null;
-}
-
-/**
- * Fetch with automatic retry on rate limit and transient errors.
- * Implements exponential backoff with jitter.
- *
- * @param url - The URL to fetch
- * @param options - Fetch options
- * @param token - Optional token for error sanitization
- * @returns The fetch response
- * @throws Error if all retries are exhausted
- */
-async function fetchWithRetry(
-  url: string,
-  options: Parameters<typeof fetch>[1],
-  token?: string
-): Promise<Awaited<ReturnType<typeof fetch>>> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-
-      // Check if we should retry
-      const shouldRetry =
-        RETRY_CONFIG.retryableStatusCodes.includes(response.status) &&
-        attempt < RETRY_CONFIG.maxRetries;
-
-      if (shouldRetry) {
-        // For rate limiting (429), use the reset header if available
-        const delayMs =
-          response.status === 429
-            ? (getRateLimitResetDelay(response) ??
-              calculateBackoffDelay(attempt))
-            : calculateBackoffDelay(attempt);
-        await sleep(delayMs);
-        continue;
-      }
-
-      return response;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-
-      // Only retry on network errors, not on other exceptions
-      if (attempt < RETRY_CONFIG.maxRetries) {
-        await sleep(calculateBackoffDelay(attempt));
-        continue;
-      }
-    }
-  }
-
-  throw new Error(
-    `GitHub API request failed after ${RETRY_CONFIG.maxRetries} retries: ${sanitizeError(lastError?.message ?? "Unknown error", token)}`
-  );
-}
-
-/**
- * Sanitize sensitive data (tokens) from error messages
- * Handles various patterns where tokens might appear
- */
-function sanitizeError(message: string, token?: string): string {
-  let sanitized = message;
-
-  // Remove x-access-token pattern
-  sanitized = sanitized.replace(
-    /x-access-token:[^@\s]+@/g,
-    "x-access-token:***@"
-  );
-
-  // Remove Bearer token pattern
-  sanitized = sanitized.replace(/Bearer\s+[a-zA-Z0-9_-]+/gi, "Bearer ***");
-
-  // Remove Authorization header pattern
-  sanitized = sanitized.replace(
-    /Authorization:\s*[^\s]+/gi,
-    "Authorization: ***"
-  );
-
-  // Remove the actual token if provided and it appears in the message
-  if (token && token.length > 8) {
-    // Only replace if token is long enough to be real
-    sanitized = sanitized.replace(
-      new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
-      "***"
-    );
-  }
-
-  // Remove github_pat_ patterns (GitHub PATs)
-  sanitized = sanitized.replace(/github_pat_[a-zA-Z0-9_]+/g, "github_pat_***");
-
-  // Remove ghp_ patterns (GitHub tokens)
-  sanitized = sanitized.replace(/ghp_[a-zA-Z0-9]+/g, "ghp_***");
-
-  // Remove gho_ patterns (OAuth tokens)
-  sanitized = sanitized.replace(/gho_[a-zA-Z0-9]+/g, "gho_***");
-
-  return sanitized;
-}
 
 /**
  * Get GitHub token from CLI option or GITHUB_TOKEN environment variable.
@@ -237,6 +95,52 @@ export async function listRepos(
 }
 
 /**
+ * Build GitHub API request headers
+ */
+function buildApiHeaders(token?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": GITHUB_API.version,
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+/**
+ * Parse and validate GitHub API response as repo array
+ */
+async function parseRepoResponse(
+  response: Response,
+  token?: string
+): Promise<GitHubRepo[]> {
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `GitHub API error: ${response.status} ${sanitizeError(text, token)}`
+    );
+  }
+
+  let rawData: unknown;
+  try {
+    rawData = await response.json();
+  } catch (parseError) {
+    const message =
+      parseError instanceof Error ? parseError.message : "Unknown error";
+    throw new Error(`Failed to parse GitHub API response: ${message}`);
+  }
+
+  const parseResult = GITHUB_REPO_ARRAY_SCHEMA.safeParse(rawData);
+  if (!parseResult.success) {
+    throw new Error(
+      `Invalid GitHub API response: ${parseResult.error.message}`
+    );
+  }
+  return parseResult.data;
+}
+
+/**
  * Internal helper to list repos from a GitHub API endpoint
  */
 async function listReposFromEndpoint(
@@ -244,63 +148,24 @@ async function listReposFromEndpoint(
   token?: string
 ): Promise<GitHubRepo[]> {
   const repos: GitHubRepo[] = [];
+  const headers = buildApiHeaders(token);
   let page = 1;
 
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": GITHUB_API.version,
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const url = `${GITHUB_API.baseUrl}${endpoint}?per_page=${GITHUB_API.perPage}&page=${page}&type=all`;
-
-    // Use fetchWithRetry for automatic rate limit handling
     const response = await fetchWithRetry(url, { headers }, token);
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(
-        `GitHub API error: ${response.status} ${sanitizeError(text, token)}`
-      );
-    }
-
-    // Parse JSON with error handling
-    let rawData: unknown;
-    try {
-      rawData = await response.json();
-    } catch (parseError) {
-      const message =
-        parseError instanceof Error ? parseError.message : "Unknown error";
-      throw new Error(`Failed to parse GitHub API response: ${message}`);
-    }
-
-    // Validate response against schema
-    const parseResult = GITHUB_REPO_ARRAY_SCHEMA.safeParse(rawData);
-    if (!parseResult.success) {
-      throw new Error(
-        `Invalid GitHub API response: ${parseResult.error.message}`
-      );
-    }
-
-    const pageRepos = parseResult.data;
+    const pageRepos = await parseRepoResponse(response, token);
 
     if (pageRepos.length === 0) {
       break;
     }
 
-    // Filter out archived and disabled repos
     const activeRepos = pageRepos.filter((r) => !r.archived && !r.disabled);
     repos.push(...activeRepos);
 
     if (pageRepos.length < GITHUB_API.perPage) {
       break;
     }
-
     page++;
   }
 
