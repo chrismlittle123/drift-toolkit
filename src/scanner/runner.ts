@@ -55,35 +55,14 @@ function shouldSkip(
 }
 
 /**
- * Run a single scan command against a repository.
- * Handles skip conditions (file existence, tier matching), timeouts, and error capture.
- *
- * @param scan - The scan definition containing command, conditions, and timeout
- * @param targetPath - The directory path to run the scan in
- * @param context - Optional repository context for tier/team filtering
- * @returns The scan result with status, output, and timing information
+ * Execute scan command and return result
  */
-export function runScan(
+function executeScan(
   scan: ScanDefinition,
   targetPath: string,
-  context?: RepoContext
+  startTime: number,
+  timestamp: string
 ): ScanResult {
-  const timestamp = new Date().toISOString();
-  const startTime = Date.now();
-
-  // Check skip conditions
-  const skipReason = shouldSkip(scan, targetPath, context);
-  if (skipReason) {
-    return {
-      scan: scan.name,
-      status: "skip",
-      duration: Date.now() - startTime,
-      timestamp,
-      skippedReason: skipReason,
-    };
-  }
-
-  // Execute the command
   const timeout = (scan.timeout ?? DEFAULTS.scanTimeoutSeconds) * 1000;
   const options: ExecSyncOptionsWithStringEncoding = {
     cwd: targetPath,
@@ -106,7 +85,6 @@ export function runScan(
   } catch (error: unknown) {
     const execError = extractExecError(error);
 
-    // Command failed with non-zero exit code (or was killed)
     if (execError.status !== undefined) {
       return {
         scan: scan.name,
@@ -119,7 +97,6 @@ export function runScan(
       };
     }
 
-    // Other error (timeout, etc.)
     return {
       scan: scan.name,
       status: "error",
@@ -129,6 +106,31 @@ export function runScan(
       timestamp,
     };
   }
+}
+
+/**
+ * Run a single scan command against a repository.
+ */
+export function runScan(
+  scan: ScanDefinition,
+  targetPath: string,
+  context?: RepoContext
+): ScanResult {
+  const timestamp = new Date().toISOString();
+  const startTime = Date.now();
+
+  const skipReason = shouldSkip(scan, targetPath, context);
+  if (skipReason) {
+    return {
+      scan: scan.name,
+      status: "skip",
+      duration: Date.now() - startTime,
+      timestamp,
+      skippedReason: skipReason,
+    };
+  }
+
+  return executeScan(scan, targetPath, startTime, timestamp);
 }
 
 /**

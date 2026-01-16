@@ -183,7 +183,7 @@ export async function scan(options: ScanOptions): Promise<void> {
   if (options.json) {
     console.log(JSON.stringify(results, null, 2));
   } else {
-    printResults(results, config);
+    printResults(results);
   }
 
   // Exit with error code if there are failures
@@ -194,10 +194,7 @@ export async function scan(options: ScanOptions): Promise<void> {
   }
 }
 
-function printResults(
-  results: DriftResults,
-  _config: ReturnType<typeof loadConfig>
-): void {
+function printResults(results: DriftResults): void {
   console.log(`Drift v${version}`);
   console.log(`Target: ${results.path}`);
   console.log("");

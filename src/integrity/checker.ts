@@ -50,14 +50,65 @@ function generateDiff(approvedPath: string, currentPath: string): string {
   }
 }
 
+type ResolvedPaths = { current: string; approved: string };
+
+function resolvePaths(
+  check: IntegrityCheck,
+  targetPath: string,
+  approvedBasePath: string
+): ResolvedPaths | { error: string } {
+  try {
+    return {
+      current: safeJoinPath(targetPath, check.file),
+      approved: safeJoinPath(approvedBasePath, check.approved),
+    };
+  } catch (error) {
+    if (error instanceof PathTraversalError) {
+      return { error: `Security error: ${error.message}` };
+    }
+    throw error;
+  }
+}
+
+function buildResult(
+  check: IntegrityCheck,
+  status: IntegrityResult["status"],
+  timestamp: string,
+  extra: Partial<IntegrityResult> = {}
+): IntegrityResult {
+  return {
+    file: check.file,
+    status,
+    severity: check.severity,
+    timestamp,
+    ...extra,
+  };
+}
+
+function compareFiles(
+  check: IntegrityCheck,
+  paths: ResolvedPaths,
+  timestamp: string
+): IntegrityResult {
+  const approvedHash = hashFile(paths.approved);
+  const currentHash = hashFile(paths.current);
+
+  if (approvedHash === currentHash) {
+    return buildResult(check, "match", timestamp, {
+      approvedHash,
+      currentHash,
+    });
+  }
+
+  return buildResult(check, "drift", timestamp, {
+    approvedHash,
+    currentHash,
+    diff: generateDiff(paths.approved, paths.current),
+  });
+}
+
 /**
  * Check integrity of a single file against its approved version.
- * Compares file hashes and generates a diff if they differ.
- *
- * @param check - The integrity check definition with file path and severity
- * @param targetPath - The repository directory containing the file to check
- * @param approvedBasePath - The directory containing approved/golden files
- * @returns The integrity result with status, hashes, and optional diff
  */
 export function checkIntegrity(
   check: IntegrityCheck,
@@ -65,75 +116,23 @@ export function checkIntegrity(
   approvedBasePath: string
 ): IntegrityResult {
   const timestamp = new Date().toISOString();
+  const paths = resolvePaths(check, targetPath, approvedBasePath);
 
-  // Safely join paths to prevent path traversal attacks
-  let currentFilePath: string;
-  let approvedFilePath: string;
-  try {
-    currentFilePath = safeJoinPath(targetPath, check.file);
-    approvedFilePath = safeJoinPath(approvedBasePath, check.approved);
-  } catch (error) {
-    if (error instanceof PathTraversalError) {
-      return {
-        file: check.file,
-        status: "error",
-        severity: check.severity,
-        error: `Security error: ${error.message}`,
-        timestamp,
-      };
-    }
-    throw error;
+  if ("error" in paths) {
+    return buildResult(check, "error", timestamp, { error: paths.error });
   }
-
-  // Check if approved file exists
-  if (!existsSync(approvedFilePath)) {
-    return {
-      file: check.file,
-      status: "error",
-      severity: check.severity,
+  if (!existsSync(paths.approved)) {
+    return buildResult(check, "error", timestamp, {
       error: `Approved file not found: ${check.approved}`,
-      timestamp,
-    };
+    });
+  }
+  if (!existsSync(paths.current)) {
+    return buildResult(check, "missing", timestamp, {
+      approvedHash: hashFile(paths.approved),
+    });
   }
 
-  // Check if current file exists
-  if (!existsSync(currentFilePath)) {
-    return {
-      file: check.file,
-      status: "missing",
-      severity: check.severity,
-      approvedHash: hashFile(approvedFilePath),
-      timestamp,
-    };
-  }
-
-  // Compare hashes
-  const approvedHash = hashFile(approvedFilePath);
-  const currentHash = hashFile(currentFilePath);
-
-  if (approvedHash === currentHash) {
-    return {
-      file: check.file,
-      status: "match",
-      severity: check.severity,
-      approvedHash,
-      currentHash,
-      timestamp,
-    };
-  }
-
-  // Files differ - generate diff
-  const diff = generateDiff(approvedFilePath, currentFilePath);
-
-  return {
-    file: check.file,
-    status: "drift",
-    severity: check.severity,
-    approvedHash,
-    currentHash,
-    diff,
-    timestamp,
-  };
+  return compareFiles(check, paths, timestamp);
 }
 
 /**
