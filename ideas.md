@@ -36,6 +36,13 @@ Future directions for drift-toolkit.
 - Backlog items not triaged in 6+ months
 - Orphan tickets (no assignee, no project)
 
+### CI Performance
+- Slow GitHub Actions workflows (total duration)
+- Slowest individual steps/jobs
+- Workflows with no caching
+- Redundant dependency installs
+- Workflows running unnecessarily (on every push vs. PR only)
+
 ---
 
 ## Infra
