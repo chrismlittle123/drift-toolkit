@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.3
+
+### Minor Changes
+
+- Add `if_file` for file existence conditions (replaces deprecated `if`)
+- Add `if_command` for shell command conditions (run scan only if command exits 0)
+
 ## 0.0.2
 
 ### Patch Changes
