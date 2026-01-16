@@ -185,7 +185,8 @@ Find new files that may need protection.
 Run arbitrary shell commands against repositories.
 
 - **Custom commands**: Run any shell command (npm audit, test scripts, etc.)
-- **Skip conditions**: Only run if specific files exist (`if: package.json` or `if: [file1, file2]`)
+- **File conditions**: Only run if specific files exist (`if_file: package.json` or `if_file: [file1, file2]`)
+- **Command conditions**: Only run if a shell command succeeds (`if_command: "grep -q 'tier: internal' repo-metadata.yml"`)
 - **Tier filtering**: Only run for repos with specific tiers (`tiers: [production]`)
 - **Timeout support**: Configure per-scan timeouts (default: 60 seconds)
 - **Exit code detection**: Pass/fail based on command exit code
@@ -374,18 +375,24 @@ scans:
   # Conditional scans (only run if file exists)
   - name: typescript-check
     command: npm run typecheck
-    if: tsconfig.json
+    if_file: tsconfig.json
 
   # Multiple file conditions (all must exist)
   - name: lint-check
     command: npm run lint
-    if: [package.json, .eslintrc.js]
+    if_file: [package.json, .eslintrc.js]
+
+  # Command conditions (only run if command succeeds)
+  - name: internal-gitignore
+    description: Internal repos must have .gitignore
+    command: test -f .gitignore
+    if_command: "grep -q 'tier: internal' repo-metadata.yml"
 
   # Tier-specific scans with severity
   - name: security-audit
     description: Check for known security vulnerabilities
     command: npm audit --audit-level=high
-    if: package.json
+    if_file: package.json
     tiers: [production]
     severity: critical
     timeout: 120

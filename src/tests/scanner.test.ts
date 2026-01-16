@@ -150,6 +150,116 @@ describe("scan runner", () => {
     expect(result.stdout).toBe("padded");
   });
 
+  describe("if_file conditions", () => {
+    it("should skip when if_file does not exist", () => {
+      const result = runScan(
+        {
+          name: "if-file-test",
+          command: "echo hello",
+          if_file: "nonexistent.txt",
+        },
+        testDir
+      );
+
+      expect(result.status).toBe("skip");
+      expect(result.skippedReason).toContain("file not found");
+    });
+
+    it("should run when if_file exists", () => {
+      writeFileSync(join(testDir, "if-file-exists.txt"), "content");
+
+      const result = runScan(
+        {
+          name: "if-file-test",
+          command: "echo found",
+          if_file: "if-file-exists.txt",
+        },
+        testDir
+      );
+
+      expect(result.status).toBe("pass");
+      expect(result.stdout).toBe("found");
+    });
+
+    it("should handle array of files for if_file", () => {
+      writeFileSync(join(testDir, "if-file-a.txt"), "content");
+      writeFileSync(join(testDir, "if-file-b.txt"), "content");
+
+      const result = runScan(
+        {
+          name: "if-file-array",
+          command: "echo success",
+          if_file: ["if-file-a.txt", "if-file-b.txt"],
+        },
+        testDir
+      );
+
+      expect(result.status).toBe("pass");
+    });
+  });
+
+  describe("if_command conditions", () => {
+    it("should skip when if_command fails", () => {
+      const result = runScan(
+        {
+          name: "if-command-fail",
+          command: "echo should not run",
+          if_command: "exit 1",
+        },
+        testDir
+      );
+
+      expect(result.status).toBe("skip");
+      expect(result.skippedReason).toContain("condition failed");
+    });
+
+    it("should run when if_command succeeds", () => {
+      const result = runScan(
+        {
+          name: "if-command-pass",
+          command: "echo success",
+          if_command: "exit 0",
+        },
+        testDir
+      );
+
+      expect(result.status).toBe("pass");
+      expect(result.stdout).toBe("success");
+    });
+
+    it("should run if_command with shell features", () => {
+      writeFileSync(join(testDir, "metadata.yml"), "tier: internal\n");
+
+      const result = runScan(
+        {
+          name: "grep-condition",
+          command: "echo matched",
+          if_command: "grep -q 'tier: internal' metadata.yml",
+        },
+        testDir
+      );
+
+      expect(result.status).toBe("pass");
+      expect(result.stdout).toBe("matched");
+    });
+
+    it("should skip when grep condition fails", () => {
+      writeFileSync(join(testDir, "metadata2.yml"), "tier: production\n");
+
+      const result = runScan(
+        {
+          name: "grep-condition-fail",
+          command: "echo should not run",
+          if_command: "grep -q 'tier: internal' metadata2.yml",
+        },
+        testDir
+      );
+
+      expect(result.status).toBe("skip");
+      expect(result.skippedReason).toContain("condition failed");
+    });
+  });
+
   describe("tier-based conditions", () => {
     it("should skip when repo tier not in scan tiers", () => {
       const result = runScan(

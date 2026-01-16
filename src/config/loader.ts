@@ -100,7 +100,9 @@ const SCAN_DEFINITION_SCHEMA = z.object({
   name: z.string().min(1, "scan name is required"),
   description: z.string().optional(),
   command: z.string().min(1, "command is required"),
-  if: z.union([z.string(), z.array(z.string())]).optional(),
+  if: z.union([z.string(), z.array(z.string())]).optional(), // deprecated
+  if_file: z.union([z.string(), z.array(z.string())]).optional(),
+  if_command: z.string().optional(),
   tiers: z.array(z.string()).optional(),
   outputFormat: z.enum(["json", "text", "exitcode"]).optional(),
   severity: SEVERITY_SCHEMA.optional(),
