@@ -24,10 +24,10 @@ drift infra report       # Infra health summary
 
 ### Migration from Current Commands
 
-| Current | New |
-|---------|-----|
+| Current      | New               |
+| ------------ | ----------------- |
 | `drift scan` | `drift code scan` |
-| `drift fix` | `drift code fix` |
+| `drift fix`  | `drift code fix`  |
 
 ### Config File Structure
 
@@ -68,22 +68,26 @@ infra:
 ### Implementation Phases
 
 **Phase 1: Restructure CLI (breaking change)**
+
 - Move `scan` → `drift code scan`
 - Move `fix` → `drift code fix`
 - Update config schema to nest under `code:`
 
 **Phase 2: Code domain enhancements**
+
 - Tech debt scanning (TODO/FIXME age, eslint-disable counts)
 - Branch activity checks
 - `drift code report` command
 
 **Phase 3: Process domain**
+
 - Documentation checks
 - Ownership validation
 - CI performance analysis
 - Linear integration (optional)
 
 **Phase 4: Infra domain**
+
 - Terraform state drift
 - Cloud resource scanning (AWS/GCP)
 - Secret rotation checks
