@@ -593,22 +593,22 @@ const allScanResults = runAllScans(
 
 ## Implementation Status
 
-| Feature                         | Status      |
-| ------------------------------- | ----------- |
+| Feature                                   | Status      |
+| ----------------------------------------- | ----------- |
 | CLI (`drift code scan`, `drift code fix`) | ✅ Complete |
-| Integrity checks                | ✅ Complete |
-| File discovery                  | ✅ Complete |
-| Custom scans                    | ✅ Complete |
-| Conditional scans (if)          | ✅ Complete |
-| Tier-based filtering            | ✅ Complete |
-| Org/user scanning               | ✅ Complete |
-| Parallel repo scanning          | ✅ Complete |
-| GitHub Action                   | ✅ Complete |
-| Dashboard                       | ✅ Complete |
-| JSON output                     | ✅ Complete |
-| Security validation             | ✅ Complete |
-| Rate limit handling             | ✅ Complete |
-| Metadata schema validation      | ✅ Complete |
+| Integrity checks                          | ✅ Complete |
+| File discovery                            | ✅ Complete |
+| Custom scans                              | ✅ Complete |
+| Conditional scans (if)                    | ✅ Complete |
+| Tier-based filtering                      | ✅ Complete |
+| Org/user scanning                         | ✅ Complete |
+| Parallel repo scanning                    | ✅ Complete |
+| GitHub Action                             | ✅ Complete |
+| Dashboard                                 | ✅ Complete |
+| JSON output                               | ✅ Complete |
+| Security validation                       | ✅ Complete |
+| Rate limit handling                       | ✅ Complete |
+| Metadata schema validation                | ✅ Complete |
 
 ---
 
