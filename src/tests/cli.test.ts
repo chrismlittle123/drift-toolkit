@@ -42,11 +42,11 @@ describe("cli", () => {
       expect(stdout).toContain("Monitor repository standards");
     });
 
-    it("should show available commands", () => {
+    it("should show code command group", () => {
       const { stdout } = runCli("--help");
 
-      expect(stdout).toContain("scan");
-      expect(stdout).toContain("Scan repositories for drift");
+      expect(stdout).toContain("code");
+      expect(stdout).toContain("Code quality and integrity");
     });
   });
 
@@ -60,9 +60,19 @@ describe("cli", () => {
     });
   });
 
-  describe("scan command", () => {
+  describe("code command", () => {
+    it("should show code subcommands in help", () => {
+      const { exitCode, stdout } = runCli("code --help");
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("scan");
+      expect(stdout).toContain("fix");
+    });
+  });
+
+  describe("code scan command", () => {
     it("should show scan command help", () => {
-      const { exitCode, stdout } = runCli("scan --help");
+      const { exitCode, stdout } = runCli("code scan --help");
 
       expect(exitCode).toBe(0);
       expect(stdout).toContain("--path");
@@ -75,27 +85,39 @@ describe("cli", () => {
     });
 
     it("should show path option description", () => {
-      const { stdout } = runCli("scan --help");
+      const { stdout } = runCli("code scan --help");
 
       expect(stdout).toContain("Local directory to scan");
     });
 
     it("should show org option description", () => {
-      const { stdout } = runCli("scan --help");
+      const { stdout } = runCli("code scan --help");
 
       expect(stdout).toContain("GitHub organization or username to scan");
     });
 
     it("should show config-repo default value", () => {
-      const { stdout } = runCli("scan --help");
+      const { stdout } = runCli("code scan --help");
 
       expect(stdout).toContain("drift-config");
     });
 
     it("should mention GITHUB_TOKEN env var", () => {
-      const { stdout } = runCli("scan --help");
+      const { stdout } = runCli("code scan --help");
 
       expect(stdout).toContain("GITHUB_TOKEN");
+    });
+  });
+
+  describe("code fix command", () => {
+    it("should show fix command help", () => {
+      const { exitCode, stdout } = runCli("code fix --help");
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain("--path");
+      expect(stdout).toContain("--config");
+      expect(stdout).toContain("--file");
+      expect(stdout).toContain("--dry-run");
     });
   });
 

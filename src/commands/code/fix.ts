@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join, dirname, resolve } from "path";
-import { loadConfig, findConfigPath } from "../config/loader.js";
-import { checkIntegrity } from "../integrity/checker.js";
-import type { IntegrityResult } from "../types.js";
+import { loadConfig, findConfigPath } from "../../config/loader.js";
+import { checkIntegrity } from "../../integrity/checker.js";
+import type { IntegrityResult } from "../../types.js";
 
 export interface FixOptions {
   path?: string;

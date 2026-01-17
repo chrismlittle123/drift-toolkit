@@ -64,6 +64,14 @@ export interface MetadataSchema {
 
 // Configuration
 
+export interface CodeDomainConfig {
+  integrity?: {
+    protected?: IntegrityCheck[];
+    discover?: DiscoveryPattern[];
+  };
+  scans?: ScanDefinition[];
+}
+
 export interface DriftConfig {
   schema?: MetadataSchema;
   integrity?: {
@@ -72,6 +80,7 @@ export interface DriftConfig {
   };
   scans?: ScanDefinition[];
   exclude?: string[]; // repo name patterns to exclude from org scanning
+  code?: CodeDomainConfig; // new nested format
 }
 
 // Overall results

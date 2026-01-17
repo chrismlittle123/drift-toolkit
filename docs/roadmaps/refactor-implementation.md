@@ -102,17 +102,17 @@ Both formats are supported for backward compatibility.
 
 ## Implementation Phases
 
-### Phase 1: CLI Restructure ⬅️ **Current**
+### Phase 1: CLI Restructure ✅ **Complete**
 
-- [ ] Create `src/commands/code/` directory
-- [ ] Move `scan.ts` → `src/commands/code/scan.ts`
-- [ ] Move `fix.ts` → `src/commands/code/fix.ts`
-- [ ] Create `src/commands/code/index.ts` command group
-- [ ] Update `src/cli.ts` to use nested commands
-- [ ] Update config loader for nested `code:` section
-- [ ] Update types for domain-aware config
-- [ ] Update all tests
-- [ ] Bump to v1.0.0 (breaking change)
+- [x] Create `src/commands/code/` directory
+- [x] Move `scan.ts` → `src/commands/code/scan.ts`
+- [x] Move `fix.ts` → `src/commands/code/fix.ts`
+- [x] Create `src/commands/code/index.ts` command group
+- [x] Update `src/cli.ts` to use nested commands
+- [x] Update config loader for nested `code:` section
+- [x] Update types for domain-aware config
+- [x] Update all tests
+- [x] Bump to v1.0.0 (breaking change)
 
 ### Phase 2: Code Domain Enhancements
 

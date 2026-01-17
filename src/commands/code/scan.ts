@@ -5,17 +5,17 @@ import {
   findConfigPath,
   loadRepoMetadata,
   validateConfigSecurity,
-} from "../config/loader.js";
+} from "../../config/loader.js";
 import {
   checkAllIntegrity,
   discoverFiles,
   formatIntegrityResult,
-} from "../integrity/checker.js";
-import { runAllScans, formatScanResult } from "../scanner/runner.js";
-import { scanOrg } from "../github/org-scanner.js";
-import { version } from "../version.js";
-import type { DriftResults } from "../types.js";
-import { DISPLAY_LIMITS } from "../constants.js";
+} from "../../integrity/checker.js";
+import { runAllScans, formatScanResult } from "../../scanner/runner.js";
+import { scanOrg } from "../../github/org-scanner.js";
+import { version } from "../../version.js";
+import type { DriftResults } from "../../types.js";
+import { DISPLAY_LIMITS } from "../../constants.js";
 import {
   printWarnings,
   COLORS,
@@ -23,7 +23,7 @@ import {
   createEmptyResults,
   updateIntegritySummary,
   updateScanSummary,
-} from "../utils/index.js";
+} from "../../utils/index.js";
 
 export interface ScanOptions {
   org?: string;

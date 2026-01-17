@@ -33,7 +33,7 @@ describe("fix command", () => {
     stderr: string;
     exitCode: number;
   } {
-    const cmd = `node ${join(process.cwd(), "dist", "cli.js")} fix ${args.join(" ")}`;
+    const cmd = `node ${join(process.cwd(), "dist", "cli.js")} code fix ${args.join(" ")}`;
     try {
       const stdout = execSync(cmd, {
         encoding: "utf-8",

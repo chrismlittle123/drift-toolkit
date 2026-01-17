@@ -21,7 +21,7 @@ describe("scan command", () => {
   });
 
   it("should show help message when no config found", async () => {
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: "/tmp" });
     expect(mockLog).toHaveBeenCalledWith(
       expect.stringContaining("No drift.config.yaml found")
@@ -29,7 +29,7 @@ describe("scan command", () => {
   });
 
   it("should error on non-existent path", async () => {
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: "/nonexistent/path/that/does/not/exist" });
     expect(mockError).toHaveBeenCalledWith(
       expect.stringContaining("Path does not exist")
@@ -38,7 +38,7 @@ describe("scan command", () => {
   });
 
   it("should error when --repo is used without --org", async () => {
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ repo: "some-repo" });
     expect(mockError).toHaveBeenCalledWith(
       expect.stringContaining("--repo requires --org")
@@ -75,7 +75,7 @@ describe("scan output formatting", () => {
       "scans:\n  - name: test\n    command: echo hello"
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -89,7 +89,7 @@ describe("scan output formatting", () => {
       "scans:\n  - name: echo-test\n    command: echo hello"
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -104,7 +104,7 @@ describe("scan output formatting", () => {
       "scans:\n  - name: fail-test\n    command: exit 42"
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -127,7 +127,7 @@ describe("scan output formatting", () => {
       severity: high`
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -149,7 +149,7 @@ describe("scan output formatting", () => {
       severity: critical`
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -171,7 +171,7 @@ describe("scan output formatting", () => {
       severity: high`
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -186,7 +186,7 @@ describe("scan output formatting", () => {
       "scans:\n  - name: test1\n    command: echo 1\n  - name: test2\n    command: echo 2"
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -201,7 +201,7 @@ describe("scan output formatting", () => {
       "scans:\n  - name: pass-test\n    command: echo success"
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");
@@ -214,7 +214,7 @@ describe("scan output formatting", () => {
       "scans:\n  - name: json-test\n    command: echo json"
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir, json: true });
 
     const output = logOutput.join("\n");
@@ -235,7 +235,7 @@ describe("scan output formatting", () => {
     if: nonexistent-file.txt`
     );
 
-    const { scan } = await import("../commands/scan.js");
+    const { scan } = await import("../commands/code/scan.js");
     await scan({ path: tempDir });
 
     const output = logOutput.join("\n");

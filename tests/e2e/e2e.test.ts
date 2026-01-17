@@ -28,7 +28,7 @@ function runDrift(
   const fullPath = resolve(PROJECTS_PATH, projectPath);
   try {
     const output = execSync(
-      `node ${CLI_PATH} scan --path "${fullPath}" ${args}`,
+      `node ${CLI_PATH} code scan --path "${fullPath}" ${args}`,
       {
         encoding: "utf-8",
         env: { ...process.env, FORCE_COLOR: "0" },
@@ -302,14 +302,14 @@ describe("e2e tests", () => {
 // =====================
 describe("org scanning cli", () => {
   it("errors when --repo is used without --org", () => {
-    const { exitCode, output } = runDriftRaw("scan --repo some-repo");
+    const { exitCode, output } = runDriftRaw("code scan --repo some-repo");
 
     expect(exitCode).toBe(1);
     expect(output).toContain("--repo requires --org");
   });
 
   it("shows help with --help flag", () => {
-    const { exitCode, output } = runDriftRaw("scan --help");
+    const { exitCode, output } = runDriftRaw("code scan --help");
 
     expect(exitCode).toBe(0);
     expect(output).toContain("--org");
@@ -320,7 +320,7 @@ describe("org scanning cli", () => {
   });
 
   it("shows config-repo default in help", () => {
-    const { exitCode, output } = runDriftRaw("scan --help");
+    const { exitCode, output } = runDriftRaw("code scan --help");
 
     expect(exitCode).toBe(0);
     expect(output).toContain("drift-config");

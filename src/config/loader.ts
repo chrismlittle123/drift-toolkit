@@ -2,7 +2,12 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { parse } from "yaml";
 import { z } from "zod";
-import type { DriftConfig, MetadataSchema, RepoContext } from "../types.js";
+import type {
+  CodeDomainConfig,
+  DriftConfig,
+  MetadataSchema,
+  RepoContext,
+} from "../types.js";
 import { FILE_PATTERNS, DISPLAY_LIMITS } from "../constants.js";
 
 /**
@@ -61,6 +66,7 @@ export function validateScanCommand(command: string): string[] {
 
 /**
  * Validate all scan commands in a config and return warnings.
+ * Checks both legacy flat format and new nested code: format.
  *
  * @param config - The drift configuration to validate
  * @returns Array of warning messages for dangerous commands
@@ -68,6 +74,7 @@ export function validateScanCommand(command: string): string[] {
 export function validateConfigSecurity(config: DriftConfig): string[] {
   const warnings: string[] = [];
 
+  // Check legacy flat format
   if (config.scans) {
     for (const scan of config.scans) {
       const commandWarnings = validateScanCommand(scan.command);
@@ -77,7 +84,41 @@ export function validateConfigSecurity(config: DriftConfig): string[] {
     }
   }
 
+  // Check new nested code: format
+  if (config.code?.scans) {
+    for (const scan of config.code.scans) {
+      const commandWarnings = validateScanCommand(scan.command);
+      for (const warning of commandWarnings) {
+        warnings.push(`[code.${scan.name}] ${warning}`);
+      }
+    }
+  }
+
   return warnings;
+}
+
+/**
+ * Get the code domain config from a DriftConfig.
+ * Normalizes both legacy flat format and new nested format.
+ *
+ * @param config - The drift configuration
+ * @returns CodeDomainConfig from either format, or null if no config
+ */
+export function getCodeConfig(config: DriftConfig): CodeDomainConfig | null {
+  // New nested format takes precedence
+  if (config.code) {
+    return config.code;
+  }
+
+  // Legacy flat format - construct CodeDomainConfig from flat structure
+  if (config.integrity || config.scans) {
+    return {
+      integrity: config.integrity,
+      scans: config.scans,
+    };
+  }
+
+  return null;
 }
 
 /**
@@ -116,16 +157,26 @@ const METADATA_SCHEMA_SCHEMA = z
   })
   .optional();
 
+const INTEGRITY_SCHEMA = z
+  .object({
+    protected: z.array(INTEGRITY_CHECK_SCHEMA).optional(),
+    discover: z.array(DISCOVERY_PATTERN_SCHEMA).optional(),
+  })
+  .optional();
+
+const CODE_DOMAIN_SCHEMA = z
+  .object({
+    integrity: INTEGRITY_SCHEMA,
+    scans: z.array(SCAN_DEFINITION_SCHEMA).optional(),
+  })
+  .optional();
+
 const DRIFT_CONFIG_SCHEMA = z.object({
   schema: METADATA_SCHEMA_SCHEMA,
-  integrity: z
-    .object({
-      protected: z.array(INTEGRITY_CHECK_SCHEMA).optional(),
-      discover: z.array(DISCOVERY_PATTERN_SCHEMA).optional(),
-    })
-    .optional(),
+  integrity: INTEGRITY_SCHEMA,
   scans: z.array(SCAN_DEFINITION_SCHEMA).optional(),
   exclude: z.array(z.string()).optional(),
+  code: CODE_DOMAIN_SCHEMA,
 });
 
 /**
