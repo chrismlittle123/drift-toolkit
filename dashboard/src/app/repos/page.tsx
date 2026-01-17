@@ -1,5 +1,5 @@
-import { Header } from "@/components/Header";
-import { RepoTable } from "@/components/RepoTable";
+import { Header } from "@/components/header";
+import { RepoTable } from "@/components/repo-table";
 import { loadScanData } from "@/lib/data";
 
 export default function ReposPage() {

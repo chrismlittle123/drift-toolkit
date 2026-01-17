@@ -6,9 +6,9 @@ import {
   Shield,
   Clock,
 } from "lucide-react";
-import { Header } from "@/components/Header";
-import { StatsCard } from "@/components/StatsCard";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Header } from "@/components/header";
+import { StatsCard } from "@/components/stats-card";
+import { StatusBadge } from "@/components/status-badge";
 import { loadScanData, formatTimestamp, calculatePercentage } from "@/lib/data";
 
 export default function Dashboard() {

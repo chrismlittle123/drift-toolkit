@@ -26,11 +26,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
-        run: npm run typecheck
+      - name: Install check-my-toolkit
+        run: npm install -g check-my-toolkit@latest
 
-      - name: Lint
-        run: npm run lint
+      - name: Run cm code audit
+        run: cm code audit
+
+      - name: Run cm code check
+        run: cm code check
+
+      - name: Run cm process check
+        run: cm process check
 
       - name: Build
         run: npm run build

@@ -14,8 +14,8 @@ import {
   Play,
   SkipForward,
 } from "lucide-react";
-import { Header } from "@/components/Header";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Header } from "@/components/header";
+import { StatusBadge } from "@/components/status-badge";
 import { loadScanData } from "@/lib/data";
 import type { IntegrityResult, ScanResult } from "@/lib/types";
 

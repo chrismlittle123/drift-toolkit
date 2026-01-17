@@ -16,18 +16,16 @@ enabled = true
 extensions = ["ts", "tsx"]
 file_case = "kebab-case"
 folder_case = "kebab-case"
-exclude = ["tests/e2e/projects/**"]
+exclude = ["tests/e2e/projects/**", "dashboard/src/app/**/\\[*\\]/**"]
 
 # Process domain - workflow validation
 [process.hooks]
 enabled = true
 require_husky = true
-require_hooks = ["pre-commit", "pre-push", "commit-msg"]
+require_hooks = ["pre-push"]
 
 [process.hooks.commands]
-pre-commit = ["lint-staged"]
-pre-push = ["process check-branch", "npm run typecheck", "npm run lint", "npm run build"]
-commit-msg = ["process check-commit"]
+pre-push = ["process check-branch"]
 
 [process.ci]
 enabled = true
