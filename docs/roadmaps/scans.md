@@ -69,7 +69,7 @@ integrity:
 ### Output
 
 ```
-$ drift scan --org my-org
+$ drift code scan --org my-org
 
 INTEGRITY CHECK RESULTS
 =======================

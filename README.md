@@ -75,7 +75,7 @@ npm install -g drift-toolkit
 Or run directly with npx:
 
 ```bash
-npx drift-toolkit scan --org myorg
+npx drift-toolkit code scan --org myorg
 ```
 
 ## Quick Start
@@ -127,19 +127,19 @@ scans:
 
 ```bash
 # Scan all repos in your org
-drift scan --org myorg
+drift code scan --org myorg
 
 # Scan a specific repo
-drift scan --org myorg --repo api-service
+drift code scan --org myorg --repo api-service
 
 # Output as JSON
-drift scan --org myorg --json
+drift code scan --org myorg --json
 ```
 
 ## CLI Usage
 
 ```
-drift scan [options]
+drift code scan [options]
 
 Options:
   -o, --org <org>            GitHub organization to scan
@@ -149,6 +149,15 @@ Options:
   -p, --path <path>          Local directory to scan
   -c, --config <config>      Path to drift.config.yaml
   --json                     Output results as JSON
+  -h, --help                 Show help
+
+drift code fix [options]
+
+Options:
+  -p, --path <path>          Local directory to fix (default: current directory)
+  -c, --config <config>      Path to drift.config.yaml
+  -f, --file <file>          Fix a specific file only
+  -n, --dry-run              Show what would be fixed without making changes
   -h, --help                 Show help
 ```
 

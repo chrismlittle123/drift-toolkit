@@ -32,7 +32,7 @@
 npm install -g drift-toolkit
 
 # Or run directly with npx
-npx drift-toolkit scan
+npx drift-toolkit code scan
 
 # Or add to your project
 npm install drift-toolkit
@@ -63,7 +63,7 @@ mkdir -p approved
 cp .github/workflows/ci.yml approved/ci.yml
 
 # 3. Run the scan
-drift scan
+drift code scan
 ```
 
 ### Organization Scanning
@@ -74,35 +74,35 @@ drift scan
 #    - approved/ directory (golden files)
 
 # 2. Scan your entire organization
-drift scan --org my-org --github-token $GITHUB_TOKEN
+drift code scan --org my-org --github-token $GITHUB_TOKEN
 ```
 
 ---
 
 ## CLI Commands
 
-### `drift scan`
+### `drift code scan`
 
 Scan repositories for drift and compliance issues.
 
 ```bash
 # Scan current directory
-drift scan
+drift code scan
 
 # Scan a specific directory
-drift scan --path /path/to/repo
+drift code scan --path /path/to/repo
 
 # Scan entire GitHub org
-drift scan --org my-org
+drift code scan --org my-org
 
 # Scan a single repo in an org
-drift scan --org my-org --repo my-repo
+drift code scan --org my-org --repo my-repo
 
 # Scan a GitHub user's repos
-drift scan --org my-username
+drift code scan --org my-username
 
 # Output as JSON
-drift scan --json
+drift code scan --json
 ```
 
 **Options:**
@@ -116,22 +116,22 @@ drift scan --json
 | `--github-token <token>` | GitHub token (or set GITHUB_TOKEN env var) |
 | `--json` | Output results as JSON |
 
-### `drift fix`
+### `drift code fix`
 
 Fix drifted files by syncing from approved sources.
 
 ```bash
 # Fix all drifted files
-drift fix
+drift code fix
 
 # Preview what would be fixed (dry run)
-drift fix --dry-run
+drift code fix --dry-run
 
 # Fix a specific file only
-drift fix --file .github/workflows/ci.yml
+drift code fix --file .github/workflows/ci.yml
 
 # Fix using a specific config
-drift fix --config /path/to/drift.config.yaml
+drift code fix --config /path/to/drift.config.yaml
 ```
 
 **Options:**
@@ -157,7 +157,7 @@ integrity:
       approved: approved/ci.yml
 ```
 
-Running `drift fix` will copy `/projects/my-repo/approved/ci.yml` to `/projects/my-repo/.github/workflows/ci.yml`.
+Running `drift code fix` will copy `/projects/my-repo/approved/ci.yml` to `/projects/my-repo/.github/workflows/ci.yml`.
 
 ---
 
@@ -281,7 +281,7 @@ Web UI built with Next.js 15, React 19, and Tailwind CSS for exploring scan resu
 
 ```bash
 # Generate scan results as JSON
-drift scan --org my-org --github-token $GITHUB_TOKEN --json > dashboard/public/scan-results.json
+drift code scan --org my-org --github-token $GITHUB_TOKEN --json > dashboard/public/scan-results.json
 
 # Start development server
 cd dashboard
@@ -595,7 +595,7 @@ const allScanResults = runAllScans(
 
 | Feature                         | Status      |
 | ------------------------------- | ----------- |
-| CLI (`drift scan`, `drift fix`) | ✅ Complete |
+| CLI (`drift code scan`, `drift code fix`) | ✅ Complete |
 | Integrity checks                | ✅ Complete |
 | File discovery                  | ✅ Complete |
 | Custom scans                    | ✅ Complete |

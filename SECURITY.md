@@ -13,7 +13,7 @@ Drift executes shell commands defined in configuration files (`drift.config.yaml
    - Enable branch protection rules
    - Require code review for configuration changes
 
-3. **Local Scanning**: When running `drift scan` locally, the configuration is loaded from the current directory or a specified path. Be cautious when running drift in untrusted directories.
+3. **Local Scanning**: When running `drift code scan` locally, the configuration is loaded from the current directory or a specified path. Be cautious when running drift in untrusted directories.
 
 ### Command Execution
 
