@@ -6,21 +6,30 @@ import { DISPLAY_LIMITS } from "../constants.js";
  * These patterns are checked against scan commands to warn users.
  */
 const DANGEROUS_COMMAND_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  { pattern: /\brm\s+(-[rf]+\s+)*\//, reason: "removes files from root directory" },
+  {
+    pattern: /\brm\s+(-[rf]+\s+)*\//,
+    reason: "removes files from root directory",
+  },
   { pattern: /\brm\s+-[rf]*\s+\*/, reason: "recursive deletion with wildcard" },
   { pattern: />\s*\/etc\//, reason: "writes to system configuration" },
   { pattern: /\bcurl\b.*\|\s*(bash|sh|zsh)/, reason: "executes remote code" },
   { pattern: /\bwget\b.*\|\s*(bash|sh|zsh)/, reason: "executes remote code" },
   { pattern: /\beval\s+\$/, reason: "evaluates dynamic code" },
   { pattern: /\b(sudo|doas)\s+/, reason: "runs with elevated privileges" },
-  { pattern: /\bchmod\s+[0-7]*777\b/, reason: "sets world-writable permissions" },
+  {
+    pattern: /\bchmod\s+[0-7]*777\b/,
+    reason: "sets world-writable permissions",
+  },
   { pattern: /\bchown\s+root\b/, reason: "changes ownership to root" },
   { pattern: />\s*\/dev\/(sda|hda|nvme)/, reason: "writes to block device" },
   { pattern: /\bmkfs\b/, reason: "formats filesystem" },
   { pattern: /\bdd\s+.*of=\/dev\//, reason: "writes directly to device" },
   { pattern: /\/\/[^/]*:[^/]*@/, reason: "may contain embedded credentials" },
   { pattern: /\bpasswd\b|\bshadow\b/, reason: "accesses password files" },
-  { pattern: /\bnc\s+-[el]/, reason: "opens network listener (potential backdoor)" },
+  {
+    pattern: /\bnc\s+-[el]/,
+    reason: "opens network listener (potential backdoor)",
+  },
   { pattern: /\breverse.{0,20}shell/i, reason: "potential reverse shell" },
 ];
 
