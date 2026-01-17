@@ -34,10 +34,10 @@ drift infra report       # Infra health summary
 
 ## Migration Guide
 
-| Current Command | New Command |
-|-----------------|-------------|
-| `drift scan` | `drift code scan` |
-| `drift fix` | `drift code fix` |
+| Current Command | New Command       |
+| --------------- | ----------------- |
+| `drift scan`    | `drift code scan` |
+| `drift fix`     | `drift code fix`  |
 
 ---
 
@@ -192,7 +192,9 @@ program
   .version(version);
 
 // Domain command groups
-const codeCmd = program.command("code").description("Code quality and integrity");
+const codeCmd = program
+  .command("code")
+  .description("Code quality and integrity");
 const processCmd = program.command("process").description("Process compliance");
 const infraCmd = program.command("infra").description("Infrastructure drift");
 
