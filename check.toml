@@ -7,3 +7,54 @@ rulesets = ["typescript-internal"]
 [code.linting.eslint]
 enabled = true
 files = ["src/**/*.ts"]
+
+# Naming conventions (override to exclude test fixtures)
+[code.naming]
+enabled = true
+
+[[code.naming.rules]]
+extensions = ["ts", "tsx"]
+file_case = "kebab-case"
+folder_case = "kebab-case"
+exclude = ["tests/e2e/projects/**"]
+
+# Process domain - workflow validation
+[process.hooks]
+enabled = true
+require_husky = true
+require_hooks = ["pre-commit", "pre-push", "commit-msg"]
+
+[process.hooks.commands]
+pre-commit = ["lint-staged"]
+pre-push = ["process check-branch", "npm run typecheck", "npm run lint", "npm run build"]
+commit-msg = ["process check-commit"]
+
+[process.ci]
+enabled = true
+require_workflows = ["ci.yml", "release.yml", "pr-checks.yml"]
+
+[process.ci.jobs]
+"ci.yml" = ["test"]
+
+[process.ci.actions]
+"ci.yml" = ["actions/checkout", "actions/setup-node"]
+
+[process.branches]
+enabled = true
+pattern = "^(feature|fix|hotfix|docs)/v[0-9]+\\.[0-9]+\\.[0-9]+/[a-z0-9-]+$"
+exclude = ["main"]
+
+[process.commits]
+enabled = true
+types = ["feat", "fix", "chore", "docs", "refactor"]
+require_scope = false
+max_subject_length = 100
+
+[process.changesets]
+enabled = true
+require_for_paths = ["src/**"]
+exclude_paths = ["**/*.test.ts", "**/*.md"]
+validate_format = true
+require_description = true
+
+
