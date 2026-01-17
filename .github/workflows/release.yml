@@ -22,15 +22,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
-          cache: "npm"
+          cache: "pnpm"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check for changesets
         id: check
@@ -50,7 +55,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # Run changeset version (bumps version, updates CHANGELOG, removes changesets)
-          npm run version
+          pnpm run version
 
           # Commit the version bump
           git add -A
@@ -58,8 +63,8 @@ jobs:
           git push
 
           # Build and publish
-          npm run build
-          npx changeset publish
+          pnpm run build
+          pnpm exec changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
@@ -106,8 +111,8 @@ jobs:
 
           if [ "$VERSION" != "$NPM_VERSION" ]; then
             echo "Publishing unpublished version $VERSION"
-            npm run build
-            npx changeset publish
+            pnpm run build
+            pnpm exec changeset publish
 
             # Create tag if it doesn't exist
             if ! git rev-parse "v$VERSION" >/dev/null 2>&1; then

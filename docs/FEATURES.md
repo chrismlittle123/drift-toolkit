@@ -285,13 +285,13 @@ drift code scan --org my-org --github-token $GITHUB_TOKEN --json > dashboard/pub
 
 # Start development server
 cd dashboard
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 # Open http://localhost:3000
 
 # Or build for production
-npm run build
-npm start
+pnpm run build
+pnpm start
 ```
 
 **Features:**

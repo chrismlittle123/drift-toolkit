@@ -1,5 +1,0 @@
-# Discovery project - should find new workflow files
-integrity:
-  discover:
-    - pattern: ".github/workflows/*.yml"
-      suggestion: "Workflow files should be reviewed for protection"

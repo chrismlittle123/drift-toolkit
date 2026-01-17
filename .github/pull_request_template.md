@@ -21,11 +21,11 @@
 ## Checklist
 
 - [ ] I have tested my changes locally
-- [ ] Tests pass (`npm test`)
-- [ ] Type check passes (`npm run typecheck`)
-- [ ] Lint passes (`npm run lint`)
-- [ ] Build succeeds (`npm run build`)
-- [ ] I have added a changeset if this PR includes user-facing changes (`npx changeset`)
+- [ ] Tests pass (`pnpm test`)
+- [ ] Type check passes (`pnpm run typecheck`)
+- [ ] Lint passes (`pnpm run lint`)
+- [ ] Build succeeds (`pnpm run build`)
+- [ ] I have added a changeset if this PR includes user-facing changes (`pnpm exec changeset`)
 
 ## Related Issues
 

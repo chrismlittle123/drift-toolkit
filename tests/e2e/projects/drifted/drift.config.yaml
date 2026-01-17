@@ -1,6 +1,0 @@
-# Drifted project - CODEOWNERS has unauthorized changes
-integrity:
-  protected:
-    - file: CODEOWNERS
-      approved: approved/CODEOWNERS
-      severity: critical
