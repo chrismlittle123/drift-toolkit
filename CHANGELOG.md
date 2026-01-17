@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.0.0
+
+### Breaking Changes
+
+- **CLI Restructure**: Commands are now nested under domain groups
+  - `drift scan` → `drift code scan`
+  - `drift fix` → `drift code fix`
+
+### Features
+
+- **Domain-based command structure**: Prepares for future `drift process` and `drift infra` domains
+- **Nested config format**: New `code:` section for domain-aware configuration (legacy flat format still supported)
+- **CodeDomainConfig type**: New type for domain-specific configuration
+
+### Changes
+
+- Add `src/commands/code/` directory structure
+- Add `getCodeConfig()` helper for normalizing config formats
+- Extract security validation to `src/config/security.ts`
+- Update all tests for new command structure
+
 ## 0.0.4
 
 ### Patch Changes

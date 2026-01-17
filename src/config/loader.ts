@@ -8,101 +8,14 @@ import type {
   MetadataSchema,
   RepoContext,
 } from "../types.js";
-import { FILE_PATTERNS, DISPLAY_LIMITS } from "../constants.js";
+import { FILE_PATTERNS } from "../constants.js";
 
-/**
- * Dangerous command patterns that indicate potential security risks.
- * These patterns are checked against scan commands to warn users.
- */
-const DANGEROUS_COMMAND_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  {
-    pattern: /\brm\s+(-[rf]+\s+)*\//,
-    reason: "removes files from root directory",
-  },
-  { pattern: /\brm\s+-[rf]*\s+\*/, reason: "recursive deletion with wildcard" },
-  { pattern: />\s*\/etc\//, reason: "writes to system configuration" },
-  { pattern: /\bcurl\b.*\|\s*(bash|sh|zsh)/, reason: "executes remote code" },
-  { pattern: /\bwget\b.*\|\s*(bash|sh|zsh)/, reason: "executes remote code" },
-  { pattern: /\beval\s+\$/, reason: "evaluates dynamic code" },
-  { pattern: /\b(sudo|doas)\s+/, reason: "runs with elevated privileges" },
-  {
-    pattern: /\bchmod\s+[0-7]*777\b/,
-    reason: "sets world-writable permissions",
-  },
-  { pattern: /\bchown\s+root\b/, reason: "changes ownership to root" },
-  { pattern: />\s*\/dev\/(sda|hda|nvme)/, reason: "writes to block device" },
-  { pattern: /\bmkfs\b/, reason: "formats filesystem" },
-  { pattern: /\bdd\s+.*of=\/dev\//, reason: "writes directly to device" },
-  { pattern: /\/\/[^/]*:[^/]*@/, reason: "may contain embedded credentials" },
-  { pattern: /\bpasswd\b|\bshadow\b/, reason: "accesses password files" },
-  {
-    pattern: /\bnc\s+-[el]/,
-    reason: "opens network listener (potential backdoor)",
-  },
-  { pattern: /\breverse.{0,20}shell/i, reason: "potential reverse shell" },
-];
-
-/**
- * Check if a command contains potentially dangerous patterns.
- * Returns an array of warning messages for any matches.
- *
- * @param command - The shell command to validate
- * @returns Array of warning messages (empty if command appears safe)
- */
-export function validateScanCommand(command: string): string[] {
-  const warnings: string[] = [];
-
-  for (const { pattern, reason } of DANGEROUS_COMMAND_PATTERNS) {
-    if (pattern.test(command)) {
-      const preview = command.slice(0, DISPLAY_LIMITS.commandPreview);
-      const truncated =
-        command.length > DISPLAY_LIMITS.commandPreview ? "..." : "";
-      warnings.push(`Command "${preview}${truncated}" ${reason}`);
-    }
-  }
-
-  return warnings;
-}
-
-/**
- * Validate all scan commands in a config and return warnings.
- * Checks both legacy flat format and new nested code: format.
- *
- * @param config - The drift configuration to validate
- * @returns Array of warning messages for dangerous commands
- */
-export function validateConfigSecurity(config: DriftConfig): string[] {
-  const warnings: string[] = [];
-
-  // Check legacy flat format
-  if (config.scans) {
-    for (const scan of config.scans) {
-      const commandWarnings = validateScanCommand(scan.command);
-      for (const warning of commandWarnings) {
-        warnings.push(`[${scan.name}] ${warning}`);
-      }
-    }
-  }
-
-  // Check new nested code: format
-  if (config.code?.scans) {
-    for (const scan of config.code.scans) {
-      const commandWarnings = validateScanCommand(scan.command);
-      for (const warning of commandWarnings) {
-        warnings.push(`[code.${scan.name}] ${warning}`);
-      }
-    }
-  }
-
-  return warnings;
-}
+// Re-export security functions for backward compatibility
+export { validateScanCommand, validateConfigSecurity } from "./security.js";
 
 /**
  * Get the code domain config from a DriftConfig.
  * Normalizes both legacy flat format and new nested format.
- *
- * @param config - The drift configuration
- * @returns CodeDomainConfig from either format, or null if no config
  */
 export function getCodeConfig(config: DriftConfig): CodeDomainConfig | null {
   // New nested format takes precedence
@@ -183,9 +96,6 @@ const DRIFT_CONFIG_SCHEMA = z.object({
  * Load drift configuration from the specified path.
  * Searches for config files in order: drift.config.yaml, drift.config.yml, drift.yaml.
  * Validates the config against the Zod schema to catch errors early.
- *
- * @param basePath - The directory path to search for config files
- * @returns The parsed and validated config, or null if not found or invalid
  */
 export function loadConfig(basePath: string): DriftConfig | null {
   for (const filename of FILE_PATTERNS.config) {
@@ -195,7 +105,6 @@ export function loadConfig(basePath: string): DriftConfig | null {
         const content = readFileSync(configPath, "utf-8");
         const parsed: unknown = parse(content);
 
-        // Validate against schema
         const result = DRIFT_CONFIG_SCHEMA.safeParse(parsed);
         if (!result.success) {
           const errors = result.error.issues
@@ -220,9 +129,6 @@ export function loadConfig(basePath: string): DriftConfig | null {
 /**
  * Find the config file path if it exists.
  * Searches for config files in order: drift.config.yaml, drift.config.yml, drift.yaml.
- *
- * @param basePath - The directory path to search for config files
- * @returns The absolute path to the config file, or null if not found
  */
 export function findConfigPath(basePath: string): string | null {
   for (const filename of FILE_PATTERNS.config) {
@@ -234,9 +140,7 @@ export function findConfigPath(basePath: string): string | null {
   return null;
 }
 
-/**
- * Validation result for repo metadata
- */
+/** Validation result for repo metadata */
 export interface MetadataValidationResult {
   valid: boolean;
   warnings: string[];
@@ -245,10 +149,6 @@ export interface MetadataValidationResult {
 /**
  * Validate repo metadata against a schema definition.
  * Returns warnings for unknown tier/team values.
- *
- * @param metadata - The repo context to validate
- * @param schema - The schema definition from drift.config.yaml
- * @returns Validation result with any warnings
  */
 export function validateRepoMetadata(
   metadata: RepoContext,
@@ -257,11 +157,9 @@ export function validateRepoMetadata(
   const warnings: string[] = [];
 
   if (!schema) {
-    // No schema defined, everything is valid
     return { valid: true, warnings: [] };
   }
 
-  // Validate tier
   if (metadata.tier && schema.tiers) {
     if (!schema.tiers.includes(metadata.tier)) {
       warnings.push(
@@ -270,7 +168,6 @@ export function validateRepoMetadata(
     }
   }
 
-  // Validate team
   if (metadata.team && schema.teams) {
     if (!schema.teams.includes(metadata.team)) {
       warnings.push(
@@ -279,20 +176,12 @@ export function validateRepoMetadata(
     }
   }
 
-  return {
-    valid: warnings.length === 0,
-    warnings,
-  };
+  return { valid: warnings.length === 0, warnings };
 }
 
 /**
  * Load repository metadata from repo-metadata.yaml or repo-metadata.yml.
  * Used for conditional scan filtering by tier/team.
- * Optionally validates against a schema if provided.
- *
- * @param repoPath - The repository root directory to search for metadata
- * @param schema - Optional schema to validate against
- * @returns The parsed metadata context with validation warnings, or null if not found
  */
 export function loadRepoMetadata(
   repoPath: string,
@@ -305,7 +194,6 @@ export function loadRepoMetadata(
         const content = readFileSync(metadataPath, "utf-8");
         const parsed = parse(content) as Record<string, unknown> | null;
 
-        // Handle empty or non-object metadata files
         if (!parsed || typeof parsed !== "object") {
           return null;
         }
@@ -316,15 +204,9 @@ export function loadRepoMetadata(
           metadata: parsed,
         };
 
-        // Validate against config schema if provided
         const validation = validateRepoMetadata(context, schema);
-
-        return {
-          context,
-          warnings: validation.warnings,
-        };
+        return { context, warnings: validation.warnings };
       } catch {
-        // Parse error - return null but don't fail the scan
         return null;
       }
     }

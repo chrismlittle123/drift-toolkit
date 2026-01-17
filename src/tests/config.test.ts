@@ -226,7 +226,11 @@ describe("getCodeConfig", () => {
         scans: [{ name: "test", command: "echo test" }],
         integrity: {
           protected: [
-            { file: "test.txt", approved: "approved/test.txt", severity: "high" as const },
+            {
+              file: "test.txt",
+              approved: "approved/test.txt",
+              severity: "high" as const,
+            },
           ],
         },
       },
@@ -243,7 +247,11 @@ describe("getCodeConfig", () => {
       scans: [{ name: "test", command: "echo test" }],
       integrity: {
         protected: [
-          { file: "test.txt", approved: "approved/test.txt", severity: "high" as const },
+          {
+            file: "test.txt",
+            approved: "approved/test.txt",
+            severity: "high" as const,
+          },
         ],
       },
     };
