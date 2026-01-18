@@ -4,16 +4,16 @@
 
 ## The Ecosystem
 
-drift-toolkit is part of a three-package ecosystem:
+drift-toolkit is part of a two-package ecosystem:
 
 | Package | Purpose | Timing |
 |---------|---------|--------|
-| `check-my-toolkit` | Defines standards (check.toml), enforces at PR time | Preventative |
-| `infra-toolkit` | Generates expected infra state from CDK code | Generative |
-| `drift-toolkit` | Detects drift from standards, surfaces violations | Detective |
+| `check-my-toolkit` | Defines and validates all standards (code, process, infra) | Preventative |
+| `drift-toolkit` | Scheduled enforcement layer, surfaces violations | Detective |
 
-**check-my-toolkit** is the preventative guard at PR/push time.
-**drift-toolkit** is the detective/audit layer that catches what slips through.
+**check-my-toolkit** is the preventative guard at PR/push time. It defines standards in check.toml and validates them, including infrastructure validation via CDK.
+
+**drift-toolkit** is the detective/audit layer that catches what slips through and surfaces violations as GitHub issues.
 
 ---
 
@@ -83,21 +83,27 @@ Detects infrastructure drift between declared state and actual AWS resources.
 - Attribute drift (e.g., security group rules changed, IAM policies modified)
 
 **How it works:**
-1. Reads infra manifest from application repo (in `infra/` directory)
-2. Calls `infra-toolkit` to get expected state from CDK code
-3. Uses AWS CLI/API to query actual resource state
-4. Compares expected vs actual across all 3 AWS accounts (dev/staging/prod)
-5. Creates GitHub issue listing all infrastructure discrepancies
+1. Reads `[infra]` config from check.toml
+2. Calls `check-my-toolkit infra validate` to compare CDK code vs AWS state
+3. Parses validation results
+4. Creates GitHub issue listing all infrastructure discrepancies
 
-**Manifest structure:**
-- Lives in application repo
-- Maps CDK TypeScript file paths to AWS ARNs
-- Dynamic TypeScript config that can be compiled and verified against actual CDK code
-- One repo maps to 3 AWS accounts
+**Infra config in check.toml:**
+```toml
+[infra]
+enabled = true
+path = "./infra"
+stacks = ["MyAppStack"]
 
-**Integration with infra-toolkit:**
-- `infra-toolkit` handles CDK parsing, CloudFormation synthesis, ARN resolution
-- `drift-toolkit` consumes the output and compares to actual AWS state
+[infra.accounts]
+dev = "111111111111"
+staging = "222222222222"
+prod = "333333333333"
+```
+
+**Integration with check-my-toolkit:**
+- check-my-toolkit handles CDK parsing, CloudFormation synthesis, AWS API queries
+- drift-toolkit calls `cmt infra validate --json` and surfaces results as GitHub issues
 
 ---
 
@@ -190,6 +196,7 @@ drift-toolkit depends on check-my-toolkit as an npm dependency.
 **CLI commands used:**
 - `check-my-toolkit projects detect` - discover projects/packages in monorepos
 - `check-my-toolkit dependencies` (planned) - get list of tracked files per check
+- `check-my-toolkit infra validate` - validate infrastructure against AWS
 
 **check.toml structure:**
 ```toml
@@ -200,22 +207,16 @@ enabled = true
 [prettier]
 enabled = true
 # dependencies = [".prettierrc", ".prettierignore"]
+
+[infra]
+enabled = true
+path = "./infra"
+stacks = ["MyAppStack"]
 ```
 
 Each check in check.toml declares its dependency files. drift tracks these files for changes.
 
----
-
-## Integration with infra-toolkit
-
-drift-toolkit calls infra-toolkit to:
-1. Parse CDK code in `infra/` directory
-2. Generate expected resource manifest
-3. Resolve ARNs from deployed CloudFormation stacks
-
-**Planned infra-toolkit commands:**
-- `infra-toolkit manifest generate` - generate manifest from CDK code
-- `infra-toolkit manifest validate` - compare manifest to actual AWS state
+For infra, check-my-toolkit handles all CDK parsing, CloudFormation synthesis, and AWS API queries. drift-toolkit simply calls the validation command and surfaces results.
 
 ---
 
