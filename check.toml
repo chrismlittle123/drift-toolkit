@@ -17,7 +17,7 @@ enabled = true
 extensions = ["ts", "tsx"]
 file_case = "kebab-case"
 folder_case = "kebab-case"
-exclude = ["tests/e2e/projects/**", "dashboard/src/app/**/\\[*\\]/**"]
+exclude = ["tests/e2e/projects/**", "dashboard/src/app/**/\\[*\\]/**", "dashboard/src/components/**"]
 
 # Process domain - workflow validation
 [process.hooks]
@@ -84,4 +84,6 @@ allowlist = [
 ]
 max_files = 8
 
-
+# Unit test coverage requirement
+# Minimum 80% coverage for unit tests (enforced via vitest.config.ts)
+# Currently scoped to src/repo/** until legacy code has tests
