@@ -1,6 +1,6 @@
 {
   "name": "drift-toolkit",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Detect when code or infrastructure drifts from your standards.",
   "type": "module",
   "main": "dist/index.js",

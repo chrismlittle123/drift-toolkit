@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2
+
+### Patch Changes
+
+- 5af92b6: Fix ESLint no-undef error for Buffer in checker.test.ts
+
 ## 1.4.1
 
 ### Patch Changes
