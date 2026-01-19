@@ -181,3 +181,28 @@ Excluded: `main`, `docs/*`
 - DO add new issues to the project board
 - DO assign issues to milestones for release planning
 - DO use milestone and issue numbers in branch names (e.g., `feature/v1.2.0/123/description`)
+
+## Release Process
+
+When asked to "release", "publish", or "create a release", ALWAYS follow this process:
+
+1. **Create Issue** - Document the changes being released
+2. **Create Branch** - Use format: `<type>/<milestone>/<issue-number>/<description>`
+3. **Commit Changes** - Include `Closes #<issue>` in commit message
+4. **Add Changeset** - Create `.changeset/<name>.md` with patch/minor/major bump
+5. **Push & Create PR** - Push branch and create PR linking the issue
+6. **Merge PR** - Use squash merge via `gh pr merge <number> --squash --delete-branch`
+7. **Wait for CI** - Changesets workflow automatically:
+   - Runs `changeset version` to bump package.json
+   - Creates "chore: release" commit
+   - Creates git tag (e.g., `v1.3.4`)
+   - Creates GitHub release
+   - Publishes to npm
+8. **Verify** - Check `gh release list` and `npm view drift-toolkit version`
+
+### NEVER do these manually:
+
+- Commit directly to main
+- Create version tags before CI runs
+- Run `npm publish` manually (CI handles this)
+- Skip creating an issue/PR for changes
