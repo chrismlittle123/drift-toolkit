@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.1
+
+### Patch Changes
+
+- 8d9ed32: Security hardening and test coverage improvements
+  - Fix token exposure by using GIT_ASKPASS instead of URL embedding
+  - Add safeJoinPath to config loader to prevent path traversal
+  - Replace execSync with execFileSync via shared git utility
+  - Add try-finally cleanup for guaranteed temp directory removal
+  - Add verbose logging option for skipped directories
+  - Set 80% coverage thresholds in vitest config
+  - Add tests for client.ts, loader.ts, and scan.ts (69 new tests)
+
 ## 1.3.0
 
 ### Minor Changes
