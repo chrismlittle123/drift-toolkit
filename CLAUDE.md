@@ -5,6 +5,7 @@
 This project uses a split workflow for planning and tracking:
 
 ### Spec Files (`docs/specs/*.md`) - Design Reference
+
 - Document HOW features should work
 - CLI interfaces, schemas, issue formats
 - Architecture decisions, risks, success criteria
@@ -12,12 +13,14 @@ This project uses a split workflow for planning and tracking:
 - **Do NOT add task lists here** - use GitHub Issues instead
 
 ### GitHub Issues - Task Tracking
+
 - Track WHAT needs to be done
 - Create issues just-in-time (one milestone at a time)
 - Use epics to group related tasks
 - Reference spec files for design details
 
 ### GitHub Project Board
+
 - View: https://github.com/users/chrismlittle123/projects/1
 - Columns: Backlog, Ready, Done
 - Use for progress visibility
@@ -64,6 +67,7 @@ EOF
 ```
 
 Then add it to the project board:
+
 ```bash
 gh project item-add 1 --owner chrismlittle123 --url <issue-url>
 ```
@@ -79,6 +83,7 @@ gh issue create --repo chrismlittle123/check-my-toolkit \
 ```
 
 Then add to project board:
+
 ```bash
 gh project item-add 1 --owner chrismlittle123 --url <issue-url>
 ```
@@ -86,6 +91,7 @@ gh project item-add 1 --owner chrismlittle123 --url <issue-url>
 ### Step 4: Update Epic with Sub-Issue Links
 
 Edit the epic to link the sub-issues in its task list:
+
 ```bash
 gh issue edit <epic-number> --repo chrismlittle123/check-my-toolkit --body "..."
 ```
@@ -94,13 +100,13 @@ gh issue edit <epic-number> --repo chrismlittle123/check-my-toolkit --body "..."
 
 ### How Milestones and Changesets Work Together
 
-| Tool | Purpose | When Used |
-|------|---------|-----------|
+| Tool           | Purpose                       | When Used                 |
+| -------------- | ----------------------------- | ------------------------- |
 | **Milestones** | Plan what goes into a release | Before/during development |
-| **Changesets** | Determine version number | When PR is ready |
+| **Changesets** | Determine version number      | When PR is ready          |
 
-**Milestones** = your *intent* ("I want these features in v1.2.0")
-**Changesets** = the *mechanism* (calculates actual version from bump types)
+**Milestones** = your _intent_ ("I want these features in v1.2.0")
+**Changesets** = the _mechanism_ (calculates actual version from bump types)
 
 ### Creating a Milestone
 

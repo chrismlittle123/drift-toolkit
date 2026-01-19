@@ -65,7 +65,4 @@ export {
   compareCheckTomlFiles,
 } from "./repo/index.js";
 
-export type {
-  CheckTomlChanges,
-  ChangeDetectionOptions,
-} from "./repo/index.js";
+export type { CheckTomlChanges, ChangeDetectionOptions } from "./repo/index.js";

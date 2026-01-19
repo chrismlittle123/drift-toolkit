@@ -95,7 +95,9 @@ describe("change tracking", () => {
       git("add check.toml");
       git("commit -m 'Add check.toml'");
 
-      const result = detectCheckTomlChanges(testDir, { baseCommit: baseCommit as string });
+      const result = detectCheckTomlChanges(testDir, {
+        baseCommit: baseCommit as string,
+      });
       expect(result.hasChanges).toBe(true);
       expect(result.added).toEqual(["check.toml"]);
       expect(result.modified).toEqual([]);
@@ -116,7 +118,9 @@ describe("change tracking", () => {
       git("add check.toml");
       git("commit -m 'Update check.toml'");
 
-      const result = detectCheckTomlChanges(testDir, { baseCommit: baseCommit as string });
+      const result = detectCheckTomlChanges(testDir, {
+        baseCommit: baseCommit as string,
+      });
       expect(result.hasChanges).toBe(true);
       expect(result.added).toEqual([]);
       expect(result.modified).toEqual(["check.toml"]);
@@ -136,7 +140,9 @@ describe("change tracking", () => {
       git("rm check.toml");
       git("commit -m 'Remove check.toml'");
 
-      const result = detectCheckTomlChanges(testDir, { baseCommit: baseCommit as string });
+      const result = detectCheckTomlChanges(testDir, {
+        baseCommit: baseCommit as string,
+      });
       expect(result.hasChanges).toBe(true);
       expect(result.added).toEqual([]);
       expect(result.modified).toEqual([]);
@@ -155,7 +161,9 @@ describe("change tracking", () => {
       git("add package.json");
       git("commit -m 'Add package.json'");
 
-      const result = detectCheckTomlChanges(testDir, { baseCommit: baseCommit as string });
+      const result = detectCheckTomlChanges(testDir, {
+        baseCommit: baseCommit as string,
+      });
       expect(result.hasChanges).toBe(false);
     });
 
@@ -172,7 +180,9 @@ describe("change tracking", () => {
       git("add packages/api/check.toml");
       git("commit -m 'Add nested check.toml'");
 
-      const result = detectCheckTomlChanges(testDir, { baseCommit: baseCommit as string });
+      const result = detectCheckTomlChanges(testDir, {
+        baseCommit: baseCommit as string,
+      });
       expect(result.hasChanges).toBe(true);
       expect(result.added).toEqual(["packages/api/check.toml"]);
     });
@@ -214,7 +224,10 @@ describe("change tracking", () => {
       git("commit -m 'Add nested'");
 
       // Check first commit only has one file
-      const filesAtFirst = getCheckTomlFilesAtCommit(testDir, firstCommit as string);
+      const filesAtFirst = getCheckTomlFilesAtCommit(
+        testDir,
+        firstCommit as string
+      );
       expect(filesAtFirst).toEqual(["check.toml"]);
 
       // HEAD has both
@@ -248,7 +261,11 @@ describe("change tracking", () => {
       git("add .");
       git("commit -m 'Multiple changes'");
 
-      const result = compareCheckTomlFiles(testDir, baseCommit as string, "HEAD");
+      const result = compareCheckTomlFiles(
+        testDir,
+        baseCommit as string,
+        "HEAD"
+      );
       expect(result.hasChanges).toBe(true);
       expect(result.added).toEqual(["packages/api/check.toml"]);
       expect(result.modified).toEqual(["check.toml"]);

@@ -98,6 +98,7 @@ const files = findCheckTomlFiles("/path/to/repo");
 ```
 
 **Types:**
+
 - `RepoTier`: `"production" | "internal" | "prototype"`
 - `RepoStatus`: `"active" | "pre-release" | "deprecated"`
 - `RepoMetadata`: Parsed metadata with tier, status, team, and raw fields
@@ -139,6 +140,7 @@ const diff = compareCheckTomlFiles("/path/to/repo", "main", "feature-branch");
 ```
 
 **Types:**
+
 - `CheckTomlChanges`: Result with added, modified, deleted arrays and hasChanges flag
 - `ChangeDetectionOptions`: Options for baseCommit and targetCommit
 
@@ -147,7 +149,11 @@ const diff = compareCheckTomlFiles("/path/to/repo", "main", "feature-branch");
 Compare files against approved versions to detect drift.
 
 ```typescript
-import { checkIntegrity, checkAllIntegrity, discoverFiles } from "drift-toolkit";
+import {
+  checkIntegrity,
+  checkAllIntegrity,
+  discoverFiles,
+} from "drift-toolkit";
 
 // Check a single file
 const result = checkIntegrity(
@@ -238,18 +244,18 @@ scans:
   - name: eslint
     description: Run ESLint
     command: npm run lint
-    if_file: package.json  # Skip if file doesn't exist
+    if_file: package.json # Skip if file doesn't exist
     severity: high
-    timeout: 120  # seconds
+    timeout: 120 # seconds
 
   - name: typescript
     command: npm run typecheck
     if_file: tsconfig.json
-    tiers: [production, internal]  # Only run on these tiers
+    tiers: [production, internal] # Only run on these tiers
 
   - name: security-audit
     command: npm audit
-    if_command: "test -f package-lock.json"  # Skip if command fails
+    if_command: "test -f package-lock.json" # Skip if command fails
 
 # Exclude repos from org-wide scanning (glob patterns)
 exclude:
@@ -262,9 +268,9 @@ exclude:
 Repository metadata file that defines tier and status.
 
 ```yaml
-tier: production  # production | internal | prototype
-status: active    # active | pre-release | deprecated
-team: platform    # optional team ownership
+tier: production # production | internal | prototype
+status: active # active | pre-release | deprecated
+team: platform # optional team ownership
 ```
 
 ---
@@ -276,19 +282,39 @@ team: platform    # optional team ownership
 export type { ScanDefinition, ScanResult } from "drift-toolkit";
 
 // Integrity types
-export type { IntegrityCheck, IntegrityResult, DiscoveryPattern, DiscoveryResult } from "drift-toolkit";
+export type {
+  IntegrityCheck,
+  IntegrityResult,
+  DiscoveryPattern,
+  DiscoveryResult,
+} from "drift-toolkit";
 
 // Config types
-export type { DriftConfig, CodeDomainConfig, MetadataSchema, RepoContext } from "drift-toolkit";
+export type {
+  DriftConfig,
+  CodeDomainConfig,
+  MetadataSchema,
+  RepoContext,
+} from "drift-toolkit";
 
 // Result types
-export type { DriftResults, OrgScanResults, RepoScanResult, OrgScanSummary } from "drift-toolkit";
+export type {
+  DriftResults,
+  OrgScanResults,
+  RepoScanResult,
+  OrgScanSummary,
+} from "drift-toolkit";
 
 // Severity levels
-export type { Severity } from "drift-toolkit";  // "critical" | "high" | "medium" | "low"
+export type { Severity } from "drift-toolkit"; // "critical" | "high" | "medium" | "low"
 
 // Repo detection types
-export type { RepoTier, RepoStatus, RepoMetadata, ScannabilityResult } from "drift-toolkit";
+export type {
+  RepoTier,
+  RepoStatus,
+  RepoMetadata,
+  ScannabilityResult,
+} from "drift-toolkit";
 
 // Change tracking types
 export type { CheckTomlChanges, ChangeDetectionOptions } from "drift-toolkit";
@@ -302,14 +328,14 @@ Available constants for integration:
 
 ```typescript
 import {
-  TIMEOUTS,      // { scanCommand: 60000, gitClone: 60000 }
-  BUFFERS,       // { scanOutput: 10MB, diffOutput: 1MB }
-  DISPLAY_LIMITS,// { diffLines: 20, commandPreview: 50 }
-  GITHUB_API,    // { baseUrl, version, perPage }
-  CONCURRENCY,   // { maxRepoScans: 5 }
-  DEFAULTS,      // { configRepo: "drift-config", scanTimeoutSeconds: 60 }
+  TIMEOUTS, // { scanCommand: 60000, gitClone: 60000 }
+  BUFFERS, // { scanOutput: 10MB, diffOutput: 1MB }
+  DISPLAY_LIMITS, // { diffLines: 20, commandPreview: 50 }
+  GITHUB_API, // { baseUrl, version, perPage }
+  CONCURRENCY, // { maxRepoScans: 5 }
+  DEFAULTS, // { configRepo: "drift-config", scanTimeoutSeconds: 60 }
   FILE_PATTERNS, // { config: [...], metadata: [...], checkToml: "check.toml" }
-  BRANCH_PATTERNS,// { types: [...], excluded: [...] }
+  BRANCH_PATTERNS, // { types: [...], excluded: [...] }
 } from "drift-toolkit/constants";
 ```
 

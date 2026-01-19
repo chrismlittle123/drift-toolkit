@@ -74,13 +74,3 @@ export const FILE_PATTERNS = {
   /** check-my-toolkit config file name */
   checkToml: "check.toml" as const,
 } as const;
-
-/**
- * Branch naming patterns for workflow validation
- */
-export const BRANCH_PATTERNS = {
-  /** Valid branch types */
-  types: ["feature", "fix", "hotfix", "docs"] as const,
-  /** Branches excluded from naming validation */
-  excluded: ["main", "docs/*"] as const,
-} as const;

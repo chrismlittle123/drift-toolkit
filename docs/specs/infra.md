@@ -12,21 +12,21 @@
 
 **Already exists in check-my-toolkit:**
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| `[infra.tagging]` schema | **Already exists** | AWS resource tagging validation |
-| `cm infra check` | **Already exists** | Run infrastructure tagging checks |
-| `cm infra audit` | **Already exists** | Verify infrastructure configs exist |
+| Feature                  | Status             | Description                         |
+| ------------------------ | ------------------ | ----------------------------------- |
+| `[infra.tagging]` schema | **Already exists** | AWS resource tagging validation     |
+| `cm infra check`         | **Already exists** | Run infrastructure tagging checks   |
+| `cm infra audit`         | **Already exists** | Verify infrastructure configs exist |
 
 **Missing features needed for drift:**
 
-| Feature | Status | Description |
-|---------|--------|-------------|
+| Feature               | Status      | Description                                      |
+| --------------------- | ----------- | ------------------------------------------------ |
 | Extended infra schema | Not started | `[infra]` section for stacks, accounts, CDK path |
-| `cm infra validate` | Not started | Validate CDK code vs actual AWS resources |
-| CDK synth integration | Not started | Parse CloudFormation templates from CDK |
-| Multi-account support | Not started | Query resources across dev/staging/prod |
-| Deployment tracking | Not started | Track last deployed commit per environment |
+| `cm infra validate`   | Not started | Validate CDK code vs actual AWS resources        |
+| CDK synth integration | Not started | Parse CloudFormation templates from CDK          |
+| Multi-account support | Not started | Query resources across dev/staging/prod          |
+| Deployment tracking   | Not started | Track last deployed commit per environment       |
 
 **Blocked until:** `cm infra validate` is available
 
@@ -40,12 +40,12 @@
 
 **Goal:** Define infrastructure configuration in check.toml
 
-| Task | Description |
-|------|-------------|
-| Basic infra schema | `[infra]` - enabled, path, stacks |
-| Account mapping | `[infra.accounts]` - dev, staging, prod account IDs |
-| Account auth config | Support profiles and role ARNs per account |
-| Tracked attributes | `[infra.tracked_attributes]` - attributes to monitor |
+| Task                | Description                                          |
+| ------------------- | ---------------------------------------------------- |
+| Basic infra schema  | `[infra]` - enabled, path, stacks                    |
+| Account mapping     | `[infra.accounts]` - dev, staging, prod account IDs  |
+| Account auth config | Support profiles and role ARNs per account           |
+| Tracked attributes  | `[infra.tracked_attributes]` - attributes to monitor |
 
 **Output:** Documented schema for infra configuration in check.toml
 
@@ -55,12 +55,12 @@
 
 **Goal:** Parse CDK code to determine expected resources
 
-| Task | Description |
-|------|-------------|
-| CDK synth wrapper | Run `cdk synth` and capture output |
-| Template parsing | Parse CloudFormation templates from cdk.out |
-| Resource extraction | Extract resource types, logical IDs |
-| Source mapping | Map resources back to TypeScript source files |
+| Task                | Description                                   |
+| ------------------- | --------------------------------------------- |
+| CDK synth wrapper   | Run `cdk synth` and capture output            |
+| Template parsing    | Parse CloudFormation templates from cdk.out   |
+| Resource extraction | Extract resource types, logical IDs           |
+| Source mapping      | Map resources back to TypeScript source files |
 
 **Output:** `cm infra validate` can determine expected resources from CDK
 
@@ -70,13 +70,13 @@
 
 **Goal:** Query AWS for actual resource state
 
-| Task | Description |
-|------|-------------|
-| CloudFormation queries | DescribeStacks, DescribeStackResources |
-| S3 queries | GetBucketPolicy, GetPublicAccessBlock, etc. |
-| Lambda queries | GetFunction, GetFunctionConfiguration |
-| IAM queries | GetRole, GetPolicy, GetRolePolicy |
-| Multi-account support | Assume roles or use profiles per account |
+| Task                   | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| CloudFormation queries | DescribeStacks, DescribeStackResources      |
+| S3 queries             | GetBucketPolicy, GetPublicAccessBlock, etc. |
+| Lambda queries         | GetFunction, GetFunctionConfiguration       |
+| IAM queries            | GetRole, GetPolicy, GetRolePolicy           |
+| Multi-account support  | Assume roles or use profiles per account    |
 
 **Output:** `cm infra validate` can query actual AWS state
 
@@ -86,12 +86,12 @@
 
 **Goal:** Compare expected vs actual resources
 
-| Task | Description |
-|------|-------------|
-| Missing detection | Resources in CDK but not in AWS |
-| Orphaned detection | Resources in AWS but not in CDK |
-| Basic comparison | Resource exists yes/no |
-| JSON output | Structured output for drift-toolkit |
+| Task               | Description                         |
+| ------------------ | ----------------------------------- |
+| Missing detection  | Resources in CDK but not in AWS     |
+| Orphaned detection | Resources in AWS but not in CDK     |
+| Basic comparison   | Resource exists yes/no              |
+| JSON output        | Structured output for drift-toolkit |
 
 **Output:** `cm infra validate --json` returns validation results
 
@@ -101,13 +101,13 @@
 
 **Goal:** Detect when resource attributes have changed
 
-| Task | Description |
-|------|-------------|
-| S3 attribute checks | PublicAccessBlock, BucketPolicy, Versioning |
-| Lambda attribute checks | Runtime, Timeout, VpcConfig |
-| IAM attribute checks | PolicyDocument, AssumeRolePolicyDocument |
-| Security group checks | IpPermissions, IpPermissionsEgress |
-| Configurable attributes | Use `[infra.tracked_attributes]` |
+| Task                    | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| S3 attribute checks     | PublicAccessBlock, BucketPolicy, Versioning |
+| Lambda attribute checks | Runtime, Timeout, VpcConfig                 |
+| IAM attribute checks    | PolicyDocument, AssumeRolePolicyDocument    |
+| Security group checks   | IpPermissions, IpPermissionsEgress          |
+| Configurable attributes | Use `[infra.tracked_attributes]`            |
 
 **Output:** Attribute drift detected and reported
 
@@ -117,12 +117,12 @@
 
 **Goal:** Only validate deployed resources per environment
 
-| Task | Description |
-|------|-------------|
-| Git tag tracking | Read deployed commit from git tags (e.g., `deployed-prod-abc123`) |
-| CloudFormation tag tracking | Read commit SHA from stack tags |
-| Environment filtering | Skip resources not deployed to target environment |
-| New resource handling | Don't report "missing in prod" for resources only in dev |
+| Task                        | Description                                                       |
+| --------------------------- | ----------------------------------------------------------------- |
+| Git tag tracking            | Read deployed commit from git tags (e.g., `deployed-prod-abc123`) |
+| CloudFormation tag tracking | Read commit SHA from stack tags                                   |
+| Environment filtering       | Skip resources not deployed to target environment                 |
+| New resource handling       | Don't report "missing in prod" for resources only in dev          |
 
 **Output:** Accurate drift detection based on actual deployments
 
@@ -132,12 +132,12 @@
 
 **Goal:** Integrate infra validation into drift-toolkit
 
-| Task | Description |
-|------|-------------|
+| Task                   | Description                                           |
+| ---------------------- | ----------------------------------------------------- |
 | Call cm infra validate | Shell out to `cm infra validate --json --account all` |
-| Parse results | Extract issues from JSON output |
-| Format issue | Convert to GitHub issue format |
-| All 3 accounts | Scan dev, staging, prod in one run |
+| Parse results          | Extract issues from JSON output                       |
+| Format issue           | Convert to GitHub issue format                        |
+| All 3 accounts         | Scan dev, staging, prod in one run                    |
 
 **Output:** `drift infra scan` creates issues for infra drift
 
@@ -147,13 +147,13 @@
 
 **Goal:** Handle different project statuses appropriately
 
-| Task | Description |
-|------|-------------|
-| Read status from metadata | Check `status` field in repo-metadata.yaml |
-| Pre-release handling | Skip prod account scanning (not yet deployed) |
-| Deprecated handling | Expect NO resources to exist in any account |
-| Cleanup issue | Create issue listing resources that should be deleted |
-| Stack deletion check | Verify CloudFormation stacks are deleted |
+| Task                      | Description                                           |
+| ------------------------- | ----------------------------------------------------- |
+| Read status from metadata | Check `status` field in repo-metadata.yaml            |
+| Pre-release handling      | Skip prod account scanning (not yet deployed)         |
+| Deprecated handling       | Expect NO resources to exist in any account           |
+| Cleanup issue             | Create issue listing resources that should be deleted |
+| Stack deletion check      | Verify CloudFormation stacks are deleted              |
 
 **Status behaviors:**
 | Status | Behavior |
@@ -170,12 +170,12 @@
 
 **Goal:** Scan all repos in an organization for infra drift
 
-| Task | Description |
-|------|-------------|
-| Filter repos with infra | Only scan repos with `[infra]` in check.toml |
-| AWS credentials | Require credentials with access to all accounts |
-| Parallel execution | Scan multiple repos (but rate limit AWS calls) |
-| Per-repo issues | Create separate issue in each repo |
+| Task                    | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| Filter repos with infra | Only scan repos with `[infra]` in check.toml    |
+| AWS credentials         | Require credentials with access to all accounts |
+| Parallel execution      | Scan multiple repos (but rate limit AWS calls)  |
+| Per-repo issues         | Create separate issue in each repo              |
 
 **Output:** `drift infra scan --org <org>` works end-to-end
 
@@ -185,12 +185,12 @@
 
 **Goal:** Run as scheduled GitHub Action
 
-| Task | Description |
-|------|-------------|
-| Action workflow | Add infra scan to drift-config workflow |
-| AWS credentials | Document IAM role/credentials setup |
-| Multi-account access | Configure role assumption or profiles |
-| Error handling | Handle permission errors gracefully |
+| Task                 | Description                             |
+| -------------------- | --------------------------------------- |
+| Action workflow      | Add infra scan to drift-config workflow |
+| AWS credentials      | Document IAM role/credentials setup     |
+| Multi-account access | Configure role assumption or profiles   |
+| Error handling       | Handle permission errors gracefully     |
 
 **Output:** Scheduled infra scans via GitHub Action
 
@@ -228,6 +228,7 @@ drift infra scan --dry-run
 **Labels:** `drift:infra`
 
 **Body:**
+
 ```markdown
 ## Infrastructure Drift Detected
 
@@ -237,35 +238,35 @@ Scan time: 2024-01-15 02:00 UTC
 ### Summary
 
 | Account | Found | Missing | Orphaned | Drifted |
-|---------|-------|---------|----------|---------|
-| dev | 15 | 0 | 1 | 0 |
-| staging | 15 | 0 | 0 | 0 |
-| prod | 14 | 1 | 0 | 2 |
+| ------- | ----- | ------- | -------- | ------- |
+| dev     | 15    | 0       | 1        | 0       |
+| staging | 15    | 0       | 0        | 0       |
+| prod    | 14    | 1       | 0        | 2       |
 
 ### Issues
 
 #### MISSING (prod)
 
-| Resource | Source | Stack |
-|----------|--------|-------|
+| Resource                          | Source                     | Stack      |
+| --------------------------------- | -------------------------- | ---------- |
 | `arn:aws:s3:::my-app-data-bucket` | infra/lib/storage-stack.ts | MyAppStack |
 
 **Action:** Deploy stack to prod or remove from CDK code
 
 #### ORPHANED (dev)
 
-| Resource | Last Modified |
-|----------|---------------|
-| `arn:aws:lambda:us-east-1:111...:function:old-handler` | 2024-01-10 |
+| Resource                                               | Last Modified |
+| ------------------------------------------------------ | ------------- |
+| `arn:aws:lambda:us-east-1:111...:function:old-handler` | 2024-01-10    |
 
 **Action:** Delete resource or add to CDK code
 
 #### DRIFTED (prod)
 
-| Resource | Attribute | Expected | Actual |
-|----------|-----------|----------|--------|
-| `arn:aws:s3:::my-app-logs` | PublicAccessBlockConfiguration.BlockPublicAcls | `true` | `false` |
-| `arn:aws:s3:::my-app-logs` | Versioning | `Enabled` | `Suspended` |
+| Resource                   | Attribute                                      | Expected  | Actual      |
+| -------------------------- | ---------------------------------------------- | --------- | ----------- |
+| `arn:aws:s3:::my-app-logs` | PublicAccessBlockConfiguration.BlockPublicAcls | `true`    | `false`     |
+| `arn:aws:s3:::my-app-logs` | Versioning                                     | `Enabled` | `Suspended` |
 
 **Action:** Redeploy stack or investigate manual changes
 
@@ -276,7 +277,8 @@ Scan time: 2024-01-15 02:00 UTC
 3. For drifted resources: `cdk deploy` to restore expected state
 
 ---
-*Created by drift-toolkit*
+
+_Created by drift-toolkit_
 ```
 
 ---
@@ -288,6 +290,7 @@ Scan time: 2024-01-15 02:00 UTC
 **Labels:** `drift:infra`, `deprecated`
 
 **Body:**
+
 ```markdown
 ## Deprecated Project Has Active Resources
 
@@ -298,15 +301,18 @@ Scan time: 2024-01-15 02:00 UTC
 ### Resources That Should Be Deleted
 
 #### dev (111111111111)
+
 - `arn:aws:s3:::old-service-data`
 - `arn:aws:lambda:us-east-1:111...:function:old-service-handler`
 - CloudFormation Stack: `OldServiceStack`
 
 #### staging (222222222222)
+
 - `arn:aws:s3:::old-service-data`
 - CloudFormation Stack: `OldServiceStack`
 
 #### prod (333333333333)
+
 - `arn:aws:s3:::old-service-data`
 - CloudFormation Stack: `OldServiceStack`
 
@@ -318,7 +324,8 @@ Scan time: 2024-01-15 02:00 UTC
 4. Archive the repository after cleanup
 
 ---
-*Created by drift-toolkit*
+
+_Created by drift-toolkit_
 ```
 
 ---
@@ -405,25 +412,25 @@ For multi-account, create this role in each account and allow assumption from th
 
 ## Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| check-my-toolkit | CLI (`cm`): `infra validate` command (to be built) |
-| @aws-sdk/* | AWS API queries (in check-my-toolkit) |
-| aws-cdk-lib | CDK synth (in check-my-toolkit) |
-| @octokit/rest | GitHub API for issue creation (existing in drift-toolkit) |
+| Package          | Purpose                                                   |
+| ---------------- | --------------------------------------------------------- |
+| check-my-toolkit | CLI (`cm`): `infra validate` command (to be built)        |
+| @aws-sdk/\*      | AWS API queries (in check-my-toolkit)                     |
+| aws-cdk-lib      | CDK synth (in check-my-toolkit)                           |
+| @octokit/rest    | GitHub API for issue creation (existing in drift-toolkit) |
 
 ---
 
 ## Risks & Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| AWS API rate limiting | Implement backoff, limit parallel account queries |
-| CDK synth failures | Cache last successful synth, report errors clearly |
-| Missing IAM permissions | Validate permissions upfront, skip inaccessible resources |
-| Large number of resources | Paginate API calls, summarize in issues |
-| Environment branch mismatch | Use deployment tracking via tags |
-| False positives for new resources | Track deployed commits, filter by deployment state |
+| Risk                              | Mitigation                                                |
+| --------------------------------- | --------------------------------------------------------- |
+| AWS API rate limiting             | Implement backoff, limit parallel account queries         |
+| CDK synth failures                | Cache last successful synth, report errors clearly        |
+| Missing IAM permissions           | Validate permissions upfront, skip inaccessible resources |
+| Large number of resources         | Paginate API calls, summarize in issues                   |
+| Environment branch mismatch       | Use deployment tracking via tags                          |
+| False positives for new resources | Track deployed commits, filter by deployment state        |
 
 ---
 
@@ -444,10 +451,10 @@ drift reads these tags to know what's deployed where.
 
 ```typescript
 // In CDK
-new Stack(app, 'MyStack', {
+new Stack(app, "MyStack", {
   tags: {
-    'drift:deployed-commit': process.env.GITHUB_SHA,
-    'drift:deployed-at': new Date().toISOString(),
+    "drift:deployed-commit": process.env.GITHUB_SHA,
+    "drift:deployed-at": new Date().toISOString(),
   },
 });
 ```
