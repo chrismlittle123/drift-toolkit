@@ -71,10 +71,10 @@ jobs:
     steps:
       - name: Check if PR has milestone
         env:
-          MILESTONE: ${{ github.event.pull_request.milestone }}
+          MILESTONE_TITLE: ${{ github.event.pull_request.milestone.title || '' }}
         run: |
-          if [ -n "$MILESTONE" ] && [ "$MILESTONE" != "null" ]; then
-            echo "✅ PR assigned to milestone: ${{ github.event.pull_request.milestone.title }}"
+          if [ -n "$MILESTONE_TITLE" ]; then
+            echo "✅ PR assigned to milestone: $MILESTONE_TITLE"
           else
             echo "⚠️ WARNING: PR has no milestone assigned"
             echo ""
