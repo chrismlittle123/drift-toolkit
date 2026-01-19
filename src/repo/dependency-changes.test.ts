@@ -45,7 +45,9 @@ describe("dependency-changes", () => {
   /**
    * Create mock dependencies result for testing without calling cm
    */
-  function createMockDependencies(overrides: Partial<GetDependenciesResult> = {}): GetDependenciesResult {
+  function createMockDependencies(
+    overrides: Partial<GetDependenciesResult> = {}
+  ): GetDependenciesResult {
     return {
       files: ["check.toml", "eslint.config.js", "tsconfig.json"],
       byCheck: {
@@ -208,7 +210,10 @@ describe("dependency-changes", () => {
       const baseCommit = getHeadCommit();
 
       // Add a file that matches glob pattern tsconfig.*.json
-      writeFileSync(join(testDir, "tsconfig.build.json"), '{"extends": "./tsconfig.json"}');
+      writeFileSync(
+        join(testDir, "tsconfig.build.json"),
+        '{"extends": "./tsconfig.json"}'
+      );
       git("add tsconfig.build.json");
       git("commit -m 'Add build tsconfig'");
 
@@ -236,7 +241,10 @@ describe("dependency-changes", () => {
 
       // Add workflow file
       mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
-      writeFileSync(join(testDir, ".github", "workflows", "ci.yml"), "name: CI");
+      writeFileSync(
+        join(testDir, ".github", "workflows", "ci.yml"),
+        "name: CI"
+      );
       git("add .");
       git("commit -m 'Add CI workflow'");
 
@@ -263,7 +271,12 @@ describe("dependency-changes", () => {
       git("commit -m 'Initial commit'");
 
       const deps = createMockDependencies({
-        files: ["check.toml", "eslint.config.js", "tsconfig.json", "prettier.config.js"],
+        files: [
+          "check.toml",
+          "eslint.config.js",
+          "tsconfig.json",
+          "prettier.config.js",
+        ],
       });
 
       const result = detectDependencyChanges(testDir, {
@@ -367,7 +380,9 @@ describe("dependency-changes", () => {
 
       // Renamed file that matches dependency pattern should be detected as "added"
       expect(result.hasChanges).toBe(true);
-      const eslintChange = result.changes.find((c) => c.file === "eslint.config.js");
+      const eslintChange = result.changes.find(
+        (c) => c.file === "eslint.config.js"
+      );
       expect(eslintChange).toBeDefined();
       expect(eslintChange?.status).toBe("added");
     });
