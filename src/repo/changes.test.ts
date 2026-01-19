@@ -345,6 +345,8 @@ describe("change tracking", () => {
 
     it("respects explicit branch parameter", () => {
       initGitRepo();
+      // Explicitly set branch name to 'main' (CI might default to 'master')
+      git("checkout -b main");
 
       // Use explicit dates to avoid timing issues in CI
       // Set date to 1 hour ago to ensure it's within the 24-hour window
