@@ -1,8 +1,8 @@
 # Extend from community registry
-# NOTE: Disabled until process.docs merging bug is fixed in check-my-toolkit
-# [extends]
-# registry = "github:chrismlittle123/check-my-toolkit-registry-community"
-# rulesets = ["typescript-internal"]
+
+[extends]
+registry = "github:chrismlittle123/check-my-toolkit-registry-community"
+rulesets = ["typescript-internal"]
 
 # Local overrides
 [code.linting.eslint]
@@ -76,15 +76,9 @@ allowlist = [
   "README.md",
   "CHANGELOG.md",
   "CLAUDE.md",
-  "dashboard/README.md",
   # Other allowed files
   "docs/VISION.md",
   "docs/FEATURES.md",
   ".changeset/README.md",
-  ".github/pull_request_template.md"
 ]
-max_files = 9
-
-# Unit test coverage requirement
-# Minimum 80% coverage for unit tests (enforced via vitest.config.ts)
-# Currently scoped to src/repo/** until legacy code has tests
+max_files = 5

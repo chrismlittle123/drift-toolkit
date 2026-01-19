@@ -12,9 +12,9 @@
 
 Features required from check-my-toolkit:
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| `cm dependencies` | Not started | Expose existing configFiles data via CLI as JSON |
+| Feature              | Status            | Description                                                      |
+| -------------------- | ----------------- | ---------------------------------------------------------------- |
+| `cm dependencies`    | Not started       | Expose existing configFiles data via CLI as JSON                 |
 | `cm projects detect` | **Already works** | Returns `status: "has-config"` or `"missing-config"` per project |
 
 **Blocked until:** `cm dependencies` is available
@@ -29,13 +29,13 @@ Features required from check-my-toolkit:
 
 **Goal:** Basic change detection for check.toml files
 
-| Task | Description |
-|------|-------------|
-| Strip existing code | Remove old drift.config.yaml logic, keep GitHub API client |
-| Repo detection | Implement detection based on repo-metadata.yaml + check.toml |
-| check.toml tracking | Always track check.toml files for changes |
+| Task                 | Description                                                           |
+| -------------------- | --------------------------------------------------------------------- |
+| Strip existing code  | Remove old drift.config.yaml logic, keep GitHub API client            |
+| Repo detection       | Implement detection based on repo-metadata.yaml + check.toml          |
+| check.toml tracking  | Always track check.toml files for changes                             |
 | Git change detection | Detect if check.toml changed since last scan (commits to main in 24h) |
-| Basic GitHub issue | Create issue when check.toml changes |
+| Basic GitHub issue   | Create issue when check.toml changes                                  |
 
 **Output:** `drift code scan` creates issues when check.toml files change
 
@@ -45,12 +45,12 @@ Features required from check-my-toolkit:
 
 **Goal:** Track all dependency files, not just check.toml
 
-| Task | Description |
-|------|-------------|
-| Integrate cm dependencies | Call `cm dependencies --json` to get tracked files |
+| Task                        | Description                                                 |
+| --------------------------- | ----------------------------------------------------------- |
+| Integrate cm dependencies   | Call `cm dependencies --json` to get tracked files          |
 | Dependency change detection | Detect changes to any tracked file (eslint, tsconfig, etc.) |
-| Diff generation | Include diff of changed files in GitHub issue |
-| Workflow tracking | Always track `.github/workflows/*.yml` changes |
+| Diff generation             | Include diff of changed files in GitHub issue               |
+| Workflow tracking           | Always track `.github/workflows/*.yml` changes              |
 
 **Output:** Issues include all changed config files with diffs
 
@@ -60,11 +60,11 @@ Features required from check-my-toolkit:
 
 **Goal:** Surface new projects that don't have check.toml
 
-| Task | Description |
-|------|-------------|
+| Task                         | Description                                                                      |
+| ---------------------------- | -------------------------------------------------------------------------------- |
 | Integrate cm projects detect | Call `cm projects detect --format json` and filter by `status: "missing-config"` |
-| New project issue | Create issue: "New project detected without standards" |
-| Monorepo support | Detect packages in monorepos without check.toml (already supported by cm) |
+| New project issue            | Create issue: "New project detected without standards"                           |
+| Monorepo support             | Detect packages in monorepos without check.toml (already supported by cm)        |
 
 **Output:** Issues created for projects missing standards
 
@@ -74,12 +74,12 @@ Features required from check-my-toolkit:
 
 **Goal:** Verify tier-appropriate rulesets are applied
 
-| Task | Description |
-|------|-------------|
-| Parse repo-metadata.yaml | Extract tier (production/internal/prototype) |
-| Parse check.toml extends | Extract rulesets being used |
-| Tier-ruleset validation | Verify production tier uses *-production rulesets |
-| Mismatch issue | Create issue if tier/ruleset mismatch detected |
+| Task                     | Description                                        |
+| ------------------------ | -------------------------------------------------- |
+| Parse repo-metadata.yaml | Extract tier (production/internal/prototype)       |
+| Parse check.toml extends | Extract rulesets being used                        |
+| Tier-ruleset validation  | Verify production tier uses \*-production rulesets |
+| Mismatch issue           | Create issue if tier/ruleset mismatch detected     |
 
 **Output:** Issues created for tier-ruleset mismatches
 
@@ -89,13 +89,13 @@ Features required from check-my-toolkit:
 
 **Goal:** Scan all repos in an organization
 
-| Task | Description |
-|------|-------------|
-| Repo discovery | List all repos in org via GitHub API |
+| Task               | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| Repo discovery     | List all repos in org via GitHub API                 |
 | Filter by metadata | Only scan repos with repo-metadata.yaml + check.toml |
-| Smart scanning | Only scan repos with commits to main in last 24h |
-| Parallel execution | Scan multiple repos concurrently |
-| Error handling | Continue scanning if one repo fails |
+| Smart scanning     | Only scan repos with commits to main in last 24h     |
+| Parallel execution | Scan multiple repos concurrently                     |
+| Error handling     | Continue scanning if one repo fails                  |
 
 **Output:** `drift code scan --org <org>` works end-to-end
 
@@ -105,12 +105,12 @@ Features required from check-my-toolkit:
 
 **Goal:** Run as scheduled GitHub Action
 
-| Task | Description |
-|------|-------------|
+| Task            | Description                                   |
+| --------------- | --------------------------------------------- |
 | Action workflow | Create example workflow for drift-config repo |
-| Manual trigger | Support workflow_dispatch for manual runs |
-| Credentials | Document GitHub token requirements |
-| Error reporting | Surface scan failures in Actions logs |
+| Manual trigger  | Support workflow_dispatch for manual runs     |
+| Credentials     | Document GitHub token requirements            |
+| Error reporting | Surface scan failures in Actions logs         |
 
 **Output:** drift-config repo can run scheduled code scans
 
@@ -144,7 +144,8 @@ drift code scan --dry-run
 **Labels:** `drift:code`
 
 **Body:**
-```markdown
+
+````markdown
 ## Configuration Drift Detected
 
 Repository: `myorg/my-app`
@@ -154,22 +155,28 @@ Commit: abc1234
 ### Changed Files
 
 #### check.toml
+
 ```diff
 - rulesets = ["typescript-internal"]
 + rulesets = ["typescript-production"]
 ```
+````
 
 #### .eslintrc.js
+
 ```diff
 - "no-console": "warn"
 + "no-console": "off"
 ```
 
 ### Action Required
+
 Review these configuration changes and close this issue once investigated.
 
 ---
-*Created by drift-toolkit*
+
+_Created by drift-toolkit_
+
 ```
 
 ---
@@ -203,3 +210,4 @@ Review these configuration changes and close this issue once investigated.
 - [ ] New projects without check.toml are surfaced
 - [ ] Tier-ruleset mismatches are detected
 - [ ] GitHub Action runs on schedule successfully
+```

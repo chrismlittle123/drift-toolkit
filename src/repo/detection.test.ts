@@ -17,7 +17,10 @@ describe("repo detection", () => {
 
   beforeEach(() => {
     // Create a unique temp directory for each test
-    testDir = join(tmpdir(), `drift-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `drift-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
     mkdirSync(testDir, { recursive: true });
   });
 
@@ -33,18 +36,24 @@ describe("repo detection", () => {
 
     it("finds repo-metadata.yaml", () => {
       writeFileSync(join(testDir, "repo-metadata.yaml"), "tier: production");
-      expect(findMetadataPath(testDir)).toBe(join(testDir, "repo-metadata.yaml"));
+      expect(findMetadataPath(testDir)).toBe(
+        join(testDir, "repo-metadata.yaml")
+      );
     });
 
     it("finds repo-metadata.yml", () => {
       writeFileSync(join(testDir, "repo-metadata.yml"), "tier: production");
-      expect(findMetadataPath(testDir)).toBe(join(testDir, "repo-metadata.yml"));
+      expect(findMetadataPath(testDir)).toBe(
+        join(testDir, "repo-metadata.yml")
+      );
     });
 
     it("prefers .yaml over .yml", () => {
       writeFileSync(join(testDir, "repo-metadata.yaml"), "tier: production");
       writeFileSync(join(testDir, "repo-metadata.yml"), "tier: internal");
-      expect(findMetadataPath(testDir)).toBe(join(testDir, "repo-metadata.yaml"));
+      expect(findMetadataPath(testDir)).toBe(
+        join(testDir, "repo-metadata.yaml")
+      );
     });
   });
 
@@ -158,7 +167,10 @@ custom_field: custom_value
 
     it("skips node_modules", () => {
       mkdirSync(join(testDir, "node_modules", "some-pkg"), { recursive: true });
-      writeFileSync(join(testDir, "node_modules", "some-pkg", "check.toml"), "[code]");
+      writeFileSync(
+        join(testDir, "node_modules", "some-pkg", "check.toml"),
+        "[code]"
+      );
       expect(findCheckTomlFiles(testDir)).toEqual([]);
     });
 
@@ -237,7 +249,10 @@ custom_field: custom_value
     });
 
     it("returns scannable when both files exist", () => {
-      writeFileSync(join(testDir, "repo-metadata.yaml"), "tier: production\nstatus: active");
+      writeFileSync(
+        join(testDir, "repo-metadata.yaml"),
+        "tier: production\nstatus: active"
+      );
       writeFileSync(join(testDir, "check.toml"), "[code]");
       const result = isScannableRepo(testDir);
       expect(result.scannable).toBe(true);
@@ -255,7 +270,9 @@ custom_field: custom_value
 
       const result = isScannableRepo(testDir);
       expect(result.scannable).toBe(true);
-      expect(result.checkTomlPaths).toContain(join("packages", "api", "check.toml"));
+      expect(result.checkTomlPaths).toContain(
+        join("packages", "api", "check.toml")
+      );
     });
 
     it("handles errors gracefully", () => {

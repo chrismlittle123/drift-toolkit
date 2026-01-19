@@ -87,10 +87,13 @@ function getChangedFiles(
     return [];
   }
 
-  return output.split("\n").filter(Boolean).map((line) => {
-    const [status, ...fileParts] = line.split("\t");
-    return { status: status.charAt(0), file: fileParts.join("\t") };
-  });
+  return output
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [status, ...fileParts] = line.split("\t");
+      return { status: status.charAt(0), file: fileParts.join("\t") };
+    });
 }
 
 /**
@@ -169,18 +172,13 @@ export function getCheckTomlFilesAtCommit(
   const checkTomlName = FILE_PATTERNS.checkToml;
 
   // List all files at the commit that match check.toml
-  const output = execGit(
-    repoPath,
-    `ls-tree -r --name-only ${commit}`
-  );
+  const output = execGit(repoPath, `ls-tree -r --name-only ${commit}`);
 
   if (!output) {
     return [];
   }
 
-  return output
-    .split("\n")
-    .filter((file) => file.endsWith(checkTomlName));
+  return output.split("\n").filter((file) => file.endsWith(checkTomlName));
 }
 
 /**
@@ -202,44 +200,27 @@ export function compareCheckTomlFiles(
     return { added: [], modified: [], deleted: [], hasChanges: false };
   }
 
-  // Get files at each commit
   const baseFiles = new Set(getCheckTomlFilesAtCommit(repoPath, baseCommit));
-  const targetFiles = new Set(getCheckTomlFilesAtCommit(repoPath, targetCommit));
+  const targetFiles = new Set(
+    getCheckTomlFilesAtCommit(repoPath, targetCommit)
+  );
 
-  const added: string[] = [];
-  const deleted: string[] = [];
-  const modified: string[] = [];
+  // Find added (in target but not base) and deleted (in base but not target)
+  const added = [...targetFiles].filter((f) => !baseFiles.has(f));
+  const deleted = [...baseFiles].filter((f) => !targetFiles.has(f));
 
-  // Find added files (in target but not in base)
-  for (const file of targetFiles) {
-    if (!baseFiles.has(file)) {
-      added.push(file);
-    }
-  }
+  // Find modified files (exist in both, content differs)
+  const modified = [...baseFiles]
+    .filter((f) => targetFiles.has(f))
+    .filter((file) => {
+      const diff = execGit(
+        repoPath,
+        `diff ${baseCommit} ${targetCommit} -- "${file}"`
+      );
+      return diff !== "";
+    });
 
-  // Find deleted files (in base but not in target)
-  for (const file of baseFiles) {
-    if (!targetFiles.has(file)) {
-      deleted.push(file);
-    }
-  }
-
-  // For files that exist in both, check if they were modified
-  const commonFiles = [...baseFiles].filter((f) => targetFiles.has(f));
-  for (const file of commonFiles) {
-    const diff = execGit(
-      repoPath,
-      `diff ${baseCommit} ${targetCommit} -- "${file}"`
-    );
-    if (diff) {
-      modified.push(file);
-    }
-  }
-
-  return {
-    added,
-    modified,
-    deleted,
-    hasChanges: added.length > 0 || modified.length > 0 || deleted.length > 0,
-  };
+  const hasChanges =
+    added.length > 0 || modified.length > 0 || deleted.length > 0;
+  return { added, modified, deleted, hasChanges };
 }
