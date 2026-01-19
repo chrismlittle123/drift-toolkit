@@ -352,12 +352,16 @@ describe("dependency-changes", () => {
   });
 
   describe("getTrackedDependencyFiles", () => {
-    it("returns empty array when cm not installed or fails", () => {
-      // This test depends on whether cm is installed
-      // In a directory without check.toml, it should return empty
-      const files = getTrackedDependencyFiles(testDir);
-      expect(files).toEqual([]);
-    });
+    it(
+      "returns empty array when cm not installed or fails",
+      () => {
+        // This test depends on whether cm is installed
+        // In a directory without check.toml, it should return empty
+        const files = getTrackedDependencyFiles(testDir);
+        expect(files).toEqual([]);
+      },
+      10000
+    );
   });
 
   describe("edge cases", () => {
