@@ -16,6 +16,10 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/gh-project-reminder.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pr-features-check.sh"
           }
         ]
       }
