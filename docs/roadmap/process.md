@@ -10,98 +10,108 @@
 
 ## Prerequisites (check-my-toolkit)
 
-These features must be implemented in check-my-toolkit first:
+**Already exists in check-my-toolkit:**
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Process schema in check.toml | Not started | `[process.*]` sections for defining standards |
-| `cmt process validate` | Not started | Validate process standards against GitHub API |
-| `cmt validate tier` | Not started | Verify tier-ruleset alignment |
+| Process schema in check.toml | **Already exists** | 12 process checks: hooks, ci, branches, commits, repo, etc. |
+| `cm process check` | **Already exists** | Run workflow validation locally |
+| `cm process audit` | **Already exists** | Verify workflow configs exist |
+| `cm process diff` | **Already exists** | Show repository setting differences |
+| `cm process sync` | **Already exists** | Synchronize repository settings |
 
-**Blocked until:** Process schema and `cmt process validate` are available
+**Missing features needed for drift:**
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Remote validation (`--repo` flag) | Not started | Validate process standards for remote repos via GitHub API |
+| `cm validate tier` | Not started | Verify tier-ruleset alignment |
+
+**Blocked until:** Remote validation (`--repo` flag) is available for `cm process check`
+
+**Note:** The CLI command is `cm` (not `cmt`).
 
 ---
 
 ## Milestones
 
-### Milestone 1: Process Schema Design
+### Milestone 1: Understand Existing Process Schema
 
-**Goal:** Define what process standards can be configured in check.toml
+**Goal:** Map existing check-my-toolkit process checks to drift requirements
+
+check-my-toolkit already has these process checks:
+
+| Check | Section | What it validates |
+|-------|---------|-------------------|
+| hooks | `[process.hooks]` | Husky git hooks presence |
+| ci | `[process.ci]` | GitHub Actions workflows |
+| branches | `[process.branches]` | Branch naming patterns |
+| commits | `[process.commits]` | Commit message format |
+| changesets | `[process.changesets]` | Changeset files |
+| pr | `[process.pr]` | PR size limits |
+| tickets | `[process.tickets]` | Jira/Linear references |
+| coverage | `[process.coverage]` | Test coverage thresholds |
+| repo | `[process.repo]` | Branch protection, CODEOWNERS |
+| backups | `[process.backups]` | S3 backup verification |
+| codeowners | `[process.codeowners]` | CODEOWNERS file validation |
+| docs | `[process.docs]` | Documentation requirements |
 
 | Task | Description |
 |------|-------------|
-| Branch protection schema | `[process.branches]` - reviews, status checks, force push |
-| Required files schema | `[process.required_files]` - CODEOWNERS, PR template, etc. |
-| Commit conventions schema | `[process.commits]` - conventional commits, scope, length |
-| CI requirements schema | `[process.ci]` - required workflows |
-| PR requirements schema | `[process.pull_requests]` - labels, linked issues |
+| Audit existing checks | Review what `cm process check` validates today |
+| Identify gaps | Determine what drift needs that doesn't exist |
+| Document schema | Create reference for drift integration |
 
-**Output:** Documented schema for process standards in check.toml
+**Output:** Clear understanding of what exists vs what's needed
 
 ---
 
-### Milestone 2: GitHub API Integration
+### Milestone 2: Remote Validation in check-my-toolkit
 
-**Goal:** Query GitHub for actual repository settings
+**Goal:** Add `--repo` flag to `cm process check` for remote validation
 
 | Task | Description |
 |------|-------------|
-| Branch protection API | `GET /repos/{owner}/{repo}/branches/{branch}/protection` |
-| Repository settings API | `GET /repos/{owner}/{repo}` |
-| Contents API | `GET /repos/{owner}/{repo}/contents/{path}` for file checks |
-| Workflows API | `GET /repos/{owner}/{repo}/actions/workflows` |
-| Rulesets API | `GET /repos/{owner}/{repo}/rulesets` (newer API) |
+| GitHub API integration | Query branch protection, repo settings via API |
+| `--repo` flag | Add flag to specify `owner/repo` instead of local |
+| `--token` flag | Add flag for GitHub token |
+| JSON output | Ensure `--format json` works for remote validation |
 
-**Output:** Wrapper functions to query all relevant GitHub settings
+**Output:** `cm process check --repo owner/repo --token $TOKEN` works
 
 ---
 
-### Milestone 3: Basic Process Validation
+### Milestone 3: drift process scan Foundation
 
-**Goal:** Validate core process requirements
+**Goal:** Basic process scanning using check-my-toolkit
 
 | Task | Description |
 |------|-------------|
-| Branch protection check | Compare expected vs actual protection rules |
-| Required files check | Verify CODEOWNERS, PR template exist |
-| Status checks check | Verify required status checks are configured |
-| Issue creation | Create GitHub issue listing all violations |
+| Integrate cm process check | Call `cm process check --repo <repo> --format json` |
+| Parse results | Extract violations from JSON output |
+| GitHub issue creation | Create issue in target repo with violations |
+| Error handling | Handle permission errors gracefully |
 
 **Output:** `drift process scan` creates issues for process violations
 
 ---
 
-### Milestone 4: Extended Process Validation
+### Milestone 4: Tier Validation
 
-**Goal:** Validate all process requirements
-
-| Task | Description |
-|------|-------------|
-| Workflow validation | Verify required CI workflows exist |
-| CODEOWNERS validation | Verify file is valid (not just exists) |
-| Commit convention check | (informational - can't enforce retroactively) |
-| PR requirements check | Labels, linked issues |
-
-**Output:** Comprehensive process validation
-
----
-
-### Milestone 5: Integrate with check-my-toolkit
-
-**Goal:** Use check-my-toolkit for validation logic
+**Goal:** Verify tier-appropriate rulesets are applied
 
 | Task | Description |
 |------|-------------|
-| Call cmt process validate | Shell out to `cmt process validate --json` |
-| Parse results | Extract violations from JSON output |
-| Format issue | Convert violations to GitHub issue format |
-| Remote validation | Pass `--repo` and `--token` for remote checks |
+| Implement cm validate tier | New command in check-my-toolkit |
+| Parse repo-metadata.yaml | Extract tier from metadata |
+| Ruleset verification | Check that rulesets match tier |
+| Integration | Call from drift and create issues on mismatch |
 
-**Output:** drift-toolkit delegates validation to check-my-toolkit
+**Output:** Tier-ruleset mismatches surfaced as issues
 
 ---
 
-### Milestone 6: Org-wide Process Scanning
+### Milestone 5: Org-wide Process Scanning
 
 **Goal:** Scan all repos in an organization for process compliance
 
@@ -116,7 +126,7 @@ These features must be implemented in check-my-toolkit first:
 
 ---
 
-### Milestone 7: GitHub Action Integration
+### Milestone 6: GitHub Action Integration
 
 **Goal:** Run as scheduled GitHub Action
 
@@ -200,46 +210,42 @@ Missing: `build`
 
 ---
 
-## Process Standards Reference
+## Process Standards Reference (Actual check-my-toolkit Schema)
 
-### Branch Protection (`[process.branches]`)
+### Branch Naming (`[process.branches]`)
 
 ```toml
 [process.branches]
-default_branch = "main"
-protection = true
+enabled = true
+pattern = "^(main|develop|feature/.+|bugfix/.+|hotfix/.+|release/.+)$"
+exclude = ["dependabot/*"]
+```
+
+**Note:** This validates branch NAMING patterns, not protection rules.
+
+### Branch Protection & CODEOWNERS (`[process.repo]`)
+
+```toml
+[process.repo]
+enabled = true
+require_branch_protection = true
+require_codeowners = true
+
+[process.repo.branch_protection]
 required_reviews = 2
 dismiss_stale_reviews = true
 require_code_owner_review = true
 require_status_checks = true
 required_status_checks = ["test", "lint", "build"]
 enforce_admins = false
-allow_force_push = false
-allow_deletions = false
-require_linear_history = false
-require_signed_commits = false
-```
-
-### Required Files (`[process.required_files]`)
-
-```toml
-[process.required_files]
-codeowners = true
-codeowners_path = ".github/CODEOWNERS"
-pr_template = true
-pr_template_path = ".github/pull_request_template.md"
-issue_templates = false
-contributing = false
-license = false
-readme = true
 ```
 
 ### Commit Conventions (`[process.commits]`)
 
 ```toml
 [process.commits]
-conventional = true
-allowed_types = ["feat", "fix", "docs", "chore", "refactor", "test", "ci"]
+enabled = true
+types = ["feat", "fix", "docs", "chore", "refactor", "test", "ci"]
 require_scope = false
 max_subject_length = 72
 ```
@@ -248,8 +254,48 @@ max_subject_length = 72
 
 ```toml
 [process.ci]
-required_workflows = ["test.yml", "lint.yml"]
-workflow_path = ".github/workflows"
+enabled = true
+require_workflows = ["test.yml", "lint.yml"]
+
+[process.ci.jobs]
+required = ["test", "lint"]
+
+[process.ci.actions]
+forbidden = ["actions/checkout@v2"]  # Enforce v3+
+```
+
+### CODEOWNERS Validation (`[process.codeowners]`)
+
+```toml
+[process.codeowners]
+enabled = true
+
+[[process.codeowners.rules]]
+pattern = "*.ts"
+owners = ["@frontend-team"]
+
+[[process.codeowners.rules]]
+pattern = "/infra/*"
+owners = ["@platform-team"]
+```
+
+### PR Requirements (`[process.pr]`)
+
+```toml
+[process.pr]
+enabled = true
+max_files = 50
+max_lines = 500
+```
+
+### Git Hooks (`[process.hooks]`)
+
+```toml
+[process.hooks]
+enabled = true
+require_husky = true
+require_hooks = ["pre-commit", "commit-msg"]
+protected_branches = ["main", "develop"]
 ```
 
 ---
@@ -258,8 +304,8 @@ workflow_path = ".github/workflows"
 
 | Package | Purpose |
 |---------|---------|
-| check-my-toolkit | `process validate` command |
-| @octokit/rest | GitHub API (existing) |
+| check-my-toolkit | CLI (`cm`): `process check`, `process diff`, `process sync` |
+| @octokit/rest | GitHub API (existing in drift-toolkit) |
 
 ---
 
