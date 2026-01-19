@@ -6,7 +6,13 @@ import {
   removeTempDir,
   getGitHubToken,
   repoExists,
+  createIssue,
 } from "./client.js";
+import {
+  formatDriftIssueBody,
+  getDriftIssueTitle,
+  getDriftIssueLabel,
+} from "./issue-formatter.js";
 import {
   loadConfig,
   loadRepoMetadata,
@@ -20,6 +26,9 @@ import type {
   DriftResults,
   OrgScanResults,
   RepoScanResult,
+  DriftDetection,
+  FileChange,
+  DriftIssueResult,
 } from "../types.js";
 import { CONCURRENCY, DEFAULTS } from "../constants.js";
 import {
@@ -41,6 +50,7 @@ export interface OrgScanOptions {
   configRepo?: string; // Default: drift-config
   token?: string;
   json?: boolean;
+  dryRun?: boolean; // Log but don't create issues
 }
 
 /**
@@ -102,6 +112,111 @@ function printScanHeader(
   console.log(`Config repo: ${configRepoName}`);
   console.log(`Repos to scan: ${repoCount}`);
   console.log("");
+}
+
+/**
+ * Convert DriftResults to DriftDetection format for issue creation
+ */
+function buildDriftDetection(
+  org: string,
+  repoName: string,
+  results: DriftResults
+): DriftDetection | null {
+  const changes: FileChange[] = [];
+
+  // Add integrity failures as file changes
+  for (const integrity of results.integrity) {
+    if (integrity.status === "drift" || integrity.status === "missing") {
+      changes.push({
+        file: integrity.file,
+        status: integrity.status === "drift" ? "modified" : "deleted",
+        diff: integrity.diff,
+      });
+    }
+  }
+
+  if (changes.length === 0) {
+    return null;
+  }
+
+  return {
+    repository: `${org}/${repoName}`,
+    scanTime: new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
+    commit: "HEAD", // Could enhance to get actual commit
+    commitUrl: `https://github.com/${org}/${repoName}/commits/main`,
+    changes,
+  };
+}
+
+/**
+ * Create a GitHub issue for drift detection with error handling
+ */
+async function createDriftIssue(
+  org: string,
+  repoName: string,
+  results: DriftResults,
+  token: string,
+  dryRun: boolean,
+  json: boolean
+): Promise<DriftIssueResult> {
+  const detection = buildDriftDetection(org, repoName, results);
+
+  if (!detection) {
+    return { created: false };
+  }
+
+  if (dryRun) {
+    if (!json) {
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Would create issue: ${getDriftIssueTitle()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Repository: ${org}/${repoName}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Labels: ${getDriftIssueLabel()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Changed files: ${detection.changes.map((c) => c.file).join(", ")}${COLORS.reset}`
+      );
+    }
+    return { created: false };
+  }
+
+  try {
+    const body = formatDriftIssueBody(detection);
+    const issue = await createIssue(
+      org,
+      repoName,
+      getDriftIssueTitle(),
+      body,
+      [getDriftIssueLabel()],
+      token
+    );
+
+    if (!json) {
+      console.log(
+        `  ${COLORS.green}✓ Created issue #${issue.number}: ${issue.html_url}${COLORS.reset}`
+      );
+    }
+
+    return {
+      created: true,
+      issueNumber: issue.number,
+      issueUrl: issue.html_url,
+    };
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    if (!json) {
+      console.log(
+        `  ${COLORS.yellow}⚠ Failed to create issue: ${errorMessage}${COLORS.reset}`
+      );
+    }
+    return {
+      created: false,
+      error: errorMessage,
+    };
+  }
 }
 
 /**
@@ -305,6 +420,18 @@ export async function scanOrg(
         } else {
           console.log(`${COLORS.green}✓ ok${COLORS.reset}`);
         }
+      }
+
+      // Create GitHub issue for repos with drift (integrity failures)
+      if (!result.error && hasIssues(result.results) && token) {
+        await createDriftIssue(
+          org,
+          repoName,
+          result.results,
+          token,
+          options.dryRun ?? false,
+          options.json ?? false
+        );
       }
 
       return result;

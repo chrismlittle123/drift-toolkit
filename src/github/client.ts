@@ -25,6 +25,11 @@ const GITHUB_REPO_SCHEMA = z.object({
 
 const GITHUB_REPO_ARRAY_SCHEMA = z.array(GITHUB_REPO_SCHEMA);
 
+const GITHUB_ISSUE_SCHEMA = z.object({
+  number: z.number(),
+  html_url: z.string(),
+});
+
 /** Get GitHub token from CLI option or GITHUB_TOKEN environment variable. */
 export function getGitHubToken(cliOption?: string): string | undefined {
   return cliOption || process.env.GITHUB_TOKEN;
@@ -227,4 +232,57 @@ export async function repoExists(
   );
 
   return response.ok;
+}
+
+export interface GitHubIssue {
+  number: number;
+  html_url: string;
+}
+
+/** Create a GitHub issue for drift detection. */
+export async function createIssue(
+  owner: string,
+  repo: string,
+  title: string,
+  body: string,
+  labels: string[],
+  token: string
+): Promise<GitHubIssue> {
+  const headers = buildApiHeaders(token);
+  headers["Content-Type"] = "application/json";
+
+  const response = await fetchWithRetry(
+    `${GITHUB_API.baseUrl}/repos/${owner}/${repo}/issues`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ title, body, labels }),
+    },
+    token
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Failed to create issue: ${response.status} ${sanitizeError(text, token)}`
+    );
+  }
+
+  let rawData: unknown;
+  try {
+    rawData = await response.json();
+  } catch (parseError) {
+    const msg =
+      parseError instanceof Error ? parseError.message : "Unknown error";
+    throw new Error(`Failed to parse issue response: ${msg}`);
+  }
+
+  const parseResult = GITHUB_ISSUE_SCHEMA.safeParse(rawData);
+  if (!parseResult.success) {
+    throw new Error(
+      `Invalid issue response: ${parseResult.error.message}`
+    );
+  }
+
+  return parseResult.data;
 }

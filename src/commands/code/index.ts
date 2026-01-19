@@ -22,6 +22,10 @@ export function registerCodeCommands(program: Command): void {
       "GitHub token (or set GITHUB_TOKEN env var)"
     )
     .option("--json", "Output results as JSON")
+    .option(
+      "-n, --dry-run",
+      "Show what issues would be created without creating them"
+    )
     .action(scan);
 
   program

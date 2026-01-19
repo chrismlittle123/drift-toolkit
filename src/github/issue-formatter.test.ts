@@ -1,0 +1,175 @@
+import { describe, it, expect } from "vitest";
+import {
+  formatDriftIssueBody,
+  getDriftIssueTitle,
+  getDriftIssueLabel,
+} from "./issue-formatter.js";
+import type { DriftDetection } from "../types.js";
+
+describe("issue-formatter", () => {
+  describe("formatDriftIssueBody", () => {
+    it("formats basic drift detection", () => {
+      const detection: DriftDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        commit: "abc1234567890",
+        commitUrl: "https://github.com/org/repo/commit/abc1234567890",
+        changes: [
+          {
+            file: "check.toml",
+            status: "modified",
+            diff: "- old\n+ new",
+          },
+        ],
+      };
+
+      const body = formatDriftIssueBody(detection);
+
+      expect(body).toContain("Configuration Drift Detected");
+      expect(body).toContain("`org/repo`");
+      expect(body).toContain("2024-01-15 02:00 UTC");
+      expect(body).toContain("[abc1234](");
+      expect(body).toContain("check.toml");
+      expect(body).toContain("```diff");
+      expect(body).toContain("- old");
+      expect(body).toContain("+ new");
+      expect(body).toContain("Action Required");
+      expect(body).toContain("Created by drift-toolkit");
+    });
+
+    it("handles multiple file changes", () => {
+      const detection: DriftDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        commit: "abc1234",
+        commitUrl: "https://github.com/org/repo/commit/abc1234",
+        changes: [
+          {
+            file: "check.toml",
+            status: "modified",
+            diff: "- old\n+ new",
+          },
+          {
+            file: ".eslintrc.js",
+            status: "modified",
+            diff: '- "warn"\n+ "off"',
+          },
+        ],
+      };
+
+      const body = formatDriftIssueBody(detection);
+
+      expect(body).toContain("check.toml");
+      expect(body).toContain(".eslintrc.js");
+      expect(body).toContain("- old");
+      expect(body).toContain('- "warn"');
+    });
+
+    it("truncates large diffs", () => {
+      const largeDiff = Array(100).fill("+ line").join("\n");
+      const detection: DriftDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        commit: "abc1234",
+        commitUrl: "https://github.com/org/repo/commit/abc1234",
+        changes: [{ file: "large.txt", status: "modified", diff: largeDiff }],
+      };
+
+      const body = formatDriftIssueBody(detection);
+
+      expect(body).toContain("(truncated)");
+      // Should only have first 20 lines (default DISPLAY_LIMITS.diffLines)
+      const diffMatches = body.match(/\+ line/g);
+      expect(diffMatches?.length).toBeLessThanOrEqual(20);
+    });
+
+    it("handles deleted files", () => {
+      const detection: DriftDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        commit: "abc1234",
+        commitUrl: "https://github.com/org/repo/commit/abc1234",
+        changes: [{ file: "removed.txt", status: "deleted" }],
+      };
+
+      const body = formatDriftIssueBody(detection);
+
+      expect(body).toContain("removed.txt");
+      expect(body).toContain("(deleted)");
+      expect(body).toContain("File was deleted");
+    });
+
+    it("handles added files", () => {
+      const detection: DriftDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        commit: "abc1234",
+        commitUrl: "https://github.com/org/repo/commit/abc1234",
+        changes: [
+          { file: "new-file.txt", status: "added", diff: "+ new content" },
+        ],
+      };
+
+      const body = formatDriftIssueBody(detection);
+
+      expect(body).toContain("new-file.txt");
+      expect(body).toContain("(new)");
+      expect(body).toContain("+ new content");
+    });
+
+    it("truncates extremely large issue bodies", () => {
+      // Create a detection with many files to exceed the body limit
+      const manyChanges = Array.from({ length: 500 }, (_, i) => ({
+        file: `file${i}.txt`,
+        status: "modified" as const,
+        diff: "This is a really long diff content that repeats ".repeat(100),
+      }));
+
+      const detection: DriftDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        commit: "abc1234",
+        commitUrl: "https://github.com/org/repo/commit/abc1234",
+        changes: manyChanges,
+      };
+
+      const body = formatDriftIssueBody(detection);
+
+      // Should be under 60000 characters
+      expect(body.length).toBeLessThanOrEqual(60000);
+      expect(body).toContain("(content truncated due to length)");
+      expect(body).toContain("Created by drift-toolkit");
+    });
+
+    it("links commit hash to commit URL", () => {
+      const detection: DriftDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        commit: "abc1234567890def",
+        commitUrl: "https://github.com/org/repo/commit/abc1234567890def",
+        changes: [{ file: "test.txt", status: "modified", diff: "diff" }],
+      };
+
+      const body = formatDriftIssueBody(detection);
+
+      // Should show shortened commit hash as link
+      expect(body).toContain(
+        "[abc1234](https://github.com/org/repo/commit/abc1234567890def)"
+      );
+    });
+  });
+
+  describe("getDriftIssueTitle", () => {
+    it("returns correct title", () => {
+      expect(getDriftIssueTitle()).toBe(
+        "[drift:code] Configuration changes detected"
+      );
+    });
+  });
+
+  describe("getDriftIssueLabel", () => {
+    it("returns correct label", () => {
+      expect(getDriftIssueLabel()).toBe("drift:code");
+    });
+  });
+});
