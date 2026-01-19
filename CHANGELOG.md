@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2
+
+### Patch Changes
+
+- 17c8b28: Improve test coverage to 94%+ across all metrics by adding comprehensive unit tests for utilities, scanner, integrity checker, GitHub API functions, and fix command.
+
 ## 1.3.1
 
 ### Patch Changes
