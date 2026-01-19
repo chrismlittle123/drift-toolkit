@@ -37,3 +37,21 @@ export {
 
 // Scanner
 export { runScan, runAllScans } from "./scanner/runner.js";
+
+// Repo detection
+export {
+  findMetadataPath,
+  parseRepoMetadata,
+  getRepoMetadata,
+  findCheckTomlFiles,
+  hasCheckToml,
+  hasMetadata,
+  isScannableRepo,
+} from "./repo/index.js";
+
+export type {
+  RepoTier,
+  RepoStatus,
+  RepoMetadata,
+  ScannabilityResult,
+} from "./repo/index.js";

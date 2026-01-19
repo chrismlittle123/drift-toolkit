@@ -74,7 +74,7 @@ export default [
   },
   // Test files need relaxed rules
   {
-    files: ["src/tests/**/*.ts", "tests/**/*.ts"],
+    files: ["src/tests/**/*.ts", "tests/**/*.ts", "src/**/*.test.ts"],
     rules: {
       "no-console": "off",
       "max-lines-per-function": "off",
