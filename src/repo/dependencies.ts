@@ -61,7 +61,10 @@ const dependencyCache = new Map<string, GetDependenciesResult>();
 /**
  * Build cache key from path and options.
  */
-function buildCacheKey(repoPath: string, options?: GetDependenciesOptions): string {
+function buildCacheKey(
+  repoPath: string,
+  options?: GetDependenciesOptions
+): string {
   return `${repoPath}:${options?.check ?? ""}:${options?.project ?? ""}`;
 }
 

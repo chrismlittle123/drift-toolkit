@@ -99,29 +99,25 @@ registry = "github:chrismlittle123/check-my-toolkit-registry-community"
 rulesets = ["typescript-internal"]
 `;
 
-    it(
-      "returns dependencies for repo with check.toml",
-      () => {
-        // Create a valid check.toml
-        writeFileSync(join(testDir, "check.toml"), validCheckToml);
+    it("returns dependencies for repo with check.toml", () => {
+      // Create a valid check.toml
+      writeFileSync(join(testDir, "check.toml"), validCheckToml);
 
-        const result = getDependencies(testDir);
+      const result = getDependencies(testDir);
 
-        // Skip assertions if network error (registry clone failure)
-        if (isNetworkError(result)) {
-          console.log("Skipping test due to network error:", result.error);
-          return;
-        }
+      // Skip assertions if network error (registry clone failure)
+      if (isNetworkError(result)) {
+        console.log("Skipping test due to network error:", result.error);
+        return;
+      }
 
-        // Should not have error
-        expect(result.error).toBeUndefined();
-        // Should have files (at minimum check.toml)
-        expect(result.files.length).toBeGreaterThan(0);
-        // Should include check.toml in alwaysTracked
-        expect(result.alwaysTracked).toContain("check.toml");
-      },
-      10000
-    );
+      // Should not have error
+      expect(result.error).toBeUndefined();
+      // Should have files (at minimum check.toml)
+      expect(result.files.length).toBeGreaterThan(0);
+      // Should include check.toml in alwaysTracked
+      expect(result.alwaysTracked).toContain("check.toml");
+    }, 10000);
 
     it("returns error for repo without check.toml", () => {
       const result = getDependencies(testDir);
@@ -131,87 +127,75 @@ rulesets = ["typescript-internal"]
       expect(result.byCheck).toEqual({});
     });
 
-    it(
-      "caches results for same path and options",
-      () => {
-        writeFileSync(join(testDir, "check.toml"), validCheckToml);
+    it("caches results for same path and options", () => {
+      writeFileSync(join(testDir, "check.toml"), validCheckToml);
 
-        // First call
-        const result1 = getDependencies(testDir);
+      // First call
+      const result1 = getDependencies(testDir);
 
-        // Skip if network error
-        if (isNetworkError(result1)) {
-          console.log("Skipping test due to network error:", result1.error);
-          return;
-        }
+      // Skip if network error
+      if (isNetworkError(result1)) {
+        console.log("Skipping test due to network error:", result1.error);
+        return;
+      }
 
-        // Second call should return cached result
-        const result2 = getDependencies(testDir);
+      // Second call should return cached result
+      const result2 = getDependencies(testDir);
 
-        expect(result1).toBe(result2); // Same reference = cached
-      },
-      10000
-    );
+      expect(result1).toBe(result2); // Same reference = cached
+    }, 10000);
 
-    it(
-      "returns different results for different options",
-      () => {
-        writeFileSync(join(testDir, "check.toml"), validCheckToml);
+    it("returns different results for different options", () => {
+      writeFileSync(join(testDir, "check.toml"), validCheckToml);
 
-        // Get all dependencies
-        const allDeps = getDependencies(testDir);
+      // Get all dependencies
+      const allDeps = getDependencies(testDir);
 
-        // Skip if network error
-        if (isNetworkError(allDeps)) {
-          console.log("Skipping test due to network error:", allDeps.error);
-          return;
-        }
+      // Skip if network error
+      if (isNetworkError(allDeps)) {
+        console.log("Skipping test due to network error:", allDeps.error);
+        return;
+      }
 
-        // Get only eslint dependencies (different cache key)
-        const eslintDeps = getDependencies(testDir, { check: "eslint" });
+      // Get only eslint dependencies (different cache key)
+      const eslintDeps = getDependencies(testDir, { check: "eslint" });
 
-        // Results should be different cache entries
-        // Note: with --check filter, cm returns only that check's files
-        expect(allDeps).not.toBe(eslintDeps);
-      },
-      15000
-    );
+      // Results should be different cache entries
+      // Note: with --check filter, cm returns only that check's files
+      expect(allDeps).not.toBe(eslintDeps);
+    }, 15000);
 
-    it(
-      "clears cache when clearDependencyCache is called",
-      () => {
-        writeFileSync(join(testDir, "check.toml"), validCheckToml);
+    it("clears cache when clearDependencyCache is called", () => {
+      writeFileSync(join(testDir, "check.toml"), validCheckToml);
 
-        const result1 = getDependencies(testDir);
+      const result1 = getDependencies(testDir);
 
-        // Skip if network error
-        if (isNetworkError(result1)) {
-          console.log("Skipping test due to network error:", result1.error);
-          return;
-        }
+      // Skip if network error
+      if (isNetworkError(result1)) {
+        console.log("Skipping test due to network error:", result1.error);
+        return;
+      }
 
-        // Verify first call succeeded
-        expect(result1.error).toBeUndefined();
+      // Verify first call succeeded
+      expect(result1.error).toBeUndefined();
 
-        clearDependencyCache();
-        const result2 = getDependencies(testDir);
+      clearDependencyCache();
+      const result2 = getDependencies(testDir);
 
-        // Skip if network error on second call
-        if (isNetworkError(result2)) {
-          console.log("Skipping test due to network error:", result2.error);
-          return;
-        }
+      // Skip if network error on second call
+      if (isNetworkError(result2)) {
+        console.log("Skipping test due to network error:", result2.error);
+        return;
+      }
 
-        // Verify second call also succeeded
-        expect(result2.error).toBeUndefined();
+      // Verify second call also succeeded
+      expect(result2.error).toBeUndefined();
 
-        // Should be equal but not same reference (different objects)
-        expect(result1).not.toBe(result2);
-        // Both should have the same files
-        expect(result1.files).toEqual(result2.files);
-      },
-      15000
-    );
+      // Should be equal but not same reference (different objects)
+      expect(result1).not.toBe(result2);
+      // Both should have the same files
+      expect(result1.files).toEqual(result2.files);
+    }, 15000);
   });
 
   describe("getDependencies with monorepo", () => {
@@ -221,33 +205,29 @@ registry = "github:chrismlittle123/check-my-toolkit-registry-community"
 rulesets = ["typescript-internal"]
 `;
 
-    it(
-      "works with project option for monorepo",
-      () => {
-        // Create a monorepo-like structure
-        mkdirSync(join(testDir, "packages", "api"), { recursive: true });
-        writeFileSync(
-          join(testDir, "packages", "api", "check.toml"),
-          validCheckToml
-        );
+    it("works with project option for monorepo", () => {
+      // Create a monorepo-like structure
+      mkdirSync(join(testDir, "packages", "api"), { recursive: true });
+      writeFileSync(
+        join(testDir, "packages", "api", "check.toml"),
+        validCheckToml
+      );
 
-        // Note: This test may fail if cm doesn't support the project without
-        // a root check.toml. Adjust based on actual cm behavior.
-        const result = getDependencies(testDir, {
-          project: "packages/api",
-        });
+      // Note: This test may fail if cm doesn't support the project without
+      // a root check.toml. Adjust based on actual cm behavior.
+      const result = getDependencies(testDir, {
+        project: "packages/api",
+      });
 
-        // Skip if network error
-        if (isNetworkError(result)) {
-          console.log("Skipping test due to network error:", result.error);
-          return;
-        }
+      // Skip if network error
+      if (isNetworkError(result)) {
+        console.log("Skipping test due to network error:", result.error);
+        return;
+      }
 
-        // The behavior depends on cm implementation
-        // At minimum, it should not throw
-        expect(result).toBeDefined();
-      },
-      10000
-    );
+      // The behavior depends on cm implementation
+      // At minimum, it should not throw
+      expect(result).toBeDefined();
+    }, 10000);
   });
 });

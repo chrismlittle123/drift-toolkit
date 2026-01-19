@@ -6,7 +6,11 @@
  */
 
 import { minimatch } from "minimatch";
-import { getChangedFiles, isGitRepo, type FileChangeStatus } from "./changes.js";
+import {
+  getChangedFiles,
+  isGitRepo,
+  type FileChangeStatus,
+} from "./changes.js";
 import { getDependencies, type GetDependenciesResult } from "./dependencies.js";
 
 /**
@@ -85,7 +89,11 @@ function matchesPattern(file: string, patterns: string[]): boolean {
       return true;
     }
     // Glob match
-    if (pattern.includes("*") || pattern.includes("?") || pattern.includes("[")) {
+    if (
+      pattern.includes("*") ||
+      pattern.includes("?") ||
+      pattern.includes("[")
+    ) {
       if (minimatch(file, pattern, { matchBase: true })) {
         return true;
       }
@@ -172,7 +180,9 @@ function filterDependencyChanges(
 /**
  * Group changes by check type
  */
-function groupByCheck(changes: DependencyChange[]): Record<string, DependencyChange[]> {
+function groupByCheck(
+  changes: DependencyChange[]
+): Record<string, DependencyChange[]> {
   const grouped: Record<string, DependencyChange[]> = {};
 
   for (const change of changes) {
