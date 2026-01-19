@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0
+
+### Minor Changes
+
+- 91ec249: Add dependency file change detection that tracks all configuration files from cm dependencies, not just check.toml. Includes grouping by check type and glob pattern support.
+
 ## 1.5.0
 
 ### Minor Changes
