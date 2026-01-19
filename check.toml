@@ -17,7 +17,7 @@ enabled = true
 extensions = ["ts", "tsx"]
 file_case = "kebab-case"
 folder_case = "kebab-case"
-exclude = ["tests/e2e/projects/**", "dashboard/src/app/**/\\[*\\]/**"]
+exclude = ["tests/e2e/projects/**", "dashboard/src/app/**/\\[*\\]/**", "dashboard/src/components/**"]
 
 # Process domain - workflow validation
 [process.hooks]

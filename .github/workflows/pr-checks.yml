@@ -14,28 +14,30 @@ jobs:
           BRANCH_NAME="${{ github.head_ref }}"
           echo "Checking branch: $BRANCH_NAME"
 
-          # Pattern: <type>/<issue-number>/<description>
-          # Issue number is required to link work to GitHub issues
-          PATTERN="^(feature|fix|hotfix|docs)/([0-9]+)/[a-z0-9-]+$"
+          # Pattern: <type>/<milestone>/<issue-number>/<description>
+          # Milestone and issue number are required to link work to releases and issues
+          PATTERN="^(feature|fix|hotfix|docs)/(v[0-9]+\.[0-9]+\.[0-9]+)/([0-9]+)/[a-z0-9-]+$"
 
           if [[ "$BRANCH_NAME" =~ $PATTERN ]]; then
-            ISSUE_NUM="${BASH_REMATCH[2]}"
+            MILESTONE="${BASH_REMATCH[2]}"
+            ISSUE_NUM="${BASH_REMATCH[3]}"
             echo "✅ Branch name '$BRANCH_NAME' follows naming convention"
+            echo "   Milestone: $MILESTONE"
             echo "   Linked to issue: #$ISSUE_NUM"
           else
             echo "❌ Branch name '$BRANCH_NAME' does not follow naming convention"
             echo ""
-            echo "Branch names must match: <type>/<issue-number>/<description>"
+            echo "Branch names must match: <type>/<milestone>/<issue-number>/<description>"
             echo ""
             echo "Examples:"
-            echo "  ✅ feature/123/add-login"
-            echo "  ✅ fix/456/broken-button"
-            echo "  ✅ hotfix/789/security-patch"
-            echo "  ✅ docs/42/update-readme"
+            echo "  ✅ feature/v1.2.0/123/add-login"
+            echo "  ✅ fix/v1.2.0/456/broken-button"
+            echo "  ✅ hotfix/v1.2.1/789/security-patch"
+            echo "  ✅ docs/v1.2.0/42/update-readme"
             echo ""
-            echo "  ❌ feature/add-login (missing issue number)"
-            echo "  ❌ feature/v1.0.0/add-login (use issue number, not version)"
-            echo "  ❌ 123/add-login (missing type prefix)"
+            echo "  ❌ feature/123/add-login (missing milestone)"
+            echo "  ❌ feature/v1.2.0/add-login (missing issue number)"
+            echo "  ❌ 123/add-login (missing type prefix and milestone)"
             exit 1
           fi
 
