@@ -30,33 +30,6 @@ export function execGit(repoPath: string, args: string): string {
 }
 
 /**
- * Execute a git command and return detailed result including success status.
- *
- * @param repoPath - The repository path to run the command in
- * @param args - Git command arguments (without 'git' prefix)
- * @returns Object with output, success status, and optional error
- */
-export function execGitWithStatus(
-  repoPath: string,
-  args: string
-): { output: string; success: boolean; error?: string } {
-  try {
-    const argArray = parseGitArgs(args);
-
-    const output = execFileSync("git", argArray, {
-      cwd: repoPath,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-
-    return { output, success: true };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return { output: "", success: false, error: message };
-  }
-}
-
-/**
  * Parse a git arguments string into an array.
  * Handles quoted strings and basic shell-like argument splitting.
  *

@@ -319,14 +319,11 @@ describe("change tracking", () => {
       writeFileSync(join(testDir, "README.md"), "# Test");
       git("add README.md");
       const oldDate = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-      execSync(
-        `git commit -m 'Old commit' --date="${oldDate}"`,
-        {
-          cwd: testDir,
-          encoding: "utf-8",
-          env: { ...process.env, GIT_COMMITTER_DATE: oldDate },
-        }
-      );
+      execSync(`git commit -m 'Old commit' --date="${oldDate}"`, {
+        cwd: testDir,
+        encoding: "utf-8",
+        env: { ...process.env, GIT_COMMITTER_DATE: oldDate },
+      });
 
       // Look for commits in the last 24 hours - should find none
       const result = getRecentCommits(testDir, { hours: 24 });
@@ -359,12 +356,18 @@ describe("change tracking", () => {
       git("commit -m 'Feature commit'");
 
       // Check main branch only
-      const mainResult = getRecentCommits(testDir, { hours: 24, branch: "main" });
+      const mainResult = getRecentCommits(testDir, {
+        hours: 24,
+        branch: "main",
+      });
       expect(mainResult).toHaveLength(1);
       expect(mainResult[0].message).toBe("Main commit");
 
       // Check feature branch
-      const featureResult = getRecentCommits(testDir, { hours: 24, branch: "feature" });
+      const featureResult = getRecentCommits(testDir, {
+        hours: 24,
+        branch: "feature",
+      });
       expect(featureResult).toHaveLength(2);
     });
   });
@@ -480,14 +483,11 @@ describe("change tracking", () => {
       writeFileSync(join(testDir, "README.md"), "# Test");
       git("add README.md");
       const oldDate = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-      execSync(
-        `git commit -m 'Old commit' --date="${oldDate}"`,
-        {
-          cwd: testDir,
-          encoding: "utf-8",
-          env: { ...process.env, GIT_COMMITTER_DATE: oldDate },
-        }
-      );
+      execSync(`git commit -m 'Old commit' --date="${oldDate}"`, {
+        cwd: testDir,
+        encoding: "utf-8",
+        env: { ...process.env, GIT_COMMITTER_DATE: oldDate },
+      });
 
       // Look for changes in the last 24 hours - should find none
       const result = detectRecentChanges(testDir, { hours: 24 });

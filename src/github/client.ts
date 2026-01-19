@@ -31,12 +31,18 @@ export function getGitHubToken(cliOption?: string): string | undefined {
 }
 
 /** List all repositories in a GitHub organization. */
-export function listOrgRepos(org: string, token?: string): Promise<GitHubRepo[]> {
+export function listOrgRepos(
+  org: string,
+  token?: string
+): Promise<GitHubRepo[]> {
   return listReposFromEndpoint(`/orgs/${org}/repos`, token);
 }
 
 /** List all repositories for a GitHub user. */
-export function listUserRepos(username: string, token?: string): Promise<GitHubRepo[]> {
+export function listUserRepos(
+  username: string,
+  token?: string
+): Promise<GitHubRepo[]> {
   return listReposFromEndpoint(`/users/${username}/repos`, token);
 }
 
@@ -70,26 +76,37 @@ function buildApiHeaders(token?: string): Record<string, string> {
   return headers;
 }
 
-async function parseRepoResponse(response: Response, token?: string): Promise<GitHubRepo[]> {
+async function parseRepoResponse(
+  response: Response,
+  token?: string
+): Promise<GitHubRepo[]> {
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`GitHub API error: ${response.status} ${sanitizeError(text, token)}`);
+    throw new Error(
+      `GitHub API error: ${response.status} ${sanitizeError(text, token)}`
+    );
   }
   let rawData: unknown;
   try {
     rawData = await response.json();
   } catch (parseError) {
-    const msg = parseError instanceof Error ? parseError.message : "Unknown error";
+    const msg =
+      parseError instanceof Error ? parseError.message : "Unknown error";
     throw new Error(`Failed to parse GitHub API response: ${msg}`);
   }
   const parseResult = GITHUB_REPO_ARRAY_SCHEMA.safeParse(rawData);
   if (!parseResult.success) {
-    throw new Error(`Invalid GitHub API response: ${parseResult.error.message}`);
+    throw new Error(
+      `Invalid GitHub API response: ${parseResult.error.message}`
+    );
   }
   return parseResult.data;
 }
 
-async function listReposFromEndpoint(endpoint: string, token?: string): Promise<GitHubRepo[]> {
+async function listReposFromEndpoint(
+  endpoint: string,
+  token?: string
+): Promise<GitHubRepo[]> {
   const repos: GitHubRepo[] = [];
   const headers = buildApiHeaders(token);
   let page = 1;
@@ -97,19 +114,30 @@ async function listReposFromEndpoint(endpoint: string, token?: string): Promise<
     const url = `${GITHUB_API.baseUrl}${endpoint}?per_page=${GITHUB_API.perPage}&page=${page}&type=all`;
     const response = await fetchWithRetry(url, { headers }, token);
     const pageRepos = await parseRepoResponse(response, token);
-    if (pageRepos.length === 0) {break;}
+    if (pageRepos.length === 0) {
+      break;
+    }
     repos.push(...pageRepos.filter((r) => !r.archived && !r.disabled));
-    if (pageRepos.length < GITHUB_API.perPage) {break;}
+    if (pageRepos.length < GITHUB_API.perPage) {
+      break;
+    }
     page++;
   }
   return repos;
 }
 
 /** Create GIT_ASKPASS helper for secure token authentication (keeps token out of ps). */
-function createAskPassScript(token: string): { scriptPath: string; cleanup: () => void } {
+function createAskPassScript(token: string): {
+  scriptPath: string;
+  cleanup: () => void;
+} {
   const scriptDir = mkdtempSync(join(tmpdir(), "drift-askpass-"));
   const scriptPath = join(scriptDir, "askpass.sh");
-  writeFileSync(scriptPath, `#!/bin/sh\necho "${token.replace(/"/g, '\\"')}"\n`, { mode: 0o700 });
+  writeFileSync(
+    scriptPath,
+    `#!/bin/sh\necho "${token.replace(/"/g, '\\"')}"\n`,
+    { mode: 0o700 }
+  );
   chmodSync(scriptPath, 0o700);
 
   return {
@@ -125,27 +153,41 @@ function createAskPassScript(token: string): { scriptPath: string; cleanup: () =
 }
 
 /** Clone a repository using shallow clone with secure token handling. */
-export function cloneRepo(org: string, repo: string, targetDir: string, token?: string): void {
+export function cloneRepo(
+  org: string,
+  repo: string,
+  targetDir: string,
+  token?: string
+): void {
   const cloneUrl = `https://github.com/${org}/${repo}.git`;
   let askPassHelper: { scriptPath: string; cleanup: () => void } | null = null;
   try {
-    const env: Record<string, string> = { ...process.env } as Record<string, string>;
+    const env: Record<string, string> = { ...process.env } as Record<
+      string,
+      string
+    >;
     if (token) {
       askPassHelper = createAskPassScript(token);
       env.GIT_ASKPASS = askPassHelper.scriptPath;
       env.GIT_USERNAME = "x-access-token";
       env.GIT_TERMINAL_PROMPT = "0";
     }
-    execFileSync("git", ["clone", "--depth", "1", "--quiet", cloneUrl, targetDir], {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-      timeout: TIMEOUTS.gitClone,
-      env,
-    });
+    execFileSync(
+      "git",
+      ["clone", "--depth", "1", "--quiet", cloneUrl, targetDir],
+      {
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: TIMEOUTS.gitClone,
+        env,
+      }
+    );
   } catch (error) {
     const execError = extractExecError(error);
     const rawMsg = execError.stderr ?? execError.message ?? "Clone failed";
-    throw new Error(`Failed to clone ${org}/${repo}: ${sanitizeError(rawMsg, token)}`);
+    throw new Error(
+      `Failed to clone ${org}/${repo}: ${sanitizeError(rawMsg, token)}`
+    );
   } finally {
     askPassHelper?.cleanup();
   }
@@ -166,7 +208,11 @@ export function removeTempDir(dir: string): void {
 }
 
 /** Check if a repository exists and is accessible. */
-export async function repoExists(org: string, repo: string, token?: string): Promise<boolean> {
+export async function repoExists(
+  org: string,
+  repo: string,
+  token?: string
+): Promise<boolean> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": GITHUB_API.version,

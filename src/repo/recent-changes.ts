@@ -148,7 +148,10 @@ export function getChangedFilesInCommits(
         `diff-tree --root --no-commit-id --name-only -r ${commit.sha}`
       );
       if (files) {
-        files.split("\n").filter(Boolean).forEach((f) => allFiles.add(f));
+        files
+          .split("\n")
+          .filter(Boolean)
+          .forEach((f) => allFiles.add(f));
       }
     }
     output = [...allFiles].join("\n");

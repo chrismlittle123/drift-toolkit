@@ -32,13 +32,8 @@ describe("config loader", () => {
     });
 
     it("finds drift.config.yaml", () => {
-      writeFileSync(
-        join(testDir, "drift.config.yaml"),
-        "scans: []\n"
-      );
-      expect(findConfigPath(testDir)).toBe(
-        join(testDir, "drift.config.yaml")
-      );
+      writeFileSync(join(testDir, "drift.config.yaml"), "scans: []\n");
+      expect(findConfigPath(testDir)).toBe(join(testDir, "drift.config.yaml"));
     });
 
     it("finds drift.config.yml", () => {
@@ -54,9 +49,7 @@ describe("config loader", () => {
     it("prefers drift.config.yaml over drift.config.yml", () => {
       writeFileSync(join(testDir, "drift.config.yaml"), "scans: []\n");
       writeFileSync(join(testDir, "drift.config.yml"), "scans: []\n");
-      expect(findConfigPath(testDir)).toBe(
-        join(testDir, "drift.config.yaml")
-      );
+      expect(findConfigPath(testDir)).toBe(join(testDir, "drift.config.yaml"));
     });
 
     it("prefers drift.config.yml over drift.yaml", () => {
@@ -179,7 +172,9 @@ schema:
       );
 
       // Suppress console.error for this test
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       const config = loadConfig(testDir);
       consoleSpy.mockRestore();
 
@@ -194,7 +189,9 @@ scans:
 `;
       writeFileSync(join(testDir, "drift.config.yaml"), configContent);
 
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       const config = loadConfig(testDir);
       consoleSpy.mockRestore();
 
@@ -208,7 +205,9 @@ scans:
 `;
       writeFileSync(join(testDir, "drift.config.yaml"), configContent);
 
-      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
       const config = loadConfig(testDir);
       consoleSpy.mockRestore();
 
@@ -274,7 +273,11 @@ scans:
         code: {
           integrity: {
             protected: [
-              { file: "test.txt", approved: "approved/test.txt", severity: "low" },
+              {
+                file: "test.txt",
+                approved: "approved/test.txt",
+                severity: "low",
+              },
             ],
           },
         },
@@ -288,7 +291,11 @@ scans:
       const config: DriftConfig = {
         integrity: {
           protected: [
-            { file: "legacy.txt", approved: "approved/legacy.txt", severity: "medium" },
+            {
+              file: "legacy.txt",
+              approved: "approved/legacy.txt",
+              severity: "medium",
+            },
           ],
         },
         scans: [{ name: "legacy-scan", command: "echo legacy" }],

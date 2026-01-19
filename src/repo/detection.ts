@@ -23,35 +23,63 @@ export interface ScannabilityResult {
   error?: string;
 }
 
-const DEFAULTS = { tier: "internal" as RepoTier, status: "active" as RepoStatus };
+const DEFAULTS = {
+  tier: "internal" as RepoTier,
+  status: "active" as RepoStatus,
+};
 
 function isValidTier(value: unknown): value is RepoTier {
-  return typeof value === "string" && ["production", "internal", "prototype"].includes(value);
-}
-
-function isValidStatus(value: unknown): value is RepoStatus {
-  return typeof value === "string" && ["active", "pre-release", "deprecated"].includes(value
+  return (
+    typeof value === "string" &&
+    ["production", "internal", "prototype"].includes(value)
   );
 }
 
-function extractTier(parsed: Record<string, unknown>, warnings: string[]): RepoTier {
-  if (parsed.tier === undefined) {return DEFAULTS.tier;}
-  if (isValidTier(parsed.tier)) {return parsed.tier;}
-  warnings.push(`Invalid tier "${parsed.tier}", using default "${DEFAULTS.tier}"`);
+function isValidStatus(value: unknown): value is RepoStatus {
+  return (
+    typeof value === "string" &&
+    ["active", "pre-release", "deprecated"].includes(value)
+  );
+}
+
+function extractTier(
+  parsed: Record<string, unknown>,
+  warnings: string[]
+): RepoTier {
+  if (parsed.tier === undefined) {
+    return DEFAULTS.tier;
+  }
+  if (isValidTier(parsed.tier)) {
+    return parsed.tier;
+  }
+  warnings.push(
+    `Invalid tier "${parsed.tier}", using default "${DEFAULTS.tier}"`
+  );
   return DEFAULTS.tier;
 }
 
-function extractStatus(parsed: Record<string, unknown>, warnings: string[]): RepoStatus {
-  if (parsed.status === undefined) {return DEFAULTS.status;}
-  if (isValidStatus(parsed.status)) {return parsed.status;}
-  warnings.push(`Invalid status "${parsed.status}", using default "${DEFAULTS.status}"`);
+function extractStatus(
+  parsed: Record<string, unknown>,
+  warnings: string[]
+): RepoStatus {
+  if (parsed.status === undefined) {
+    return DEFAULTS.status;
+  }
+  if (isValidStatus(parsed.status)) {
+    return parsed.status;
+  }
+  warnings.push(
+    `Invalid status "${parsed.status}", using default "${DEFAULTS.status}"`
+  );
   return DEFAULTS.status;
 }
 
 export function findMetadataPath(repoPath: string): string | null {
   for (const filename of FILE_PATTERNS.metadata) {
     const metadataPath = join(repoPath, filename);
-    if (existsSync(metadataPath)) {return metadataPath;}
+    if (existsSync(metadataPath)) {
+      return metadataPath;
+    }
   }
   return null;
 }
@@ -61,7 +89,9 @@ export function parseRepoMetadata(
 ): { metadata: RepoMetadata; warnings: string[] } | null {
   try {
     const parsed = parseYaml(content) as Record<string, unknown> | null;
-    if (!parsed || typeof parsed !== "object") {return null;}
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
     const warnings: string[] = [];
     const tier = extractTier(parsed, warnings);
     const status = extractStatus(parsed, warnings);
@@ -94,8 +124,17 @@ export function getRepoMetadata(
 
 /** Directories to skip during recursive search */
 const SKIP_DIRS = new Set([
-  "node_modules", ".git", "dist", "build", "coverage",
-  ".next", ".turbo", "vendor", "__pycache__", ".venv", "venv",
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  "coverage",
+  ".next",
+  ".turbo",
+  "vendor",
+  "__pycache__",
+  ".venv",
+  "venv",
 ]);
 
 /** Callback for logging skipped directories during search. */
@@ -115,13 +154,19 @@ interface SearchContext {
   onError: SkippedDirLogger;
 }
 
-function searchForCheckToml(ctx: SearchContext, dirPath: string, depth: number): void {
+function searchForCheckToml(
+  ctx: SearchContext,
+  dirPath: string,
+  depth: number
+): void {
   if (depth > ctx.maxDepth) {
     return;
   }
   const checkPath = join(dirPath, FILE_PATTERNS.checkToml);
   if (existsSync(checkPath)) {
-    ctx.results.push(relative(ctx.repoPath, checkPath) || FILE_PATTERNS.checkToml);
+    ctx.results.push(
+      relative(ctx.repoPath, checkPath) || FILE_PATTERNS.checkToml
+    );
   }
   try {
     for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
@@ -146,11 +191,13 @@ export function findCheckTomlFiles(
     repoPath,
     maxDepth: opts.maxDepth ?? 3,
     results: [],
-    onError: opts.onSkippedDir ?? ((dir, reason) => {
-      if (verbose) {
-        console.warn(`Warning: Skipped directory "${dir}": ${reason}`);
-      }
-    }),
+    onError:
+      opts.onSkippedDir ??
+      ((dir, reason) => {
+        if (verbose) {
+          console.warn(`Warning: Skipped directory "${dir}": ${reason}`);
+        }
+      }),
   };
   searchForCheckToml(ctx, repoPath, 0);
   return ctx.results;

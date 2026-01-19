@@ -23,27 +23,32 @@ First, ask which spec file this belongs to using AskUserQuestion:
 Ask clarifying questions ONE AT A TIME using AskUserQuestion. Adapt questions based on previous answers. Cover these areas:
 
 **Problem & Context:**
+
 - What problem does this feature solve?
 - Who is affected by this problem? (developers, CI, end users)
 - What happens today without this feature?
 
 **Desired Behavior:**
+
 - What should happen when this feature works correctly?
 - What are the success criteria?
 - Are there any edge cases to handle?
 
 **Technical Details:**
+
 - What inputs does this feature need?
 - What outputs should it produce?
 - Are there dependencies on other features or external tools?
 - Are there any constraints (performance, security, compatibility)?
 
 **Scope & Milestones:**
+
 - Should this be broken into milestones?
 - What's the minimum viable version?
 - What can be deferred to later iterations?
 
 **Risks & Considerations:**
+
 - What could go wrong?
 - Are there any breaking changes?
 - What needs to be documented?
@@ -51,6 +56,7 @@ Ask clarifying questions ONE AT A TIME using AskUserQuestion. Adapt questions ba
 ### Step 3: Read Existing Spec
 
 Before writing, read the target spec file to understand:
+
 - Current format and style
 - Existing milestones and features
 - How to integrate the new spec section
@@ -58,6 +64,7 @@ Before writing, read the target spec file to understand:
 ### Step 4: Draft the Specification
 
 Based on answers, draft a spec section following the existing format:
+
 - Use tables for tasks/milestones
 - Include clear goals and outputs
 - Add prerequisites if blocked on other work
