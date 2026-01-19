@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { join, resolve, sep } from "path";
+import { resolve, sep } from "path";
 import { safeJoinPath, PathTraversalError } from "./paths.js";
 
 describe("path utilities", () => {
