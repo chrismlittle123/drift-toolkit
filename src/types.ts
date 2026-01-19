@@ -138,3 +138,34 @@ export interface OrgScanResults {
   repos: RepoScanResult[];
   summary: OrgScanSummary;
 }
+
+// GitHub issue creation for drift detection
+
+export interface DriftIssueOptions {
+  owner: string;
+  repo: string;
+  title: string;
+  body: string;
+  labels?: string[];
+}
+
+export interface DriftIssueResult {
+  created: boolean;
+  issueNumber?: number;
+  issueUrl?: string;
+  error?: string;
+}
+
+export interface FileChange {
+  file: string;
+  status: "added" | "modified" | "deleted";
+  diff?: string;
+}
+
+export interface DriftDetection {
+  repository: string;
+  scanTime: string;
+  commit: string;
+  commitUrl: string;
+  changes: FileChange[];
+}

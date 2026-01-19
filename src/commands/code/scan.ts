@@ -33,6 +33,7 @@ export interface ScanOptions {
   configRepo?: string;
   githubToken?: string;
   json?: boolean;
+  dryRun?: boolean;
 }
 
 /**
@@ -85,6 +86,7 @@ export async function scan(options: ScanOptions): Promise<void> {
       configRepo: options.configRepo,
       token: options.githubToken,
       json: options.json,
+      dryRun: options.dryRun,
     });
     return;
   }

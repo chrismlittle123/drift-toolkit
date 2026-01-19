@@ -448,4 +448,114 @@ describe("github client API functions", () => {
       );
     });
   });
+
+  describe("createIssue", () => {
+    it("creates issue with correct parameters", async () => {
+      const { createIssue } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            number: 42,
+            html_url: "https://github.com/org/repo/issues/42",
+          }),
+          { status: 201 }
+        )
+      );
+
+      const result = await createIssue(
+        "org",
+        "repo",
+        "Test title",
+        "Test body",
+        ["label1"],
+        "test-token"
+      );
+
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.stringContaining("/repos/org/repo/issues"),
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining("Test title"),
+        }),
+        "test-token"
+      );
+      expect(result.number).toBe(42);
+      expect(result.html_url).toBe("https://github.com/org/repo/issues/42");
+    });
+
+    it("includes labels in request body", async () => {
+      const { createIssue } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ number: 1, html_url: "https://github.com/o/r/issues/1" }),
+          { status: 201 }
+        )
+      );
+
+      await createIssue(
+        "org",
+        "repo",
+        "Title",
+        "Body",
+        ["drift:code", "bug"],
+        "token"
+      );
+
+      const call = mockFetchWithRetry.mock.calls[0];
+      const requestInit = call[1] as RequestInit;
+      const body = JSON.parse(requestInit.body as string);
+      expect(body.labels).toEqual(["drift:code", "bug"]);
+    });
+
+    it("throws error on API failure", async () => {
+      const { createIssue } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("Forbidden", { status: 403 })
+      );
+
+      await expect(
+        createIssue("org", "repo", "title", "body", [], "token")
+      ).rejects.toThrow("Failed to create issue: 403");
+    });
+
+    it("sanitizes token in error messages", async () => {
+      const { createIssue } = await import("./client.js");
+      const token = "ghp_secrettoken123";
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(`Error with ${token}`, { status: 500 })
+      );
+
+      await expect(
+        createIssue("org", "repo", "title", "body", [], token)
+      ).rejects.toThrow(expect.not.stringContaining(token));
+    });
+
+    it("throws error for invalid response schema", async () => {
+      const { createIssue } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify({ invalid: "response" }), { status: 201 })
+      );
+
+      await expect(
+        createIssue("org", "repo", "title", "body", [], "token")
+      ).rejects.toThrow("Invalid issue response");
+    });
+
+    it("throws error for invalid JSON response", async () => {
+      const { createIssue } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("not json", { status: 201 })
+      );
+
+      await expect(
+        createIssue("org", "repo", "title", "body", [], "token")
+      ).rejects.toThrow("Failed to parse issue response");
+    });
+  });
 });

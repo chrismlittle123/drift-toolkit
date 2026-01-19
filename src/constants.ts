@@ -74,3 +74,15 @@ export const FILE_PATTERNS = {
   /** check-my-toolkit config file name */
   checkToml: "check.toml" as const,
 } as const;
+
+/**
+ * GitHub issue configuration for drift detection
+ */
+export const GITHUB_ISSUES = {
+  /** Maximum issue body length (GitHub limit is ~65535, leaving buffer) */
+  maxBodyLength: 60000,
+  /** Default label for drift detection issues */
+  driftLabel: "drift:code",
+  /** Issue title for configuration drift */
+  driftTitle: "[drift:code] Configuration changes detected",
+} as const;
