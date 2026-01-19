@@ -184,156 +184,159 @@ export async function scanOrg(
     process.exit(1);
   }
 
-  // Clone config repo
+  // Clone config repo - use try-finally for guaranteed cleanup
   const configDir = createTempDir("config");
+
   try {
-    if (!options.json) {
-      console.log(`Cloning config repo ${org}/${configRepoName}...`);
-    }
-    cloneRepo(org, configRepoName, configDir, token);
-  } catch (error) {
-    removeTempDir(configDir);
-    console.error(
-      `Error: Failed to clone config repo: ${getErrorMessage(error)}`
-    );
-    process.exit(1);
-  }
-
-  // Load config
-  const config = loadConfig(configDir);
-  if (!config) {
-    removeTempDir(configDir);
-    console.error(
-      `Error: No drift.config.yaml found in ${org}/${configRepoName}`
-    );
-    process.exit(1);
-  }
-
-  // Security validation - warn about potentially dangerous commands
-  if (!options.json) {
-    const securityWarnings = validateConfigSecurity(config);
-    if (securityWarnings.length > 0) {
-      printWarnings(
-        "SECURITY WARNING",
-        securityWarnings,
-        "Only run scans from trusted configuration sources."
-      );
-    }
-  }
-
-  const approvedBasePath = configDir;
-
-  // Get list of repos to scan
-  let reposToScan: string[];
-  let isOrg = true;
-
-  if (options.repo) {
-    // Single repo mode
-    reposToScan = [options.repo];
-  } else {
-    // List all repos (auto-detects org vs user)
-    if (!options.json) {
-      console.log(`Fetching repos for ${org}...`);
-    }
-    const result = await listRepos(org, token);
-    isOrg = result.isOrg;
-    // Exclude the config repo and any repos matching exclude patterns
-    reposToScan = result.repos
-      .map((r) => r.name)
-      .filter((name) => name !== configRepoName)
-      .filter(
-        (name) =>
-          !config.exclude || !matchesExcludePattern(name, config.exclude)
-      );
-  }
-
-  if (!options.json) {
-    printScanHeader(org, configRepoName, reposToScan.length, isOrg);
-    console.log(
-      `Scanning with concurrency: ${Math.min(CONCURRENCY.maxRepoScans, reposToScan.length)}\n`
-    );
-  }
-
-  /**
-   * Scan a single repository and return the result.
-   * Handles cloning, scanning, and cleanup.
-   * Note: This function is synchronous but wrapped in Promise for use with parallelLimit.
-   */
-  function scanSingleRepo(repoName: string): RepoScanResult {
-    const repoResult: RepoScanResult = {
-      repo: repoName,
-      results: createEmptyResults(`${org}/${repoName}`),
-    };
-
-    const repoDir = createTempDir(repoName);
-
+    // Clone the config repo
     try {
-      // Clone and scan the repo
-      cloneRepo(org, repoName, repoDir, token);
-      // config is guaranteed to be non-null here (checked above in scanOrg)
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      repoResult.results = scanRepo(repoDir, config!, approvedBasePath);
-      repoResult.results.path = `${org}/${repoName}`;
+      if (!options.json) {
+        console.log(`Cloning config repo ${org}/${configRepoName}...`);
+      }
+      cloneRepo(org, configRepoName, configDir, token);
     } catch (error) {
-      repoResult.error = getErrorMessage(error);
-    } finally {
-      removeTempDir(repoDir);
+      console.error(
+        `Error: Failed to clone config repo: ${getErrorMessage(error)}`
+      );
+      process.exit(1);
     }
 
-    return repoResult;
-  }
-
-  // Scan repos in parallel with concurrency limit
-  const repoResults = await parallelLimit(reposToScan, async (repoName) => {
-    if (!options.json) {
-      process.stdout.write(`Scanning ${org}/${repoName}... `);
+    // Load config - will exit if not found, so config is guaranteed non-null after this
+    const loadedConfig = loadConfig(configDir);
+    if (!loadedConfig) {
+      console.error(
+        `Error: No drift.config.yaml found in ${org}/${configRepoName}`
+      );
+      process.exit(1);
+      return orgResults; // Never reached, but helps TypeScript understand control flow
     }
+    // Create a const that TypeScript knows is non-null
+    const config: DriftConfig = loadedConfig;
 
-    // scanSingleRepo is sync but we wrap in promise for parallelLimit
-    const result = await Promise.resolve(scanSingleRepo(repoName));
-
-    // Print status immediately after each scan completes
+    // Security validation - warn about potentially dangerous commands
     if (!options.json) {
-      if (result.error) {
-        console.log(
-          `${COLORS.yellow}⚠ skipped (${result.error})${COLORS.reset}`
+      const securityWarnings = validateConfigSecurity(config);
+      if (securityWarnings.length > 0) {
+        printWarnings(
+          "SECURITY WARNING",
+          securityWarnings,
+          "Only run scans from trusted configuration sources."
         );
-      } else if (hasIssues(result.results)) {
-        console.log(`${COLORS.red}✗ issues found${COLORS.reset}`);
-      } else {
-        console.log(`${COLORS.green}✓ ok${COLORS.reset}`);
       }
     }
 
-    return result;
-  });
+    const approvedBasePath = configDir;
 
-  // Aggregate results
-  for (const repoResult of repoResults) {
-    if (repoResult.error) {
-      orgResults.summary.reposSkipped++;
+    // Get list of repos to scan
+    let reposToScan: string[];
+    let isOrg = true;
+
+    if (options.repo) {
+      // Single repo mode
+      reposToScan = [options.repo];
     } else {
-      updateOrgSummaryFromRepo(orgResults.summary, repoResult.results);
+      // List all repos (auto-detects org vs user)
+      if (!options.json) {
+        console.log(`Fetching repos for ${org}...`);
+      }
+      const result = await listRepos(org, token);
+      isOrg = result.isOrg;
+      // Exclude the config repo and any repos matching exclude patterns
+      reposToScan = result.repos
+        .map((r) => r.name)
+        .filter((name) => name !== configRepoName)
+        .filter(
+          (name) =>
+            !config.exclude || !matchesExcludePattern(name, config.exclude)
+        );
     }
-    orgResults.repos.push(repoResult);
+
+    if (!options.json) {
+      printScanHeader(org, configRepoName, reposToScan.length, isOrg);
+      console.log(
+        `Scanning with concurrency: ${Math.min(CONCURRENCY.maxRepoScans, reposToScan.length)}\n`
+      );
+    }
+
+    /**
+     * Scan a single repository and return the result.
+     * Handles cloning, scanning, and cleanup.
+     * Note: This function is synchronous but wrapped in Promise for use with parallelLimit.
+     */
+    function scanSingleRepo(repoName: string): RepoScanResult {
+      const repoResult: RepoScanResult = {
+        repo: repoName,
+        results: createEmptyResults(`${org}/${repoName}`),
+      };
+
+      const repoDir = createTempDir(repoName);
+
+      try {
+        // Clone and scan the repo
+        cloneRepo(org, repoName, repoDir, token);
+        repoResult.results = scanRepo(repoDir, config, approvedBasePath);
+        repoResult.results.path = `${org}/${repoName}`;
+      } catch (error) {
+        repoResult.error = getErrorMessage(error);
+      } finally {
+        removeTempDir(repoDir);
+      }
+
+      return repoResult;
+    }
+
+    // Scan repos in parallel with concurrency limit
+    const repoResults = await parallelLimit(reposToScan, async (repoName) => {
+      if (!options.json) {
+        process.stdout.write(`Scanning ${org}/${repoName}... `);
+      }
+
+      // scanSingleRepo is sync but we wrap in promise for parallelLimit
+      const result = await Promise.resolve(scanSingleRepo(repoName));
+
+      // Print status immediately after each scan completes
+      if (!options.json) {
+        if (result.error) {
+          console.log(
+            `${COLORS.yellow}⚠ skipped (${result.error})${COLORS.reset}`
+          );
+        } else if (hasIssues(result.results)) {
+          console.log(`${COLORS.red}✗ issues found${COLORS.reset}`);
+        } else {
+          console.log(`${COLORS.green}✓ ok${COLORS.reset}`);
+        }
+      }
+
+      return result;
+    });
+
+    // Aggregate results
+    for (const repoResult of repoResults) {
+      if (repoResult.error) {
+        orgResults.summary.reposSkipped++;
+      } else {
+        updateOrgSummaryFromRepo(orgResults.summary, repoResult.results);
+      }
+      orgResults.repos.push(repoResult);
+    }
+
+    // Output results
+    if (options.json) {
+      console.log(JSON.stringify(orgResults, null, 2));
+    } else {
+      printOrgResults(orgResults);
+    }
+
+    // Exit with error code if there are issues
+    if (orgResults.summary.reposWithIssues > 0) {
+      process.exit(1);
+    }
+
+    return orgResults;
+  } finally {
+    // Always cleanup config repo, even if errors occur
+    removeTempDir(configDir);
   }
-
-  // Cleanup config repo
-  removeTempDir(configDir);
-
-  // Output results
-  if (options.json) {
-    console.log(JSON.stringify(orgResults, null, 2));
-  } else {
-    printOrgResults(orgResults);
-  }
-
-  // Exit with error code if there are issues
-  if (orgResults.summary.reposWithIssues > 0) {
-    process.exit(1);
-  }
-
-  return orgResults;
 }
 
 /**

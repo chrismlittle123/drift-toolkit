@@ -5,15 +5,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      // Enforce 80% minimum coverage for unit tests
-      // Scoped to src/repo for now until legacy code has tests
+      // Enforce 80% minimum coverage globally for unit tests
       thresholds: {
-        "src/repo/**/*.ts": {
-          statements: 80,
-          branches: 80,
-          functions: 80,
-          lines: 80,
-        },
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
       },
       // Only measure coverage for src files, excluding tests
       include: ["src/**/*.ts"],

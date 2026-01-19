@@ -1,159 +1,72 @@
-/**
- * Repository detection utilities for drift-toolkit.
- *
- * A repository is scannable if it has:
- * 1. A repo-metadata.yaml file (defines tier and status)
- * 2. At least one check.toml file (defines standards)
- */
-
+/** Repository detection utilities for drift-toolkit. */
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, relative } from "path";
 import { parse as parseYaml } from "yaml";
 import { FILE_PATTERNS } from "../constants.js";
 
-/**
- * Valid repository tiers
- */
 export type RepoTier = "production" | "internal" | "prototype";
-
-/**
- * Valid repository statuses
- */
 export type RepoStatus = "active" | "pre-release" | "deprecated";
 
-/**
- * Parsed repository metadata from repo-metadata.yaml
- */
 export interface RepoMetadata {
-  /** Repository tier (production, internal, prototype) */
   tier: RepoTier;
-  /** Repository status (active, pre-release, deprecated) */
   status: RepoStatus;
-  /** Optional team ownership */
   team?: string;
-  /** Raw metadata for additional fields */
   raw: Record<string, unknown>;
 }
 
-/**
- * Result of scanning a repository for scannability
- */
 export interface ScannabilityResult {
-  /** Whether the repo can be scanned */
   scannable: boolean;
-  /** Whether repo-metadata.yaml exists */
   hasMetadata: boolean;
-  /** Whether at least one check.toml exists */
   hasCheckToml: boolean;
-  /** Paths to all check.toml files found */
   checkTomlPaths: string[];
-  /** Parsed metadata if available */
   metadata?: RepoMetadata;
-  /** Error message if something went wrong */
   error?: string;
 }
 
-/**
- * Default values for metadata fields
- */
-const DEFAULTS = {
-  tier: "internal" as RepoTier,
-  status: "active" as RepoStatus,
-};
+const DEFAULTS = { tier: "internal" as RepoTier, status: "active" as RepoStatus };
 
-/**
- * Check if a value is a valid RepoTier
- */
 function isValidTier(value: unknown): value is RepoTier {
-  return (
-    typeof value === "string" &&
-    ["production", "internal", "prototype"].includes(value)
-  );
+  return typeof value === "string" && ["production", "internal", "prototype"].includes(value);
 }
 
-/**
- * Check if a value is a valid RepoStatus
- */
 function isValidStatus(value: unknown): value is RepoStatus {
-  return (
-    typeof value === "string" &&
-    ["active", "pre-release", "deprecated"].includes(value)
+  return typeof value === "string" && ["active", "pre-release", "deprecated"].includes(value
   );
 }
 
-/**
- * Extract and validate tier from parsed metadata
- */
-function extractTier(
-  parsed: Record<string, unknown>,
-  warnings: string[]
-): RepoTier {
-  if (parsed.tier === undefined) {
-    return DEFAULTS.tier;
-  }
-  if (isValidTier(parsed.tier)) {
-    return parsed.tier;
-  }
-  warnings.push(
-    `Invalid tier "${parsed.tier}", using default "${DEFAULTS.tier}"`
-  );
+function extractTier(parsed: Record<string, unknown>, warnings: string[]): RepoTier {
+  if (parsed.tier === undefined) {return DEFAULTS.tier;}
+  if (isValidTier(parsed.tier)) {return parsed.tier;}
+  warnings.push(`Invalid tier "${parsed.tier}", using default "${DEFAULTS.tier}"`);
   return DEFAULTS.tier;
 }
 
-/**
- * Extract and validate status from parsed metadata
- */
-function extractStatus(
-  parsed: Record<string, unknown>,
-  warnings: string[]
-): RepoStatus {
-  if (parsed.status === undefined) {
-    return DEFAULTS.status;
-  }
-  if (isValidStatus(parsed.status)) {
-    return parsed.status;
-  }
-  warnings.push(
-    `Invalid status "${parsed.status}", using default "${DEFAULTS.status}"`
-  );
+function extractStatus(parsed: Record<string, unknown>, warnings: string[]): RepoStatus {
+  if (parsed.status === undefined) {return DEFAULTS.status;}
+  if (isValidStatus(parsed.status)) {return parsed.status;}
+  warnings.push(`Invalid status "${parsed.status}", using default "${DEFAULTS.status}"`);
   return DEFAULTS.status;
 }
 
-/**
- * Find the repo-metadata.yaml file path if it exists.
- */
 export function findMetadataPath(repoPath: string): string | null {
   for (const filename of FILE_PATTERNS.metadata) {
     const metadataPath = join(repoPath, filename);
-    if (existsSync(metadataPath)) {
-      return metadataPath;
-    }
+    if (existsSync(metadataPath)) {return metadataPath;}
   }
   return null;
 }
 
-/**
- * Parse and validate repo-metadata.yaml contents.
- * Returns metadata with defaults applied for missing fields.
- */
 export function parseRepoMetadata(
   content: string
 ): { metadata: RepoMetadata; warnings: string[] } | null {
   try {
     const parsed = parseYaml(content) as Record<string, unknown> | null;
-    if (!parsed || typeof parsed !== "object") {
-      return null;
-    }
-
+    if (!parsed || typeof parsed !== "object") {return null;}
     const warnings: string[] = [];
     const tier = extractTier(parsed, warnings);
     const status = extractStatus(parsed, warnings);
     const team = typeof parsed.team === "string" ? parsed.team : undefined;
-
-    return {
-      metadata: { tier, status, team, raw: parsed },
-      warnings,
-    };
+    return { metadata: { tier, status, team, raw: parsed }, warnings };
   } catch {
     return null;
   }
@@ -179,63 +92,68 @@ export function getRepoMetadata(
   }
 }
 
-/**
- * Find all check.toml files in a repository.
- * Searches the root and all subdirectories (for monorepos).
- *
- * @param repoPath - Path to the repository root
- * @param maxDepth - Maximum directory depth to search (default: 3)
- * @returns Array of relative paths to check.toml files
- */
+/** Directories to skip during recursive search */
+const SKIP_DIRS = new Set([
+  "node_modules", ".git", "dist", "build", "coverage",
+  ".next", ".turbo", "vendor", "__pycache__", ".venv", "venv",
+]);
+
+/** Callback for logging skipped directories during search. */
+export type SkippedDirLogger = (dirPath: string, reason: string) => void;
+
+/** Options for findCheckTomlFiles */
+export interface FindCheckTomlOptions {
+  maxDepth?: number;
+  verbose?: boolean;
+  onSkippedDir?: SkippedDirLogger;
+}
+
+interface SearchContext {
+  repoPath: string;
+  maxDepth: number;
+  results: string[];
+  onError: SkippedDirLogger;
+}
+
+function searchForCheckToml(ctx: SearchContext, dirPath: string, depth: number): void {
+  if (depth > ctx.maxDepth) {
+    return;
+  }
+  const checkPath = join(dirPath, FILE_PATTERNS.checkToml);
+  if (existsSync(checkPath)) {
+    ctx.results.push(relative(ctx.repoPath, checkPath) || FILE_PATTERNS.checkToml);
+  }
+  try {
+    for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+      if (entry.isDirectory() && !SKIP_DIRS.has(entry.name)) {
+        searchForCheckToml(ctx, join(dirPath, entry.name), depth + 1);
+      }
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    ctx.onError(relative(ctx.repoPath, dirPath) || ".", msg);
+  }
+}
+
+/** Find all check.toml files in a repository. */
 export function findCheckTomlFiles(
   repoPath: string,
-  maxDepth: number = 3
+  options: FindCheckTomlOptions | number = {}
 ): string[] {
-  const checkTomlFiles: string[] = [];
-  const checkTomlName = FILE_PATTERNS.checkToml;
-
-  function searchDirectory(dirPath: string, depth: number): void {
-    if (depth > maxDepth) {
-      return;
-    }
-
-    // Check for check.toml in current directory
-    const checkTomlPath = join(dirPath, checkTomlName);
-    if (existsSync(checkTomlPath)) {
-      const relativePath = relative(repoPath, checkTomlPath);
-      checkTomlFiles.push(relativePath || checkTomlName);
-    }
-
-    // Skip node_modules and other common non-project directories
-    const skipDirs = new Set([
-      "node_modules",
-      ".git",
-      "dist",
-      "build",
-      "coverage",
-      ".next",
-      ".turbo",
-      "vendor",
-      "__pycache__",
-      ".venv",
-      "venv",
-    ]);
-
-    // Search subdirectories
-    try {
-      const entries = readdirSync(dirPath, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory() && !skipDirs.has(entry.name)) {
-          searchDirectory(join(dirPath, entry.name), depth + 1);
-        }
+  const opts = typeof options === "number" ? { maxDepth: options } : options;
+  const verbose = opts.verbose ?? false;
+  const ctx: SearchContext = {
+    repoPath,
+    maxDepth: opts.maxDepth ?? 3,
+    results: [],
+    onError: opts.onSkippedDir ?? ((dir, reason) => {
+      if (verbose) {
+        console.warn(`Warning: Skipped directory "${dir}": ${reason}`);
       }
-    } catch {
-      // Ignore permission errors or other issues reading directories
-    }
-  }
-
-  searchDirectory(repoPath, 0);
-  return checkTomlFiles;
+    }),
+  };
+  searchForCheckToml(ctx, repoPath, 0);
+  return ctx.results;
 }
 
 /**

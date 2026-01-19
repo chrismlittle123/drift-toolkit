@@ -4,8 +4,8 @@
  * Detects commits and file changes within a configurable time window (e.g., 24 hours).
  */
 
-import { execSync } from "child_process";
 import { isGitRepo } from "./changes.js";
+import { execGit } from "../utils/git.js";
 
 /**
  * Options for time-window based change detection
@@ -43,21 +43,6 @@ export interface RecentChanges {
   authors: string[];
   /** Whether any commits exist in the time window */
   hasCommits: boolean;
-}
-
-/**
- * Execute a git command and return the output
- */
-function execGit(repoPath: string, args: string): string {
-  try {
-    return execSync(`git ${args}`, {
-      cwd: repoPath,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
-    return "";
-  }
 }
 
 /**

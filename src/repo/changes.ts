@@ -4,10 +4,10 @@
  * Uses git to detect changes to check.toml files since a given commit.
  */
 
-import { execSync } from "child_process";
 import { existsSync } from "fs";
 import { join } from "path";
 import { FILE_PATTERNS } from "../constants.js";
+import { execGit } from "../utils/git.js";
 
 /**
  * Result of detecting check.toml changes
@@ -31,21 +31,6 @@ export interface ChangeDetectionOptions {
   baseCommit?: string;
   /** Target commit to compare (default: HEAD) */
   targetCommit?: string;
-}
-
-/**
- * Execute a git command and return the output
- */
-function execGit(repoPath: string, args: string): string {
-  try {
-    return execSync(`git ${args}`, {
-      cwd: repoPath,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim();
-  } catch {
-    return "";
-  }
 }
 
 /**
