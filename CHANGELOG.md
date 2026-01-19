@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.3
+
+### Patch Changes
+
+- 1db97a2: Fix TypeScript compilation errors in test files by adding missing required properties to test fixtures.
+
 ## 1.3.2
 
 ### Patch Changes
