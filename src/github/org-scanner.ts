@@ -148,17 +148,22 @@ function buildDriftDetection(
   };
 }
 
+interface CreateDriftIssueOptions {
+  org: string;
+  repoName: string;
+  results: DriftResults;
+  token: string;
+  dryRun: boolean;
+  json: boolean;
+}
+
 /**
  * Create a GitHub issue for drift detection with error handling
  */
 async function createDriftIssue(
-  org: string,
-  repoName: string,
-  results: DriftResults,
-  token: string,
-  dryRun: boolean,
-  json: boolean
+  options: CreateDriftIssueOptions
 ): Promise<DriftIssueResult> {
+  const { org, repoName, results, token, dryRun, json } = options;
   const detection = buildDriftDetection(org, repoName, results);
 
   if (!detection) {
@@ -186,11 +191,13 @@ async function createDriftIssue(
   try {
     const body = formatDriftIssueBody(detection);
     const issue = await createIssue(
-      org,
-      repoName,
-      getDriftIssueTitle(),
-      body,
-      [getDriftIssueLabel()],
+      {
+        owner: org,
+        repo: repoName,
+        title: getDriftIssueTitle(),
+        body,
+        labels: [getDriftIssueLabel()],
+      },
       token
     );
 
@@ -424,14 +431,14 @@ export async function scanOrg(
 
       // Create GitHub issue for repos with drift (integrity failures)
       if (!result.error && hasIssues(result.results) && token) {
-        await createDriftIssue(
+        await createDriftIssue({
           org,
           repoName,
-          result.results,
+          results: result.results,
           token,
-          options.dryRun ?? false,
-          options.json ?? false
-        );
+          dryRun: options.dryRun ?? false,
+          json: options.json ?? false,
+        });
       }
 
       return result;

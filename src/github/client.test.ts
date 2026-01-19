@@ -464,11 +464,13 @@ describe("github client API functions", () => {
       );
 
       const result = await createIssue(
-        "org",
-        "repo",
-        "Test title",
-        "Test body",
-        ["label1"],
+        {
+          owner: "org",
+          repo: "repo",
+          title: "Test title",
+          body: "Test body",
+          labels: ["label1"],
+        },
         "test-token"
       );
 
@@ -489,23 +491,28 @@ describe("github client API functions", () => {
 
       mockFetchWithRetry.mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ number: 1, html_url: "https://github.com/o/r/issues/1" }),
+          JSON.stringify({
+            number: 1,
+            html_url: "https://github.com/o/r/issues/1",
+          }),
           { status: 201 }
         )
       );
 
       await createIssue(
-        "org",
-        "repo",
-        "Title",
-        "Body",
-        ["drift:code", "bug"],
+        {
+          owner: "org",
+          repo: "repo",
+          title: "Title",
+          body: "Body",
+          labels: ["drift:code", "bug"],
+        },
         "token"
       );
 
       const call = mockFetchWithRetry.mock.calls[0];
-      const requestInit = call[1] as RequestInit;
-      const body = JSON.parse(requestInit.body as string);
+      const requestInit = call[1] as { body?: string };
+      const body = JSON.parse(requestInit.body ?? "{}");
       expect(body.labels).toEqual(["drift:code", "bug"]);
     });
 
@@ -517,7 +524,16 @@ describe("github client API functions", () => {
       );
 
       await expect(
-        createIssue("org", "repo", "title", "body", [], "token")
+        createIssue(
+          {
+            owner: "org",
+            repo: "repo",
+            title: "title",
+            body: "body",
+            labels: [],
+          },
+          "token"
+        )
       ).rejects.toThrow("Failed to create issue: 403");
     });
 
@@ -530,7 +546,16 @@ describe("github client API functions", () => {
       );
 
       await expect(
-        createIssue("org", "repo", "title", "body", [], token)
+        createIssue(
+          {
+            owner: "org",
+            repo: "repo",
+            title: "title",
+            body: "body",
+            labels: [],
+          },
+          token
+        )
       ).rejects.toThrow(expect.not.stringContaining(token));
     });
 
@@ -542,7 +567,16 @@ describe("github client API functions", () => {
       );
 
       await expect(
-        createIssue("org", "repo", "title", "body", [], "token")
+        createIssue(
+          {
+            owner: "org",
+            repo: "repo",
+            title: "title",
+            body: "body",
+            labels: [],
+          },
+          "token"
+        )
       ).rejects.toThrow("Invalid issue response");
     });
 
@@ -554,7 +588,16 @@ describe("github client API functions", () => {
       );
 
       await expect(
-        createIssue("org", "repo", "title", "body", [], "token")
+        createIssue(
+          {
+            owner: "org",
+            repo: "repo",
+            title: "title",
+            body: "body",
+            labels: [],
+          },
+          "token"
+        )
       ).rejects.toThrow("Failed to parse issue response");
     });
   });

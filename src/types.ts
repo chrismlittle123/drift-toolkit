@@ -141,14 +141,6 @@ export interface OrgScanResults {
 
 // GitHub issue creation for drift detection
 
-export interface DriftIssueOptions {
-  owner: string;
-  repo: string;
-  title: string;
-  body: string;
-  labels?: string[];
-}
-
 export interface DriftIssueResult {
   created: boolean;
   issueNumber?: number;

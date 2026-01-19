@@ -8,7 +8,10 @@ import type { DriftDetection, FileChange } from "../types.js";
 /**
  * Truncate diff if it exceeds max lines.
  */
-function truncateDiff(diff: string, maxLines: number = DISPLAY_LIMITS.diffLines): string {
+function truncateDiff(
+  diff: string,
+  maxLines: number = DISPLAY_LIMITS.diffLines
+): string {
   const lines = diff.split("\n");
   if (lines.length <= maxLines) {
     return diff;
@@ -50,7 +53,9 @@ export function formatDriftIssueBody(detection: DriftDetection): string {
   parts.push("## Configuration Drift Detected\n");
   parts.push(`Repository: \`${detection.repository}\``);
   parts.push(`Scan time: ${detection.scanTime}`);
-  parts.push(`Commit: [${detection.commit.slice(0, 7)}](${detection.commitUrl})\n`);
+  parts.push(
+    `Commit: [${detection.commit.slice(0, 7)}](${detection.commitUrl})\n`
+  );
 
   // Changed files section
   parts.push("### Changed Files\n");
