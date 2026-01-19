@@ -12,9 +12,16 @@ export default defineConfig({
         functions: 50,
         lines: 50,
       },
-      // Only measure coverage for src files, excluding tests
+      // Only measure coverage for src files, excluding tests and re-export files
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/**/*.spec.ts"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts",
+        "src/**/index.ts", // Re-export barrels
+        "src/types.ts", // Type definitions only
+        "src/cli.ts", // CLI entry point
+        "src/github/org-scanner.ts", // Complex integration, tested via e2e
+      ],
     },
   },
 });
