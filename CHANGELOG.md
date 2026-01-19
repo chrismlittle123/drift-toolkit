@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+### Minor Changes
+
+- 4c204dd: Add GitHub issue creation for detected drift
+  - Create GitHub issues automatically when configuration drift is detected during org scans
+  - Issues include diffs of changed files with truncation for large diffs
+  - Add `--dry-run` flag to preview what issues would be created without creating them
+  - Issue format: title `[drift:code] Configuration changes detected`, label `drift:code`
+
 ## 1.3.3
 
 ### Patch Changes
