@@ -10,17 +10,27 @@
 
 ## Prerequisites (check-my-toolkit)
 
-These features must be implemented in check-my-toolkit first:
+**Already exists in check-my-toolkit:**
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Infra schema in check.toml | Not started | `[infra]` section for defining stacks, accounts |
-| `cmt infra validate` | Not started | Validate CDK vs AWS resources |
+| `[infra.tagging]` schema | **Already exists** | AWS resource tagging validation |
+| `cm infra check` | **Already exists** | Run infrastructure tagging checks |
+| `cm infra audit` | **Already exists** | Verify infrastructure configs exist |
+
+**Missing features needed for drift:**
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Extended infra schema | Not started | `[infra]` section for stacks, accounts, CDK path |
+| `cm infra validate` | Not started | Validate CDK code vs actual AWS resources |
+| CDK synth integration | Not started | Parse CloudFormation templates from CDK |
+| Multi-account support | Not started | Query resources across dev/staging/prod |
 | Deployment tracking | Not started | Track last deployed commit per environment |
 
-**Blocked until:** `cmt infra validate` is available
+**Blocked until:** `cm infra validate` is available
 
-**Note:** This is the most complex domain and has the highest dependency on check-my-toolkit features.
+**Note:** This is the most complex domain. The existing `[infra.tagging]` check is separate from the proposed CDK validation feature. The CLI command is `cm` (not `cmt`).
 
 ---
 
@@ -52,7 +62,7 @@ These features must be implemented in check-my-toolkit first:
 | Resource extraction | Extract resource types, logical IDs |
 | Source mapping | Map resources back to TypeScript source files |
 
-**Output:** `cmt infra validate` can determine expected resources from CDK
+**Output:** `cm infra validate` can determine expected resources from CDK
 
 ---
 
@@ -68,7 +78,7 @@ These features must be implemented in check-my-toolkit first:
 | IAM queries | GetRole, GetPolicy, GetRolePolicy |
 | Multi-account support | Assume roles or use profiles per account |
 
-**Output:** `cmt infra validate` can query actual AWS state
+**Output:** `cm infra validate` can query actual AWS state
 
 ---
 
@@ -83,7 +93,7 @@ These features must be implemented in check-my-toolkit first:
 | Basic comparison | Resource exists yes/no |
 | JSON output | Structured output for drift-toolkit |
 
-**Output:** `cmt infra validate --json` returns validation results
+**Output:** `cm infra validate --json` returns validation results
 
 ---
 
@@ -124,7 +134,7 @@ These features must be implemented in check-my-toolkit first:
 
 | Task | Description |
 |------|-------------|
-| Call cmt infra validate | Shell out to `cmt infra validate --json --account all` |
+| Call cm infra validate | Shell out to `cm infra validate --json --account all` |
 | Parse results | Extract issues from JSON output |
 | Format issue | Convert to GitHub issue format |
 | All 3 accounts | Scan dev, staging, prod in one run |
@@ -133,18 +143,26 @@ These features must be implemented in check-my-toolkit first:
 
 ---
 
-### Milestone 8: Deprecated Project Scanning
+### Milestone 8: Status-based Scanning (Pre-release & Deprecated)
 
-**Goal:** Verify deprecated projects have resources cleaned up
+**Goal:** Handle different project statuses appropriately
 
 | Task | Description |
 |------|-------------|
-| Read status from metadata | Check `status: deprecated` in repo-metadata.yaml |
-| Inverted validation | For deprecated, expect NO resources to exist |
+| Read status from metadata | Check `status` field in repo-metadata.yaml |
+| Pre-release handling | Skip prod account scanning (not yet deployed) |
+| Deprecated handling | Expect NO resources to exist in any account |
 | Cleanup issue | Create issue listing resources that should be deleted |
 | Stack deletion check | Verify CloudFormation stacks are deleted |
 
-**Output:** Deprecated projects get issues if resources still exist
+**Status behaviors:**
+| Status | Behavior |
+|--------|----------|
+| `active` | Normal scanning - all 3 accounts |
+| `pre-release` | Skip prod account (not yet deployed to production) |
+| `deprecated` | Inverted validation - expect all resources deleted |
+
+**Output:** Status-appropriate scanning with correct issue creation
 
 ---
 
@@ -389,10 +407,10 @@ For multi-account, create this role in each account and allow assumption from th
 
 | Package | Purpose |
 |---------|---------|
-| check-my-toolkit | `infra validate` command |
+| check-my-toolkit | CLI (`cm`): `infra validate` command (to be built) |
 | @aws-sdk/* | AWS API queries (in check-my-toolkit) |
 | aws-cdk-lib | CDK synth (in check-my-toolkit) |
-| @octokit/rest | GitHub API for issue creation |
+| @octokit/rest | GitHub API for issue creation (existing in drift-toolkit) |
 
 ---
 
@@ -459,9 +477,9 @@ drift reads stack tags to know deployed commit.
 ## Success Criteria
 
 - [ ] Infra schema defined in check.toml
-- [ ] `cmt infra validate` detects missing resources
-- [ ] `cmt infra validate` detects orphaned resources
-- [ ] `cmt infra validate` detects attribute drift
+- [ ] `cm infra validate` detects missing resources
+- [ ] `cm infra validate` detects orphaned resources
+- [ ] `cm infra validate` detects attribute drift
 - [ ] Deployment tracking implemented (know what's deployed where)
 - [ ] `drift infra scan` creates issues for infra drift
 - [ ] `drift infra scan` scans all 3 accounts
