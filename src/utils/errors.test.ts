@@ -132,7 +132,9 @@ describe("error utilities", () => {
     });
 
     it("returns string errors as-is", () => {
-      expect(getErrorMessage("Direct string error")).toBe("Direct string error");
+      expect(getErrorMessage("Direct string error")).toBe(
+        "Direct string error"
+      );
     });
 
     it("returns 'Unknown error' for non-Error, non-string values", () => {

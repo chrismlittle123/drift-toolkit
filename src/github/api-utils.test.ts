@@ -4,11 +4,10 @@ import { sanitizeError, fetchWithRetry } from "./api-utils.js";
 describe("api-utils", () => {
   describe("sanitizeError", () => {
     it("sanitizes x-access-token patterns", () => {
-      const input = "Error: https://x-access-token:ghp_secret123@github.com/repo";
+      const input =
+        "Error: https://x-access-token:ghp_secret123@github.com/repo";
       const result = sanitizeError(input);
-      expect(result).toBe(
-        "Error: https://x-access-token:***@github.com/repo"
-      );
+      expect(result).toBe("Error: https://x-access-token:***@github.com/repo");
       expect(result).not.toContain("ghp_secret123");
     });
 
@@ -206,7 +205,9 @@ describe("api-utils", () => {
     });
 
     it("does not retry on 401 unauthorized", async () => {
-      const unauthorizedResponse = new Response("Unauthorized", { status: 401 });
+      const unauthorizedResponse = new Response("Unauthorized", {
+        status: 401,
+      });
       fetchMock.mockResolvedValueOnce(unauthorizedResponse);
 
       const result = await fetchWithRetry("https://api.github.com/test", {});

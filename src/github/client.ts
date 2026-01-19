@@ -239,15 +239,20 @@ export interface GitHubIssue {
   html_url: string;
 }
 
+export interface CreateIssueOptions {
+  owner: string;
+  repo: string;
+  title: string;
+  body: string;
+  labels: string[];
+}
+
 /** Create a GitHub issue for drift detection. */
 export async function createIssue(
-  owner: string,
-  repo: string,
-  title: string,
-  body: string,
-  labels: string[],
+  options: CreateIssueOptions,
   token: string
 ): Promise<GitHubIssue> {
+  const { owner, repo, title, body, labels } = options;
   const headers = buildApiHeaders(token);
   headers["Content-Type"] = "application/json";
 
@@ -279,9 +284,7 @@ export async function createIssue(
 
   const parseResult = GITHUB_ISSUE_SCHEMA.safeParse(rawData);
   if (!parseResult.success) {
-    throw new Error(
-      `Invalid issue response: ${parseResult.error.message}`
-    );
+    throw new Error(`Invalid issue response: ${parseResult.error.message}`);
   }
 
   return parseResult.data;

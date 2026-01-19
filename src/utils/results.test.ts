@@ -87,8 +87,18 @@ describe("results utilities", () => {
 
     it("increments integrityPassed for match status", () => {
       const results: IntegrityResult[] = [
-        { file: "a.txt", status: "match", severity: "high", timestamp: "2024-01-01T00:00:00Z" },
-        { file: "b.txt", status: "match", severity: "high", timestamp: "2024-01-01T00:00:00Z" },
+        {
+          file: "a.txt",
+          status: "match",
+          severity: "high",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          file: "b.txt",
+          status: "match",
+          severity: "high",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateIntegritySummary(summary, results);
       expect(summary.integrityPassed).toBe(2);
@@ -96,7 +106,12 @@ describe("results utilities", () => {
 
     it("increments integrityFailed for drift status", () => {
       const results: IntegrityResult[] = [
-        { file: "a.txt", status: "drift", severity: "high", timestamp: "2024-01-01T00:00:00Z" },
+        {
+          file: "a.txt",
+          status: "drift",
+          severity: "high",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateIntegritySummary(summary, results);
       expect(summary.integrityFailed).toBe(1);
@@ -104,7 +119,12 @@ describe("results utilities", () => {
 
     it("increments integrityMissing for missing status", () => {
       const results: IntegrityResult[] = [
-        { file: "a.txt", status: "missing", severity: "critical", timestamp: "2024-01-01T00:00:00Z" },
+        {
+          file: "a.txt",
+          status: "missing",
+          severity: "critical",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateIntegritySummary(summary, results);
       expect(summary.integrityMissing).toBe(1);
@@ -112,7 +132,13 @@ describe("results utilities", () => {
 
     it("counts error status as failure", () => {
       const results: IntegrityResult[] = [
-        { file: "a.txt", status: "error", severity: "medium", error: "failed", timestamp: "2024-01-01T00:00:00Z" },
+        {
+          file: "a.txt",
+          status: "error",
+          severity: "medium",
+          error: "failed",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateIntegritySummary(summary, results);
       expect(summary.integrityFailed).toBe(1);
@@ -120,10 +146,31 @@ describe("results utilities", () => {
 
     it("handles mixed results", () => {
       const results: IntegrityResult[] = [
-        { file: "a.txt", status: "match", severity: "high", timestamp: "2024-01-01T00:00:00Z" },
-        { file: "b.txt", status: "drift", severity: "high", timestamp: "2024-01-01T00:00:00Z" },
-        { file: "c.txt", status: "missing", severity: "high", timestamp: "2024-01-01T00:00:00Z" },
-        { file: "d.txt", status: "error", severity: "high", error: "err", timestamp: "2024-01-01T00:00:00Z" },
+        {
+          file: "a.txt",
+          status: "match",
+          severity: "high",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          file: "b.txt",
+          status: "drift",
+          severity: "high",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          file: "c.txt",
+          status: "missing",
+          severity: "high",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          file: "d.txt",
+          status: "error",
+          severity: "high",
+          error: "err",
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateIntegritySummary(summary, results);
       expect(summary.integrityPassed).toBe(1);
@@ -148,8 +195,20 @@ describe("results utilities", () => {
 
     it("increments scansPassed for pass status", () => {
       const results: ScanResult[] = [
-        { scan: "lint", status: "pass", exitCode: 0, duration: 100, timestamp: "2024-01-01T00:00:00Z" },
-        { scan: "test", status: "pass", exitCode: 0, duration: 200, timestamp: "2024-01-01T00:00:00Z" },
+        {
+          scan: "lint",
+          status: "pass",
+          exitCode: 0,
+          duration: 100,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          scan: "test",
+          status: "pass",
+          exitCode: 0,
+          duration: 200,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateScanSummary(summary, results);
       expect(summary.scansPassed).toBe(2);
@@ -157,7 +216,13 @@ describe("results utilities", () => {
 
     it("increments scansFailed for fail status", () => {
       const results: ScanResult[] = [
-        { scan: "lint", status: "fail", exitCode: 1, duration: 100, timestamp: "2024-01-01T00:00:00Z" },
+        {
+          scan: "lint",
+          status: "fail",
+          exitCode: 1,
+          duration: 100,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateScanSummary(summary, results);
       expect(summary.scansFailed).toBe(1);
@@ -165,7 +230,13 @@ describe("results utilities", () => {
 
     it("increments scansSkipped for skip status", () => {
       const results: ScanResult[] = [
-        { scan: "optional", status: "skip", skippedReason: "no config", duration: 0, timestamp: "2024-01-01T00:00:00Z" },
+        {
+          scan: "optional",
+          status: "skip",
+          skippedReason: "no config",
+          duration: 0,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateScanSummary(summary, results);
       expect(summary.scansSkipped).toBe(1);
@@ -173,7 +244,13 @@ describe("results utilities", () => {
 
     it("counts error status as failure", () => {
       const results: ScanResult[] = [
-        { scan: "broken", status: "error", stderr: "command not found", duration: 0, timestamp: "2024-01-01T00:00:00Z" },
+        {
+          scan: "broken",
+          status: "error",
+          stderr: "command not found",
+          duration: 0,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateScanSummary(summary, results);
       expect(summary.scansFailed).toBe(1);
@@ -181,10 +258,34 @@ describe("results utilities", () => {
 
     it("handles mixed results", () => {
       const results: ScanResult[] = [
-        { scan: "lint", status: "pass", exitCode: 0, duration: 100, timestamp: "2024-01-01T00:00:00Z" },
-        { scan: "test", status: "fail", exitCode: 1, duration: 200, timestamp: "2024-01-01T00:00:00Z" },
-        { scan: "optional", status: "skip", skippedReason: "not needed", duration: 0, timestamp: "2024-01-01T00:00:00Z" },
-        { scan: "broken", status: "error", stderr: "timeout", duration: 0, timestamp: "2024-01-01T00:00:00Z" },
+        {
+          scan: "lint",
+          status: "pass",
+          exitCode: 0,
+          duration: 100,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          scan: "test",
+          status: "fail",
+          exitCode: 1,
+          duration: 200,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          scan: "optional",
+          status: "skip",
+          skippedReason: "not needed",
+          duration: 0,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
+        {
+          scan: "broken",
+          status: "error",
+          stderr: "timeout",
+          duration: 0,
+          timestamp: "2024-01-01T00:00:00Z",
+        },
       ];
       updateScanSummary(summary, results);
       expect(summary.scansPassed).toBe(1);

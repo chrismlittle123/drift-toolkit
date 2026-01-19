@@ -8,7 +8,11 @@ import {
   discoverFiles,
   formatIntegrityResult,
 } from "./checker.js";
-import type { IntegrityCheck, IntegrityResult, DiscoveryPattern } from "../types.js";
+import type {
+  IntegrityCheck,
+  IntegrityResult,
+  DiscoveryPattern,
+} from "../types.js";
 
 describe("integrity checker", () => {
   let testDir: string;
