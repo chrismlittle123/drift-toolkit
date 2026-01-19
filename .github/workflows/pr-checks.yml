@@ -14,27 +14,80 @@ jobs:
           BRANCH_NAME="${{ github.head_ref }}"
           echo "Checking branch: $BRANCH_NAME"
 
-          # Pattern: (feature|fix|hotfix|docs|chore)/description
-          PATTERN="^(feature|fix|hotfix|docs|chore)/[a-z0-9][a-z0-9-]*$"
+          # Pattern: <type>/<issue-number>/<description>
+          # Issue number is required to link work to GitHub issues
+          PATTERN="^(feature|fix|hotfix|docs)/([0-9]+)/[a-z0-9-]+$"
 
           if [[ "$BRANCH_NAME" =~ $PATTERN ]]; then
+            ISSUE_NUM="${BASH_REMATCH[2]}"
             echo "✅ Branch name '$BRANCH_NAME' follows naming convention"
+            echo "   Linked to issue: #$ISSUE_NUM"
           else
             echo "❌ Branch name '$BRANCH_NAME' does not follow naming convention"
             echo ""
-            echo "Branch names must match: (feature|fix|hotfix|docs|chore)/description"
+            echo "Branch names must match: <type>/<issue-number>/<description>"
             echo ""
             echo "Examples:"
-            echo "  ✅ feature/add-dark-mode"
-            echo "  ✅ fix/audit-bug"
-            echo "  ✅ hotfix/critical-security-fix"
-            echo "  ✅ docs/update-readme"
-            echo "  ✅ chore/update-dependencies"
+            echo "  ✅ feature/123/add-login"
+            echo "  ✅ fix/456/broken-button"
+            echo "  ✅ hotfix/789/security-patch"
+            echo "  ✅ docs/42/update-readme"
             echo ""
-            echo "  ❌ add-dark-mode (missing type prefix)"
-            echo "  ❌ feature/Add-Dark-Mode (must be lowercase)"
-            echo "  ❌ feature/add_dark_mode (use hyphens, not underscores)"
+            echo "  ❌ feature/add-login (missing issue number)"
+            echo "  ❌ feature/v1.0.0/add-login (use issue number, not version)"
+            echo "  ❌ 123/add-login (missing type prefix)"
             exit 1
+          fi
+
+  check-pr-issue-link:
+    name: PR Issue Link
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR description for issue link
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          echo "Checking PR description for issue link..."
+
+          # Check for "Closes #123" or "Fixes #123" pattern
+          if echo "$PR_BODY" | grep -qiE "(closes|fixes|resolves)\s+#[0-9]+"; then
+            ISSUE_REF=$(echo "$PR_BODY" | grep -oiE "(closes|fixes|resolves)\s+#[0-9]+" | head -1)
+            echo "✅ PR links to issue: $ISSUE_REF"
+          else
+            echo "❌ PR description must link to a GitHub issue"
+            echo ""
+            echo "Add one of these to your PR description:"
+            echo "  Closes #123"
+            echo "  Fixes #123"
+            echo "  Resolves #123"
+            echo ""
+            echo "This ensures the linked issue is automatically closed when the PR merges."
+            exit 1
+          fi
+
+  check-milestone:
+    name: Milestone Assignment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR has milestone
+        env:
+          MILESTONE: ${{ github.event.pull_request.milestone }}
+        run: |
+          if [ -n "$MILESTONE" ] && [ "$MILESTONE" != "null" ]; then
+            echo "✅ PR assigned to milestone: ${{ github.event.pull_request.milestone.title }}"
+          else
+            echo "⚠️ WARNING: PR has no milestone assigned"
+            echo ""
+            echo "Consider assigning this PR to a release milestone (e.g., v1.2.0)"
+            echo "to track which release it will ship in."
+            echo ""
+            echo "To assign a milestone:"
+            echo "  1. Go to the PR page"
+            echo "  2. Click 'Milestone' in the right sidebar"
+            echo "  3. Select the target release"
+            echo ""
+            echo "This is a warning only - the PR can still be merged."
+            # Warning only, don't fail
           fi
 
   check-pr-size:

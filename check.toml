@@ -40,8 +40,15 @@ require_workflows = ["ci.yml", "release.yml", "pr-checks.yml"]
 
 [process.branches]
 enabled = true
-pattern = "^(feature|fix|hotfix|docs)/v[0-9]+\\.[0-9]+\\.[0-9]+/[a-z0-9-]+$"
-exclude = ["main"]
+# Branch format: <type>/<issue-number>/<description>
+# Examples: feature/123/add-login, fix/456/broken-button
+pattern = "^(feature|fix|hotfix|docs)/([0-9]+)/[a-z0-9-]+$"
+exclude = ["main", "docs/*"]
+
+# Note: Issue linking is enforced via:
+# 1. [process.branches] pattern requires issue number in branch names
+# 2. GitHub Actions pr-checks.yml validates PR descriptions have "Closes #123"
+# The [process.tickets] check is disabled because branch pattern handles this
 
 [process.commits]
 enabled = true

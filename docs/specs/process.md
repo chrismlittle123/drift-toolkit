@@ -212,16 +212,57 @@ Missing: `build`
 
 ## Process Standards Reference (Actual check-my-toolkit Schema)
 
-### Branch Naming (`[process.branches]`)
+### Branch Naming with Issue Linking (`[process.branches]`)
 
 ```toml
 [process.branches]
 enabled = true
-pattern = "^(main|develop|feature/.+|bugfix/.+|hotfix/.+|release/.+)$"
-exclude = ["dependabot/*"]
+# Branch format: <type>/<issue-number>/<description>
+pattern = "^(feature|fix|hotfix|docs)/([0-9]+)/[a-z0-9-]+$"
+exclude = ["main", "docs/*"]
 ```
 
-**Note:** This validates branch NAMING patterns, not protection rules.
+**Examples:**
+- `feature/123/add-login` - Feature linked to issue #123
+- `fix/456/broken-button` - Bug fix linked to issue #456
+- `hotfix/789/security-patch` - Hotfix linked to issue #789
+
+**Note:** This validates branch NAMING patterns with required issue linking.
+
+### PR Issue Linking (GitHub Actions)
+
+PR descriptions must link to a GitHub issue using closing keywords:
+
+```markdown
+Closes #123
+Fixes #456
+Resolves #789
+```
+
+**Enforcement:**
+- Branch names validated by pre-push hook (`cm process check-branch`)
+- PR descriptions validated by `.github/workflows/pr-checks.yml`
+- Both checks return exit code 1 on violations (blocks push/PR)
+
+### Release Planning with Milestones
+
+GitHub Milestones track which issues/PRs ship in each release. Changesets determine the actual version number.
+
+| Tool | Purpose | When Used |
+|------|---------|-----------|
+| **Milestones** | Plan what goes into a release | Before/during development |
+| **Changesets** | Determine version number | When PR is ready |
+
+**Workflow:**
+1. Create milestone `v1.2.0` for planned release
+2. Assign issues to milestone
+3. Create branches with issue numbers: `feature/123/description`
+4. Add changeset to PR: `pnpm changeset`
+5. PR merges, changesets accumulate on main
+6. Release workflow calculates version from changeset types
+7. Close milestone when release ships
+
+**Milestone enforcement:** PR checks warn if milestone not assigned (non-blocking).
 
 ### Branch Protection & CODEOWNERS (`[process.repo]`)
 

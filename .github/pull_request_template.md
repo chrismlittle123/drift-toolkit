@@ -29,4 +29,7 @@
 
 ## Related Issues
 
-<!-- Link any related issues: Fixes #123, Closes #456 -->
+<!-- REQUIRED: Link the issue this PR addresses using a closing keyword -->
+<!-- This will auto-close the issue when the PR merges -->
+
+Closes #

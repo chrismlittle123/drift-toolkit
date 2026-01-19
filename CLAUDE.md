@@ -90,6 +90,79 @@ Edit the epic to link the sub-issues in its task list:
 gh issue edit <epic-number> --repo chrismlittle123/check-my-toolkit --body "..."
 ```
 
+## Release Planning with Milestones
+
+### How Milestones and Changesets Work Together
+
+| Tool | Purpose | When Used |
+|------|---------|-----------|
+| **Milestones** | Plan what goes into a release | Before/during development |
+| **Changesets** | Determine version number | When PR is ready |
+
+**Milestones** = your *intent* ("I want these features in v1.2.0")
+**Changesets** = the *mechanism* (calculates actual version from bump types)
+
+### Creating a Milestone
+
+```bash
+# Create milestone for next release
+gh api repos/chrismlittle123/drift-toolkit/milestones \
+  --method POST \
+  -f title="v1.2.0" \
+  -f description="Description of release goals"
+
+# List existing milestones
+gh api repos/chrismlittle123/drift-toolkit/milestones
+```
+
+### Assigning Issues to Milestones
+
+```bash
+# Assign issue to milestone (use milestone number, not title)
+gh issue edit 123 --milestone "v1.2.0"
+
+# View issues in a milestone
+gh issue list --milestone "v1.2.0"
+```
+
+### Release Workflow
+
+```
+1. Create milestone "v1.2.0" for planned release
+2. Create issues for planned work
+3. Assign issues to milestone
+4. Create branches: feature/123/description (issue number required)
+5. Add changeset to PR: pnpm changeset (pick patch/minor/major)
+6. PR must include "Closes #123" in description
+7. Merge PRs to main
+8. Release workflow runs → version calculated from changesets
+9. Close milestone when release ships
+```
+
+## Branch and PR Requirements
+
+### Branch Naming (Enforced by pre-push hook)
+
+Format: `<type>/<issue-number>/<description>`
+
+```
+feature/123/add-dark-mode    ✓
+fix/456/broken-button        ✓
+hotfix/789/security-patch    ✓
+docs/42/update-readme        ✓
+
+feature/add-dark-mode        ✗ (missing issue number)
+123/add-dark-mode            ✗ (missing type)
+```
+
+Excluded: `main`, `docs/*`
+
+### PR Requirements (Enforced by GitHub Actions)
+
+1. **Issue link required**: PR description must contain `Closes #123`, `Fixes #123`, or `Resolves #123`
+2. **Changeset required**: For code changes, run `pnpm changeset` and commit the file
+3. **Milestone recommended**: Assign PR to target release milestone
+
 ## Rules
 
 - Do NOT create issues for far-future work
@@ -99,3 +172,5 @@ gh issue edit <epic-number> --repo chrismlittle123/check-my-toolkit --body "..."
 - DO create issues just before working on something
 - DO close issues immediately when done
 - DO add new issues to the project board
+- DO assign issues to milestones for release planning
+- DO use issue numbers in branch names
