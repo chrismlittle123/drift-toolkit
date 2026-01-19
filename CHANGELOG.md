@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+### Patch Changes
+
+- 7544b32: Add BRANCH_PATTERNS constant for workflow validation reference
+
 ## 1.0.1
 
 ### Patch Changes
