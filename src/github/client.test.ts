@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdirSync, existsSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -8,6 +8,7 @@ import {
   removeTempDir,
   cloneRepo,
 } from "./client.js";
+import * as apiUtils from "./api-utils.js";
 
 describe("github client", () => {
   let testDir: string;
@@ -179,26 +180,272 @@ describe("github client", () => {
 });
 
 describe("github client API functions", () => {
-  // These tests would require mocking fetch
-  // For now, we test that the functions exist and have correct signatures
+  const mockFetchWithRetry = vi.spyOn(apiUtils, "fetchWithRetry");
 
-  it("exports listOrgRepos function", async () => {
-    const { listOrgRepos } = await import("./client.js");
-    expect(typeof listOrgRepos).toBe("function");
+  afterEach(() => {
+    mockFetchWithRetry.mockReset();
   });
 
-  it("exports listUserRepos function", async () => {
-    const { listUserRepos } = await import("./client.js");
-    expect(typeof listUserRepos).toBe("function");
+  const mockRepo = (name: string, archived = false, disabled = false) => ({
+    name,
+    full_name: `test-org/${name}`,
+    clone_url: `https://github.com/test-org/${name}.git`,
+    archived,
+    disabled,
   });
 
-  it("exports listRepos function", async () => {
-    const { listRepos } = await import("./client.js");
-    expect(typeof listRepos).toBe("function");
+  describe("listOrgRepos", () => {
+    it("fetches repos from org endpoint", async () => {
+      const { listOrgRepos } = await import("./client.js");
+      const repos = [mockRepo("repo1"), mockRepo("repo2")];
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify(repos), { status: 200 })
+      );
+
+      const result = await listOrgRepos("test-org", "test-token");
+
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.stringContaining("/orgs/test-org/repos"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer test-token",
+          }),
+        }),
+        "test-token"
+      );
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe("repo1");
+    });
+
+    it("filters out archived and disabled repos", async () => {
+      const { listOrgRepos } = await import("./client.js");
+      const repos = [
+        mockRepo("active"),
+        mockRepo("archived", true, false),
+        mockRepo("disabled", false, true),
+      ];
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify(repos), { status: 200 })
+      );
+
+      const result = await listOrgRepos("test-org");
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("active");
+    });
+
+    it("handles pagination", async () => {
+      const { listOrgRepos } = await import("./client.js");
+      // First page: 100 repos (full page indicates more pages)
+      const page1 = Array.from({ length: 100 }, (_, i) =>
+        mockRepo(`repo${i + 1}`)
+      );
+      // Second page: fewer than 100, indicates last page
+      const page2 = [mockRepo("repo101")];
+
+      mockFetchWithRetry
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(page1), { status: 200 })
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(page2), { status: 200 })
+        );
+
+      const result = await listOrgRepos("test-org");
+
+      expect(mockFetchWithRetry).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(101);
+    });
+
+    it("stops pagination on empty page", async () => {
+      const { listOrgRepos } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify([]), { status: 200 })
+      );
+
+      const result = await listOrgRepos("test-org");
+
+      expect(result).toHaveLength(0);
+    });
   });
 
-  it("exports repoExists function", async () => {
-    const { repoExists } = await import("./client.js");
-    expect(typeof repoExists).toBe("function");
+  describe("listUserRepos", () => {
+    it("fetches repos from user endpoint", async () => {
+      const { listUserRepos } = await import("./client.js");
+      const repos = [mockRepo("user-repo")];
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify(repos), { status: 200 })
+      );
+
+      const result = await listUserRepos("test-user");
+
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.stringContaining("/users/test-user/repos"),
+        expect.any(Object),
+        undefined
+      );
+      expect(result).toHaveLength(1);
+    });
+
+    it("works without token", async () => {
+      const { listUserRepos } = await import("./client.js");
+      const repos = [mockRepo("public-repo")];
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify(repos), { status: 200 })
+      );
+
+      await listUserRepos("test-user");
+
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.not.objectContaining({
+            Authorization: expect.any(String),
+          }),
+        }),
+        undefined
+      );
+    });
+  });
+
+  describe("listRepos", () => {
+    it("returns repos as org when org endpoint succeeds", async () => {
+      const { listRepos } = await import("./client.js");
+      const repos = [mockRepo("org-repo")];
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify(repos), { status: 200 })
+      );
+
+      const result = await listRepos("test-org");
+
+      expect(result.isOrg).toBe(true);
+      expect(result.repos).toHaveLength(1);
+    });
+
+    it("falls back to user endpoint on 404", async () => {
+      const { listRepos } = await import("./client.js");
+      const userRepos = [mockRepo("user-repo")];
+
+      // First call: org endpoint returns 404
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("Not Found", { status: 404 })
+      );
+      // Second call: user endpoint succeeds
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify(userRepos), { status: 200 })
+      );
+
+      const result = await listRepos("test-user");
+
+      expect(result.isOrg).toBe(false);
+      expect(result.repos).toHaveLength(1);
+    });
+
+    it("throws non-404 errors", async () => {
+      const { listRepos } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("Server Error", { status: 500 })
+      );
+
+      await expect(listRepos("test-org")).rejects.toThrow("GitHub API error");
+    });
+  });
+
+  describe("repoExists", () => {
+    it("returns true for existing repo", async () => {
+      const { repoExists } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("{}", { status: 200 })
+      );
+
+      const result = await repoExists("test-org", "test-repo");
+
+      expect(result).toBe(true);
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.stringContaining("/repos/test-org/test-repo"),
+        expect.any(Object),
+        undefined
+      );
+    });
+
+    it("returns false for non-existing repo", async () => {
+      const { repoExists } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("Not Found", { status: 404 })
+      );
+
+      const result = await repoExists("test-org", "missing-repo");
+
+      expect(result).toBe(false);
+    });
+
+    it("passes token to request headers", async () => {
+      const { repoExists } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("{}", { status: 200 })
+      );
+
+      await repoExists("test-org", "test-repo", "my-token");
+
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer my-token",
+          }),
+        }),
+        "my-token"
+      );
+    });
+  });
+
+  describe("parseRepoResponse error handling", () => {
+    it("throws error for invalid JSON response", async () => {
+      const { listOrgRepos } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("not valid json", { status: 200 })
+      );
+
+      await expect(listOrgRepos("test-org")).rejects.toThrow(
+        "Failed to parse GitHub API response"
+      );
+    });
+
+    it("throws error for invalid schema", async () => {
+      const { listOrgRepos } = await import("./client.js");
+
+      // Missing required fields
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(JSON.stringify([{ name: "only-name" }]), { status: 200 })
+      );
+
+      await expect(listOrgRepos("test-org")).rejects.toThrow(
+        "Invalid GitHub API response"
+      );
+    });
+
+    it("sanitizes error messages", async () => {
+      const { listOrgRepos } = await import("./client.js");
+      const token = "ghp_secrettoken123";
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response(`Error with token ${token}`, { status: 403 })
+      );
+
+      await expect(listOrgRepos("test-org", token)).rejects.toThrow(
+        expect.not.stringContaining(token)
+      );
+    });
   });
 });
