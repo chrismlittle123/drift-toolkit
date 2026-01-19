@@ -22,13 +22,26 @@ export {
   // Types
   type CheckTomlChanges,
   type ChangeDetectionOptions,
+  type FileChangeStatus,
   // Functions
   isGitRepo,
   getHeadCommit,
+  getChangedFiles,
   detectCheckTomlChanges,
   getCheckTomlFilesAtCommit,
   compareCheckTomlFiles,
 } from "./changes.js";
+
+export {
+  // Types
+  type DependencyChangeStatus,
+  type DependencyChange,
+  type DependencyChanges,
+  type DependencyChangeOptions,
+  // Functions
+  detectDependencyChanges,
+  getTrackedDependencyFiles,
+} from "./dependency-changes.js";
 
 export {
   // Types

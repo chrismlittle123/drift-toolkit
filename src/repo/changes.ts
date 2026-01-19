@@ -55,13 +55,23 @@ export function getHeadCommit(repoPath: string): string | null {
 }
 
 /**
+ * A file change with status
+ */
+export interface FileChangeStatus {
+  /** Git status code: A (added), M (modified), D (deleted), R (renamed) */
+  status: string;
+  /** File path */
+  file: string;
+}
+
+/**
  * Get the list of files changed between two commits
  */
-function getChangedFiles(
+export function getChangedFiles(
   repoPath: string,
   baseCommit: string,
   targetCommit: string
-): { status: string; file: string }[] {
+): FileChangeStatus[] {
   // Use git diff with name-status to get file changes
   const output = execGit(
     repoPath,
@@ -77,7 +87,14 @@ function getChangedFiles(
     .filter(Boolean)
     .map((line) => {
       const [status, ...fileParts] = line.split("\t");
-      return { status: status.charAt(0), file: fileParts.join("\t") };
+      const statusCode = status.charAt(0);
+      // For renames (R) and copies (C), git outputs "old\tnew"
+      // We want the new (destination) file name
+      const file =
+        (statusCode === "R" || statusCode === "C") && fileParts.length > 1
+          ? fileParts[fileParts.length - 1]
+          : fileParts.join("\t");
+      return { status: statusCode, file };
     });
 }
 
