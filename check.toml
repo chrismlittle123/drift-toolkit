@@ -79,10 +79,11 @@ allowlist = [
   "dashboard/README.md",
   # Other allowed files
   "docs/VISION.md",
+  "docs/FEATURES.md",
   ".changeset/README.md",
   ".github/pull_request_template.md"
 ]
-max_files = 8
+max_files = 9
 
 # Unit test coverage requirement
 # Minimum 80% coverage for unit tests (enforced via vitest.config.ts)
