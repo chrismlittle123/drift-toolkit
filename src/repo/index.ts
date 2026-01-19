@@ -17,3 +17,15 @@ export {
   hasMetadata,
   isScannableRepo,
 } from "./detection.js";
+
+export {
+  // Types
+  type CheckTomlChanges,
+  type ChangeDetectionOptions,
+  // Functions
+  isGitRepo,
+  getHeadCommit,
+  detectCheckTomlChanges,
+  getCheckTomlFilesAtCommit,
+  compareCheckTomlFiles,
+} from "./changes.js";

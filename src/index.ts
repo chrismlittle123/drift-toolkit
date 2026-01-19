@@ -55,3 +55,17 @@ export type {
   RepoMetadata,
   ScannabilityResult,
 } from "./repo/index.js";
+
+// Change tracking
+export {
+  isGitRepo,
+  getHeadCommit,
+  detectCheckTomlChanges,
+  getCheckTomlFilesAtCommit,
+  compareCheckTomlFiles,
+} from "./repo/index.js";
+
+export type {
+  CheckTomlChanges,
+  ChangeDetectionOptions,
+} from "./repo/index.js";
