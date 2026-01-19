@@ -131,7 +131,7 @@ gh issue list --milestone "v1.2.0"
 1. Create milestone "v1.2.0" for planned release
 2. Create issues for planned work
 3. Assign issues to milestone
-4. Create branches: feature/123/description (issue number required)
+4. Create branches: feature/v1.2.0/123/description (milestone + issue number required)
 5. Add changeset to PR: pnpm changeset (pick patch/minor/major)
 6. PR must include "Closes #123" in description
 7. Merge PRs to main
@@ -143,16 +143,17 @@ gh issue list --milestone "v1.2.0"
 
 ### Branch Naming (Enforced by pre-push hook)
 
-Format: `<type>/<issue-number>/<description>`
+Format: `<type>/<milestone>/<issue-number>/<description>`
 
 ```
-feature/123/add-dark-mode    ✓
-fix/456/broken-button        ✓
-hotfix/789/security-patch    ✓
-docs/42/update-readme        ✓
+feature/v1.2.0/123/add-dark-mode    ✓
+fix/v1.2.0/456/broken-button        ✓
+hotfix/v1.2.0/789/security-patch    ✓
+docs/v1.2.0/42/update-readme        ✓
 
-feature/add-dark-mode        ✗ (missing issue number)
-123/add-dark-mode            ✗ (missing type)
+feature/123/add-dark-mode           ✗ (missing milestone)
+feature/v1.2.0/add-dark-mode        ✗ (missing issue number)
+123/add-dark-mode                   ✗ (missing type and milestone)
 ```
 
 Excluded: `main`, `docs/*`
@@ -173,4 +174,4 @@ Excluded: `main`, `docs/*`
 - DO close issues immediately when done
 - DO add new issues to the project board
 - DO assign issues to milestones for release planning
-- DO use issue numbers in branch names
+- DO use milestone and issue numbers in branch names (e.g., `feature/v1.2.0/123/description`)

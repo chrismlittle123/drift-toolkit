@@ -40,9 +40,9 @@ require_workflows = ["ci.yml", "release.yml", "pr-checks.yml"]
 
 [process.branches]
 enabled = true
-# Branch format: <type>/<issue-number>/<description>
-# Examples: feature/123/add-login, fix/456/broken-button
-pattern = "^(feature|fix|hotfix|docs)/([0-9]+)/[a-z0-9-]+$"
+# Branch format: <type>/<milestone>/<issue-number>/<description>
+# Examples: feature/v1.2.0/123/add-login, fix/v1.2.0/456/broken-button
+pattern = "^(feature|fix|hotfix|docs)/(v[0-9]+\\.[0-9]+\\.[0-9]+)/([0-9]+)/[a-z0-9-]+$"
 exclude = ["main", "docs/*"]
 
 # Note: Issue linking is enforced via:
