@@ -10,14 +10,16 @@
 
 ## Prerequisites (check-my-toolkit)
 
-These features must be implemented in check-my-toolkit first:
+Features required from check-my-toolkit:
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| `cmt dependencies` | Not started | Returns list of tracked files per check as JSON |
-| `cmt projects detect --missing-config` | Not started | Filter to projects without check.toml |
+| `cm dependencies` | Not started | Expose existing configFiles data via CLI as JSON |
+| `cm projects detect` | **Already works** | Returns `status: "has-config"` or `"missing-config"` per project |
 
-**Blocked until:** `cmt dependencies` is available
+**Blocked until:** `cm dependencies` is available
+
+**Note:** The CLI command is `cm` (not `cmt`). Tool runners already declare their config files internally - the `dependencies` command just needs to expose this data.
 
 ---
 
@@ -45,7 +47,7 @@ These features must be implemented in check-my-toolkit first:
 
 | Task | Description |
 |------|-------------|
-| Integrate cmt dependencies | Call `cmt dependencies --json` to get tracked files |
+| Integrate cm dependencies | Call `cm dependencies --json` to get tracked files |
 | Dependency change detection | Detect changes to any tracked file (eslint, tsconfig, etc.) |
 | Diff generation | Include diff of changed files in GitHub issue |
 | Workflow tracking | Always track `.github/workflows/*.yml` changes |
@@ -60,9 +62,9 @@ These features must be implemented in check-my-toolkit first:
 
 | Task | Description |
 |------|-------------|
-| Integrate cmt projects detect | Call `cmt projects detect --missing-config` |
+| Integrate cm projects detect | Call `cm projects detect --format json` and filter by `status: "missing-config"` |
 | New project issue | Create issue: "New project detected without standards" |
-| Monorepo support | Detect packages in monorepos without check.toml |
+| Monorepo support | Detect packages in monorepos without check.toml (already supported by cm) |
 
 **Output:** Issues created for projects missing standards
 
@@ -176,7 +178,7 @@ Review these configuration changes and close this issue once investigated.
 
 | Package | Purpose |
 |---------|---------|
-| check-my-toolkit | `dependencies` command, `projects detect` |
+| check-my-toolkit | CLI (`cm`): `dependencies` command, `projects detect` |
 | @octokit/rest | GitHub API (existing) |
 
 ---

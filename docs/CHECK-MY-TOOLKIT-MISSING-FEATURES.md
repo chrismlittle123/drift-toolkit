@@ -25,16 +25,16 @@ drift-toolkit depends on check-my-toolkit for standards definition and validatio
 
 ```bash
 # Get all dependencies for current project
-cmt dependencies
+cmdependencies
 
 # Get dependencies as JSON (for programmatic use)
-cmt dependencies --json
+cmdependencies --json
 
 # Get dependencies for a specific check
-cmt dependencies --check eslint
+cmdependencies --check eslint
 
 # Get dependencies for a specific project in monorepo
-cmt dependencies --project packages/api
+cmdependencies --project packages/api
 ```
 
 ### Output Format
@@ -168,19 +168,19 @@ const result = await getDependencies({
 
 ```bash
 # Validate infra for current project (default: dev account)
-cmt infra validate
+cminfra validate
 
 # Validate specific account
-cmt infra validate --account prod
+cminfra validate --account prod
 
 # Validate all accounts
-cmt infra validate --account all
+cminfra validate --account all
 
 # JSON output for programmatic use
-cmt infra validate --json
+cminfra validate --json
 
 # Specify region
-cmt infra validate --region us-east-1
+cminfra validate --region us-east-1
 ```
 
 ### Output Format
@@ -418,17 +418,17 @@ workflow_path = ".github/workflows"
 
 ```bash
 # Validate process standards
-cmt process validate
+cmprocess validate
 
 # Validate specific category
-cmt process validate --category branches
-cmt process validate --category required_files
+cmprocess validate --category branches
+cmprocess validate --category required_files
 
 # JSON output
-cmt process validate --json
+cmprocess validate --json
 
 # Check against specific repo (for drift-toolkit)
-cmt process validate --repo owner/repo --token $GITHUB_TOKEN
+cmprocess validate --repo owner/repo --token $GITHUB_TOKEN
 ```
 
 ### Output Format
@@ -539,10 +539,10 @@ const result = await validateProcess({
 
 ```bash
 # Validate tier-ruleset alignment
-cmt validate tier
+cmvalidate tier
 
 # JSON output
-cmt validate tier --json
+cmvalidate tier --json
 ```
 
 ### Validation Logic
@@ -638,13 +638,13 @@ const result = await validateTierRuleset({
 
 ```bash
 # Current
-cmt projects detect
+cmprojects detect
 
 # Enhanced - show check.toml status
-cmt projects detect --show-status
+cmprojects detect --show-status
 
 # Filter to projects without check.toml
-cmt projects detect --missing-config
+cmprojects detect --missing-config
 ```
 
 **Enhanced JSON output:**
@@ -698,10 +698,10 @@ cmt projects detect --missing-config
 
 | Feature | Command | Purpose | Complexity |
 |---------|---------|---------|------------|
-| Dependencies | `cmt dependencies` | List tracked files per check | Low |
-| Projects detect | `cmt projects detect --missing-config` | Find projects without standards | Low |
-| Process validate | `cmt process validate` | Validate GitHub process standards | Medium |
-| Tier validation | `cmt validate tier` | Verify tier-ruleset alignment | Low |
-| Infra validate | `cmt infra validate` | Validate AWS resources vs CDK | High |
+| Dependencies | `cmdependencies` | List tracked files per check | Low |
+| Projects detect | `cmprojects detect --missing-config` | Find projects without standards | Low |
+| Process validate | `cmprocess validate` | Validate GitHub process standards | Medium |
+| Tier validation | `cmvalidate tier` | Verify tier-ruleset alignment | Low |
+| Infra validate | `cminfra validate` | Validate AWS resources vs CDK | High |
 
 These features form the foundation that drift-toolkit needs to perform its scheduled enforcement scans.

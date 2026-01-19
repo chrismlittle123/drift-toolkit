@@ -164,7 +164,7 @@ No central repo list. Detection is automatic based on these files.
 
 ```yaml
 tier: production      # production | internal | prototype
-status: active        # active | deprecated
+status: active        # active | pre-release | deprecated
 team: backend         # optional
 ```
 
@@ -181,7 +181,13 @@ team: backend         # optional
 | Status | Behavior |
 |--------|----------|
 | `active` | Normal scanning - verify compliance with standards |
+| `pre-release` | Normal scanning - project not yet in production, may have relaxed infra checks |
 | `deprecated` | Verify all infra resources have been DELETED |
+
+**Pre-release project scanning:**
+- Full code and process scanning (standards still apply)
+- Infra scanning may skip prod account (not yet deployed)
+- Useful for projects in development before go-live
 
 **Deprecated project scanning:**
 - Infra scan verifies AWS resources tied to the project are cleaned up
