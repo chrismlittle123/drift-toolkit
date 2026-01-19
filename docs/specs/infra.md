@@ -1,4 +1,4 @@
-# Roadmap: drift infra scan
+# Spec: drift infra scan
 
 > Detects infrastructure drift between CDK code and actual AWS resources.
 

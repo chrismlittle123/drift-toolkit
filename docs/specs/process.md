@@ -1,4 +1,4 @@
-# Roadmap: drift process scan
+# Spec: drift process scan
 
 > Verifies that GitHub process standards are being followed.
 

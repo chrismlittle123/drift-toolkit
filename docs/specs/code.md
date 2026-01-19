@@ -1,4 +1,4 @@
-# Roadmap: drift code scan
+# Spec: drift code scan
 
 > Detects changes to configuration files that define code standards.
 
