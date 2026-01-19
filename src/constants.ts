@@ -3,6 +3,9 @@
  * Consolidates all hardcoded values for easier maintenance and configuration.
  */
 
+// TEST VIOLATION: unused variable (should be caught by ESLint/Knip)
+const UNUSED_TEST_VARIABLE = "this should fail CI";
+
 /**
  * Timeout values in milliseconds
  */
