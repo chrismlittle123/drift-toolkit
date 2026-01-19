@@ -1,7 +1,8 @@
 # Extend from community registry
-[extends]
-registry = "github:chrismlittle123/check-my-toolkit-registry-community"
-rulesets = ["typescript-internal"]
+# NOTE: Disabled until process.docs merging bug is fixed in check-my-toolkit
+# [extends]
+# registry = "github:chrismlittle123/check-my-toolkit-registry-community"
+# rulesets = ["typescript-internal"]
 
 # Local overrides
 [code.linting.eslint]
@@ -54,5 +55,26 @@ require_for_paths = ["src/**"]
 exclude_paths = ["**/*.test.ts", "**/*.md"]
 validate_format = true
 require_description = true
+
+[process.docs]
+enabled = true
+path = "docs/"
+enforcement = "block"
+allowlist = [
+  # Required spec files
+  "docs/specs/code.md",
+  "docs/specs/process.md",
+  "docs/specs/infra.md",
+  # Standard root files
+  "README.md",
+  "CHANGELOG.md",
+  "CLAUDE.md",
+  "dashboard/README.md",
+  # Other allowed files
+  "docs/VISION.md",
+  ".changeset/README.md",
+  ".github/pull_request_template.md"
+]
+max_files = 8
 
 
