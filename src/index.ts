@@ -66,3 +66,18 @@ export {
 } from "./repo/index.js";
 
 export type { CheckTomlChanges, ChangeDetectionOptions } from "./repo/index.js";
+
+// Dependencies (cm integration)
+export {
+  isCmInstalled,
+  parseCmOutput,
+  getDependencies,
+  clearDependencyCache,
+} from "./repo/index.js";
+
+export type {
+  DependencyMap,
+  CmDependenciesOutput,
+  GetDependenciesOptions,
+  GetDependenciesResult,
+} from "./repo/index.js";

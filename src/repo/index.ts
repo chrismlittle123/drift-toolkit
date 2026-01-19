@@ -40,3 +40,16 @@ export {
   getChangedFilesInCommits,
   detectRecentChanges,
 } from "./recent-changes.js";
+
+export {
+  // Types
+  type DependencyMap,
+  type CmDependenciesOutput,
+  type GetDependenciesOptions,
+  type GetDependenciesResult,
+  // Functions
+  isCmInstalled,
+  parseCmOutput,
+  getDependencies,
+  clearDependencyCache,
+} from "./dependencies.js";
