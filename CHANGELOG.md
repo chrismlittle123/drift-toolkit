@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+
+### Patch Changes
+
+- d6252ff: Fix linting errors from issue creation feature (max-params, no-undef, prettier)
+
 ## 1.4.0
 
 ### Minor Changes
