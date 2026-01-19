@@ -84,4 +84,6 @@ allowlist = [
 ]
 max_files = 8
 
-
+# Unit test coverage requirement
+# Minimum 80% coverage for unit tests (enforced via vitest.config.ts)
+# Currently scoped to src/repo/** until legacy code has tests
