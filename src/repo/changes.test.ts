@@ -10,6 +10,11 @@ import {
   getCheckTomlFilesAtCommit,
   compareCheckTomlFiles,
 } from "./changes.js";
+import {
+  getRecentCommits,
+  getChangedFilesInCommits,
+  detectRecentChanges,
+} from "./recent-changes.js";
 
 describe("change tracking", () => {
   let testDir: string;
@@ -270,6 +275,224 @@ describe("change tracking", () => {
       expect(result.added).toEqual(["packages/api/check.toml"]);
       expect(result.modified).toEqual(["check.toml"]);
       expect(result.deleted).toEqual(["packages/web/check.toml"]);
+    });
+  });
+
+  describe("getRecentCommits", () => {
+    it("returns empty for non-git directory", () => {
+      const result = getRecentCommits(testDir);
+      expect(result).toEqual([]);
+    });
+
+    it("returns empty for repo with no commits", () => {
+      initGitRepo();
+      const result = getRecentCommits(testDir);
+      expect(result).toEqual([]);
+    });
+
+    it("returns commits within time window", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      git("commit -m 'Initial commit'");
+
+      writeFileSync(join(testDir, "file2.txt"), "content");
+      git("add file2.txt");
+      git("commit -m 'Second commit'");
+
+      // Should find commits from the last 24 hours (our commits were just made)
+      const result = getRecentCommits(testDir, { hours: 24 });
+      expect(result).toHaveLength(2);
+      expect(result[0].message).toBe("Second commit");
+      expect(result[1].message).toBe("Initial commit");
+      expect(result[0].sha).toMatch(/^[a-f0-9]{40}$/);
+      expect(result[0].author).toBe("test@test.com");
+      expect(result[0].date).toBeInstanceOf(Date);
+    });
+
+    it("returns empty when no commits in time window", () => {
+      initGitRepo();
+
+      // Create a commit with an old date (48 hours ago)
+      // Must set both author date and committer date for --since to work
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      const oldDate = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      execSync(
+        `git commit -m 'Old commit' --date="${oldDate}"`,
+        {
+          cwd: testDir,
+          encoding: "utf-8",
+          env: { ...process.env, GIT_COMMITTER_DATE: oldDate },
+        }
+      );
+
+      // Look for commits in the last 24 hours - should find none
+      const result = getRecentCommits(testDir, { hours: 24 });
+      expect(result).toEqual([]);
+    });
+
+    it("works with master branch", () => {
+      initGitRepo();
+      // Rename main to master
+      git("branch -m master");
+
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      git("commit -m 'Initial commit'");
+
+      const result = getRecentCommits(testDir, { hours: 24 });
+      expect(result).toHaveLength(1);
+    });
+
+    it("respects explicit branch parameter", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      git("commit -m 'Main commit'");
+
+      git("checkout -b feature");
+      writeFileSync(join(testDir, "feature.txt"), "feature");
+      git("add feature.txt");
+      git("commit -m 'Feature commit'");
+
+      // Check main branch only
+      const mainResult = getRecentCommits(testDir, { hours: 24, branch: "main" });
+      expect(mainResult).toHaveLength(1);
+      expect(mainResult[0].message).toBe("Main commit");
+
+      // Check feature branch
+      const featureResult = getRecentCommits(testDir, { hours: 24, branch: "feature" });
+      expect(featureResult).toHaveLength(2);
+    });
+  });
+
+  describe("getChangedFilesInCommits", () => {
+    it("returns empty for empty commits array", () => {
+      const result = getChangedFilesInCommits(testDir, []);
+      expect(result).toEqual({
+        files: [],
+        commits: [],
+        authors: [],
+        hasCommits: false,
+      });
+    });
+
+    it("returns changed files for single commit", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      writeFileSync(join(testDir, "check.toml"), "[code]");
+      git("add .");
+      git("commit -m 'Initial commit'");
+
+      const commits = getRecentCommits(testDir, { hours: 24 });
+      const result = getChangedFilesInCommits(testDir, commits);
+
+      expect(result.hasCommits).toBe(true);
+      expect(result.files).toContain("README.md");
+      expect(result.files).toContain("check.toml");
+      expect(result.commits).toHaveLength(1);
+      expect(result.authors).toEqual(["test@test.com"]);
+    });
+
+    it("aggregates files from multiple commits", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "file1.txt"), "content1");
+      git("add file1.txt");
+      git("commit -m 'First commit'");
+
+      writeFileSync(join(testDir, "file2.txt"), "content2");
+      git("add file2.txt");
+      git("commit -m 'Second commit'");
+
+      writeFileSync(join(testDir, "file3.txt"), "content3");
+      git("add file3.txt");
+      git("commit -m 'Third commit'");
+
+      const commits = getRecentCommits(testDir, { hours: 24 });
+      const result = getChangedFilesInCommits(testDir, commits);
+
+      expect(result.files).toContain("file1.txt");
+      expect(result.files).toContain("file2.txt");
+      expect(result.files).toContain("file3.txt");
+      expect(result.commits).toHaveLength(3);
+    });
+
+    it("captures multiple authors", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "file1.txt"), "content1");
+      git("add file1.txt");
+      git("commit -m 'First commit'");
+
+      // Change author for second commit
+      git("config user.email 'other@test.com'");
+      writeFileSync(join(testDir, "file2.txt"), "content2");
+      git("add file2.txt");
+      git("commit -m 'Second commit'");
+
+      const commits = getRecentCommits(testDir, { hours: 24 });
+      const result = getChangedFilesInCommits(testDir, commits);
+
+      expect(result.authors).toContain("test@test.com");
+      expect(result.authors).toContain("other@test.com");
+      expect(result.authors).toHaveLength(2);
+    });
+  });
+
+  describe("detectRecentChanges", () => {
+    it("returns empty for non-git directory", () => {
+      const result = detectRecentChanges(testDir);
+      expect(result).toEqual({
+        files: [],
+        commits: [],
+        authors: [],
+        hasCommits: false,
+      });
+    });
+
+    it("detects recent changes in one call", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "check.toml"), "[code]");
+      writeFileSync(join(testDir, ".eslintrc.js"), "module.exports = {}");
+      git("add .");
+      git("commit -m 'Add config files'");
+
+      const result = detectRecentChanges(testDir, { hours: 24 });
+
+      expect(result.hasCommits).toBe(true);
+      expect(result.files).toContain("check.toml");
+      expect(result.files).toContain(".eslintrc.js");
+      expect(result.commits).toHaveLength(1);
+      expect(result.authors).toEqual(["test@test.com"]);
+    });
+
+    it("returns empty when no recent activity", () => {
+      initGitRepo();
+
+      // Create a commit with an old date (48 hours ago)
+      // Must set both author date and committer date for --since to work
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      const oldDate = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      execSync(
+        `git commit -m 'Old commit' --date="${oldDate}"`,
+        {
+          cwd: testDir,
+          encoding: "utf-8",
+          env: { ...process.env, GIT_COMMITTER_DATE: oldDate },
+        }
+      );
+
+      // Look for changes in the last 24 hours - should find none
+      const result = detectRecentChanges(testDir, { hours: 24 });
+      expect(result.hasCommits).toBe(false);
+      expect(result.files).toEqual([]);
     });
   });
 });

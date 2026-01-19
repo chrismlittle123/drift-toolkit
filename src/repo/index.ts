@@ -29,3 +29,14 @@ export {
   getCheckTomlFilesAtCommit,
   compareCheckTomlFiles,
 } from "./changes.js";
+
+export {
+  // Types
+  type TimeWindowOptions,
+  type RecentCommit,
+  type RecentChanges,
+  // Functions
+  getRecentCommits,
+  getChangedFilesInCommits,
+  detectRecentChanges,
+} from "./recent-changes.js";
