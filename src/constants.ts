@@ -71,6 +71,8 @@ export const FILE_PATTERNS = {
   config: ["drift.config.yaml", "drift.config.yml", "drift.yaml"] as const,
   /** Metadata file names in order of precedence */
   metadata: ["repo-metadata.yaml", "repo-metadata.yml"] as const,
+  /** check-my-toolkit config file name */
+  checkToml: "check.toml" as const,
 } as const;
 
 /**
