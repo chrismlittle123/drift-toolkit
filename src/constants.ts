@@ -72,3 +72,13 @@ export const FILE_PATTERNS = {
   /** Metadata file names in order of precedence */
   metadata: ["repo-metadata.yaml", "repo-metadata.yml"] as const,
 } as const;
+
+/**
+ * Branch naming patterns for workflow validation
+ */
+export const BRANCH_PATTERNS = {
+  /** Valid branch types */
+  types: ["feature", "fix", "hotfix", "docs"] as const,
+  /** Branches excluded from naming validation */
+  excluded: ["main", "docs/*"] as const,
+} as const;
