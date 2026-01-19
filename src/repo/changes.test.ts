@@ -346,14 +346,34 @@ describe("change tracking", () => {
     it("respects explicit branch parameter", () => {
       initGitRepo();
 
+      // Use explicit dates to avoid timing issues in CI
+      // Set date to 1 hour ago to ensure it's within the 24-hour window
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
       writeFileSync(join(testDir, "README.md"), "# Test");
       git("add README.md");
-      git("commit -m 'Main commit'");
+      execSync(`git commit -m 'Main commit'`, {
+        cwd: testDir,
+        encoding: "utf-8",
+        env: {
+          ...process.env,
+          GIT_AUTHOR_DATE: oneHourAgo,
+          GIT_COMMITTER_DATE: oneHourAgo,
+        },
+      });
 
       git("checkout -b feature");
       writeFileSync(join(testDir, "feature.txt"), "feature");
       git("add feature.txt");
-      git("commit -m 'Feature commit'");
+      execSync(`git commit -m 'Feature commit'`, {
+        cwd: testDir,
+        encoding: "utf-8",
+        env: {
+          ...process.env,
+          GIT_AUTHOR_DATE: oneHourAgo,
+          GIT_COMMITTER_DATE: oneHourAgo,
+        },
+      });
 
       // Check main branch only
       const mainResult = getRecentCommits(testDir, {
