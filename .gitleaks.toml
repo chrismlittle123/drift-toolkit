@@ -1,0 +1,9 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+[allowlist]
+description = "Allowlist for test files with fake credentials"
+paths = [
+  '''.*\.test\.ts$''',
+  '''.*\.test\.js$''',
+]
