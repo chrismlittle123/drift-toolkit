@@ -1,0 +1,61 @@
+# Example workflow for running drift code scan on a schedule.
+# Copy this file to your repository's .github/workflows/ directory.
+#
+# Requirements:
+# - Node.js 20+
+# - GitHub token with repo access (uses default GITHUB_TOKEN)
+#
+# For org-wide scanning, you'll need a token with org-level permissions.
+# See: https://github.com/chrismlittle123/drift-toolkit#github-token-requirements
+
+name: Drift Code Scan
+
+on:
+  schedule:
+    # Run daily at 2am UTC
+    - cron: "0 2 * * *"
+
+  workflow_dispatch:
+    # Allow manual triggering from Actions tab
+    inputs:
+      dry_run:
+        description: "Dry run (no issues created)"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    # Remove this condition when copying to your repository
+    if: github.repository != 'chrismlittle123/drift-toolkit'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install drift-toolkit
+        run: pnpm add -g drift-toolkit@latest
+
+      - name: Run drift code scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            drift code scan --dry-run
+          else
+            drift code scan
+          fi
