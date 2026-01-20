@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1
+
+### Patch Changes
+
+- 37c4fd5: Update FEATURES.md documentation with project detection feature and current test coverage.
+
 ## 1.9.0
 
 ### Minor Changes
