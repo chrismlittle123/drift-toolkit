@@ -95,6 +95,10 @@ export const GITHUB_ISSUES = {
   tierMismatchTitle: "[drift:code] Tier-ruleset mismatch detected",
   /** Default label for tier mismatch issues */
   tierMismatchLabel: "drift:code",
+  /** Issue title for dependency file changes */
+  dependencyChangesTitle: "[drift:code] Dependency file changes detected",
+  /** Default label for dependency changes issues */
+  dependencyChangesLabel: "drift:code",
 } as const;
 
 /**
