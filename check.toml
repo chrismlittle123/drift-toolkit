@@ -70,7 +70,7 @@ dismiss_stale_reviews = false
 require_code_owner_reviews = false
 require_status_checks = ["test (20)", "test (22)"]
 require_branches_up_to_date = true
-enforce_admins = false
+enforce_admins = true
 
 [process.docs]
 enabled = true
