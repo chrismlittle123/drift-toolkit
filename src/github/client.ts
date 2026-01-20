@@ -234,6 +234,9 @@ export async function repoExists(
   return response.ok;
 }
 
+// Re-export file checking functions from repo-checks module
+export { fileExists, isRepoScannable } from "./repo-checks.js";
+
 export interface GitHubIssue {
   number: number;
   html_url: string;
