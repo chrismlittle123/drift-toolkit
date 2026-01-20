@@ -163,7 +163,65 @@ Options:
 
 ### Environment Variables
 
-- `GITHUB_TOKEN` - GitHub personal access token with `repo` scope
+- `GITHUB_TOKEN` - GitHub personal access token (see [Token Requirements](#github-token-requirements))
+
+## GitHub Token Requirements
+
+### Required Scopes
+
+| Scope      | Purpose                                 | When Needed                 |
+| ---------- | --------------------------------------- | --------------------------- |
+| `repo`     | Read repository contents, create issues | Always                      |
+| `read:org` | List repositories in organization       | Org-wide scanning (`--org`) |
+
+### Single Repository Scanning
+
+For scanning a single repository, the default `GITHUB_TOKEN` provided by GitHub Actions is sufficient:
+
+```yaml
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Organization-Wide Scanning
+
+For scanning all repositories in an organization, you need a Personal Access Token (PAT) or Fine-Grained Token with additional permissions:
+
+**Classic PAT:**
+
+- `repo` (Full control of private repositories)
+- `read:org` (Read org membership)
+
+**Fine-Grained PAT:**
+
+- Repository access: All repositories (or select specific repos)
+- Permissions:
+  - Contents: Read
+  - Issues: Read and write
+  - Metadata: Read
+
+Store the token as a repository secret (e.g., `DRIFT_GITHUB_TOKEN`) and use it in your workflow:
+
+```yaml
+env:
+  GITHUB_TOKEN: ${{ secrets.DRIFT_GITHUB_TOKEN }}
+```
+
+### Configuring Tokens in GitHub Actions
+
+1. Go to **Settings > Secrets and variables > Actions**
+2. Click **New repository secret**
+3. Name it `DRIFT_GITHUB_TOKEN`
+4. Paste your PAT value
+5. Reference it in your workflow as `${{ secrets.DRIFT_GITHUB_TOKEN }}`
+
+### Troubleshooting
+
+| Error                                    | Cause                                 | Solution                                         |
+| ---------------------------------------- | ------------------------------------- | ------------------------------------------------ |
+| `Resource not accessible by integration` | Default GITHUB_TOKEN lacks org access | Use a PAT with `read:org` scope                  |
+| `Not Found` on private repos             | Token lacks `repo` scope              | Add `repo` scope to your PAT                     |
+| `API rate limit exceeded`                | Too many API calls                    | Use a PAT (higher rate limits than GITHUB_TOKEN) |
 
 ## GitHub Actions
 
