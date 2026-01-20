@@ -1,8 +1,8 @@
 # Extend from community registry
-
-[extends]
-registry = "github:chrismlittle123/check-my-toolkit-registry-community"
-rulesets = ["typescript-internal"]
+# NOTE: Temporarily disabled due to TOML parse error in typescript-internal ruleset
+# [extends]
+# registry = "github:chrismlittle123/check-my-toolkit-registry-community"
+# rulesets = ["typescript-internal"]
 
 # Local overrides
 [code.linting.eslint]
@@ -52,7 +52,7 @@ exclude = ["main", "docs/*"]
 
 [process.commits]
 enabled = true
-types = ["feat", "fix", "chore", "docs", "refactor"]
+types = ["feat", "fix", "chore", "docs", "refactor", "test", "ci"]
 require_scope = false
 max_subject_length = 100
 
@@ -62,6 +62,15 @@ require_for_paths = ["src/**"]
 exclude_paths = ["**/*.test.ts", "**/*.md"]
 validate_format = true
 require_description = true
+
+[process.repo.branch_protection]
+branch = "main"
+required_reviews = 0
+dismiss_stale_reviews = false
+require_code_owner_reviews = false
+require_status_checks = ["test (20)", "test (22)"]
+require_branches_up_to_date = true
+enforce_admins = false
 
 [process.docs]
 enabled = true
