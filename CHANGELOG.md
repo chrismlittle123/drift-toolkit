@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0
+
+### Minor Changes
+
+- 60d7b55: Add automatic tracking of GitHub Actions workflow files (.github/workflows/_.yml and .github/workflows/_.yaml) as always-tracked files, independent of cm dependencies output.
+
 ## 1.7.2
 
 ### Patch Changes
