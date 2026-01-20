@@ -52,7 +52,7 @@ exclude = ["main", "docs/*"]
 
 [process.commits]
 enabled = true
-types = ["feat", "fix", "chore", "docs", "refactor"]
+types = ["feat", "fix", "chore", "docs", "refactor", "test", "ci"]
 require_scope = false
 max_subject_length = 100
 
