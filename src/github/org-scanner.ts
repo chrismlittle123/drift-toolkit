@@ -20,12 +20,21 @@ import {
   formatTierMismatchIssueBody,
   getTierMismatchIssueTitle,
   getTierMismatchIssueLabel,
+  formatDependencyChangesIssueBody,
+  getDependencyChangesIssueTitle,
+  getDependencyChangesIssueLabel,
 } from "./issue-formatter.js";
 import { detectMissingProjects } from "../repo/project-detection.js";
 import {
   validateTierRuleset,
   hasTierMismatch,
 } from "../repo/tier-validation.js";
+import {
+  detectDependencyChanges,
+  type DependencyChanges,
+} from "../repo/dependency-changes.js";
+import { generateFileDiff } from "../repo/diff.js";
+import { getHeadCommit } from "../repo/changes.js";
 import {
   loadConfig,
   loadRepoMetadata,
@@ -46,6 +55,8 @@ import type {
   MissingProjectsDetection,
   TierValidationResult,
   TierMismatchDetection,
+  DependencyChangesDetection,
+  DependencyFileChange,
 } from "../types.js";
 import { CONCURRENCY, DEFAULTS } from "../constants.js";
 import {
@@ -415,6 +426,144 @@ async function createTierMismatchIssue(
   }
 }
 
+interface BuildDependencyChangesDetectionOptions {
+  org: string;
+  repoName: string;
+  repoDir: string;
+  changes: DependencyChanges;
+}
+
+/**
+ * Build DependencyChangesDetection from DependencyChanges result
+ */
+function buildDependencyChangesDetection(
+  options: BuildDependencyChangesDetectionOptions
+): DependencyChangesDetection | null {
+  const { org, repoName, repoDir, changes } = options;
+
+  if (!changes.hasChanges) {
+    return null;
+  }
+
+  const commit = getHeadCommit(repoDir) || "HEAD";
+  const repoUrl = `https://github.com/${org}/${repoName}`;
+
+  // Convert DependencyChange to DependencyFileChange with diffs
+  const fileChanges: DependencyFileChange[] = changes.changes.map((change) => {
+    const diff = generateFileDiff(repoDir, change.file, {
+      fromCommit: "HEAD~1",
+      toCommit: "HEAD",
+      repoUrl,
+    });
+
+    return {
+      file: change.file,
+      status: change.status,
+      checkType: change.checkType,
+      diff: diff.diff || undefined,
+    };
+  });
+
+  // Group by check type with diffs
+  const byCheck: Record<string, DependencyFileChange[]> = {};
+  for (const [checkType, checkChanges] of Object.entries(changes.byCheck)) {
+    byCheck[checkType] = checkChanges.map((change) => {
+      const fileChange = fileChanges.find((fc) => fc.file === change.file);
+      return fileChange || {
+        file: change.file,
+        status: change.status,
+        checkType: change.checkType,
+      };
+    });
+  }
+
+  return {
+    repository: `${org}/${repoName}`,
+    scanTime: new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
+    commit,
+    commitUrl: `${repoUrl}/commit/${commit}`,
+    changes: fileChanges,
+    byCheck,
+  };
+}
+
+interface CreateDependencyChangesIssueOptions {
+  org: string;
+  repoName: string;
+  detection: DependencyChangesDetection;
+  token: string;
+  dryRun: boolean;
+  json: boolean;
+}
+
+/**
+ * Create a GitHub issue for dependency changes detection with error handling
+ */
+async function createDependencyChangesIssue(
+  options: CreateDependencyChangesIssueOptions
+): Promise<DriftIssueResult> {
+  const { org, repoName, detection, token, dryRun, json } = options;
+
+  if (detection.changes.length === 0) {
+    return { created: false };
+  }
+
+  if (dryRun) {
+    if (!json) {
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Would create issue: ${getDependencyChangesIssueTitle()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Repository: ${org}/${repoName}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Labels: ${getDependencyChangesIssueLabel()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Changed files: ${detection.changes.map((c) => c.file).join(", ")}${COLORS.reset}`
+      );
+    }
+    return { created: false };
+  }
+
+  try {
+    const body = formatDependencyChangesIssueBody(detection);
+    const issue = await createIssue(
+      {
+        owner: org,
+        repo: repoName,
+        title: getDependencyChangesIssueTitle(),
+        body,
+        labels: [getDependencyChangesIssueLabel()],
+      },
+      token
+    );
+
+    if (!json) {
+      console.log(
+        `  ${COLORS.green}✓ Created dependency changes issue #${issue.number}: ${issue.html_url}${COLORS.reset}`
+      );
+    }
+
+    return {
+      created: true,
+      issueNumber: issue.number,
+      issueUrl: issue.html_url,
+    };
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    if (!json) {
+      console.log(
+        `  ${COLORS.yellow}⚠ Failed to create dependency changes issue: ${errorMessage}${COLORS.reset}`
+      );
+    }
+    return {
+      created: false,
+      error: errorMessage,
+    };
+  }
+}
+
 /**
  * Scan a single repository
  */
@@ -595,6 +744,20 @@ export async function scanOrg(
 
         // Validate tier-ruleset alignment
         repoResult.tierValidation = validateTierRuleset(repoDir) ?? undefined;
+
+        // Detect dependency file changes
+        const dependencyChanges = detectDependencyChanges(repoDir);
+        if (dependencyChanges.hasChanges) {
+          const detection = buildDependencyChangesDetection({
+            org,
+            repoName,
+            repoDir,
+            changes: dependencyChanges,
+          });
+          if (detection) {
+            repoResult.dependencyChanges = detection;
+          }
+        }
       } catch (error) {
         repoResult.error = getErrorMessage(error);
       } finally {
@@ -701,6 +864,23 @@ export async function scanOrg(
           org,
           repoName,
           tierValidation: result.tierValidation,
+          token,
+          dryRun: options.dryRun ?? false,
+          json: options.json ?? false,
+        });
+      }
+
+      // Create GitHub issue for repos with dependency file changes
+      if (
+        !result.error &&
+        result.dependencyChanges &&
+        result.dependencyChanges.changes.length > 0 &&
+        token
+      ) {
+        await createDependencyChangesIssue({
+          org,
+          repoName,
+          detection: result.dependencyChanges,
           token,
           dryRun: options.dryRun ?? false,
           json: options.json ?? false,

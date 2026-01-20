@@ -8,6 +8,8 @@ import type {
   FileChange,
   MissingProjectsDetection,
   TierMismatchDetection,
+  DependencyChangesDetection,
+  DependencyFileChange,
 } from "../types.js";
 
 /**
@@ -223,4 +225,99 @@ export function getTierMismatchIssueTitle(): string {
  */
 export function getTierMismatchIssueLabel(): string {
   return GITHUB_ISSUES.tierMismatchLabel;
+}
+
+/**
+ * Format a single dependency file change as markdown.
+ */
+function formatDependencyFileChange(change: DependencyFileChange): string {
+  const statusLabel =
+    change.status === "deleted"
+      ? " (deleted)"
+      : change.status === "added"
+        ? " (new)"
+        : "";
+
+  const checkLabel = change.checkType ? ` [${change.checkType}]` : "";
+
+  let section = `#### ${change.file}${statusLabel}${checkLabel}\n\n`;
+
+  if (change.diff) {
+    section += "```diff\n";
+    section += truncateDiff(change.diff);
+    section += "\n```\n";
+  } else if (change.status === "deleted") {
+    section += "_File was deleted_\n";
+  }
+
+  return section;
+}
+
+/**
+ * Build the complete issue body for dependency changes detection.
+ */
+export function formatDependencyChangesIssueBody(
+  detection: DependencyChangesDetection
+): string {
+  const parts: string[] = [];
+
+  // Header
+  parts.push("## Dependency File Changes Detected\n");
+  parts.push(`Repository: \`${detection.repository}\``);
+  parts.push(`Scan time: ${detection.scanTime}`);
+  parts.push(
+    `Commit: [${detection.commit.slice(0, 7)}](${detection.commitUrl})\n`
+  );
+
+  // Group changes by check type for better organization
+  const checkTypes = Object.keys(detection.byCheck).sort();
+  const ungroupedChanges = detection.changes.filter((c) => !c.checkType);
+
+  // Changes grouped by check type
+  if (checkTypes.length > 0) {
+    parts.push("### Changes by Check Type\n");
+    for (const checkType of checkTypes) {
+      const changes = detection.byCheck[checkType];
+      parts.push(`#### ${checkType}\n`);
+      for (const change of changes) {
+        parts.push(formatDependencyFileChange(change));
+      }
+    }
+  }
+
+  // Ungrouped changes (workflows, check.toml, etc.)
+  if (ungroupedChanges.length > 0) {
+    parts.push("### Other Changed Files\n");
+    for (const change of ungroupedChanges) {
+      parts.push(formatDependencyFileChange(change));
+    }
+  }
+
+  // Action required
+  parts.push("### Action Required\n");
+  parts.push(
+    "Review these dependency file changes and close this issue once investigated.\n"
+  );
+  parts.push(
+    "These files affect how code standards are enforced in this repository.\n"
+  );
+
+  // Footer
+  parts.push("---\n_Created by drift-toolkit_");
+
+  return truncateBody(parts.join("\n"));
+}
+
+/**
+ * Build the issue title for dependency changes detection.
+ */
+export function getDependencyChangesIssueTitle(): string {
+  return GITHUB_ISSUES.dependencyChangesTitle;
+}
+
+/**
+ * Get the label for dependency changes issues.
+ */
+export function getDependencyChangesIssueLabel(): string {
+  return GITHUB_ISSUES.dependencyChangesLabel;
 }

@@ -208,6 +208,42 @@ const diff = compareCheckTomlFiles("/path/to/repo", "main", "feature-branch");
 - `CheckTomlChanges`: Result with added, modified, deleted arrays and hasChanges flag
 - `ChangeDetectionOptions`: Options for baseCommit and targetCommit
 
+### Dependency Change Detection
+
+Detect changes to all configuration files tracked by `cm dependencies` (eslint configs, tsconfigs, workflow files, etc.).
+
+```typescript
+import { detectDependencyChanges, getTrackedDependencyFiles } from "drift-toolkit";
+
+// Get list of all tracked dependency files
+const files = getTrackedDependencyFiles("/path/to/repo");
+// ["check.toml", ".eslintrc.js", "tsconfig.json", ".github/workflows/*.yml"]
+
+// Detect changes to dependency files between commits
+const changes = detectDependencyChanges("/path/to/repo", {
+  baseCommit: "HEAD~1",
+  targetCommit: "HEAD",
+});
+// {
+//   changes: [{ file: ".eslintrc.js", status: "modified", checkType: "eslint", alwaysTracked: false }],
+//   byCheck: { eslint: [...] },
+//   alwaysTrackedChanges: [...],
+//   totalTrackedFiles: 10,
+//   hasChanges: true
+// }
+```
+
+When changes are detected during org scans, a GitHub issue is created with:
+- File diffs grouped by check type (eslint, tsc, etc.)
+- Links to the commit
+- Action items for investigation
+
+**Types:**
+
+- `DependencyChanges`: Result with changes, byCheck grouping, and hasChanges flag
+- `DependencyChange`: Single file change with checkType and alwaysTracked info
+- `DependencyChangesDetection`: Issue format with diffs included
+
 ### Integrity Checking
 
 Compare files against approved versions to detect drift.
@@ -389,6 +425,14 @@ export type {
   MissingProjectsDetection,
   CmProjectsOutput,
 } from "drift-toolkit";
+
+// Dependency change types
+export type {
+  DependencyChanges,
+  DependencyChange,
+  DependencyChangesDetection,
+  DependencyFileChange,
+} from "drift-toolkit";
 ```
 
 ---
@@ -419,6 +463,7 @@ import {
 - **Repository Detection:** 35 tests
 - **Project Detection:** 9 tests
 - **Change Tracking:** 29 tests
-- **Issue Formatting:** 16 tests
-- **Total Tests:** 820
+- **Dependency Change Detection:** 17 tests
+- **Issue Formatting:** 30 tests
+- **Total Tests:** 836
 - **Minimum Coverage:** 80% for `src/repo/**`

@@ -119,6 +119,7 @@ export interface RepoScanResult {
   results: DriftResults;
   missingProjects?: MissingProject[];
   tierValidation?: TierValidationResult;
+  dependencyChanges?: DependencyChangesDetection;
   error?: string;
 }
 
@@ -195,4 +196,22 @@ export interface TierMismatchDetection {
   rulesets: string[];
   expectedPattern: string;
   error: string;
+}
+
+// Dependency file changes detection
+
+export interface DependencyFileChange {
+  file: string;
+  status: "added" | "modified" | "deleted";
+  checkType: string | null;
+  diff?: string;
+}
+
+export interface DependencyChangesDetection {
+  repository: string;
+  scanTime: string;
+  commit: string;
+  commitUrl: string;
+  changes: DependencyFileChange[];
+  byCheck: Record<string, DependencyFileChange[]>;
 }
