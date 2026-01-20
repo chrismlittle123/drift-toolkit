@@ -7,6 +7,15 @@
 #
 # For org-wide scanning, you'll need a token with org-level permissions.
 # See: https://github.com/chrismlittle123/drift-toolkit#github-token-requirements
+#
+# Manual Run Usage:
+# 1. Go to Actions tab in your repository
+# 2. Select "Drift Code Scan" workflow
+# 3. Click "Run workflow"
+# 4. Optional inputs:
+#    - org: Scan all repos in an organization
+#    - repo: Scan a specific repo (requires org)
+#    - dry_run: Preview changes without creating issues
 
 name: Drift Code Scan
 
@@ -18,10 +27,18 @@ on:
   workflow_dispatch:
     # Allow manual triggering from Actions tab
     inputs:
+      org:
+        description: "Organization to scan (scans all repos in org)"
+        required: false
+        type: string
+      repo:
+        description: "Specific repo to scan (requires org to be set)"
+        required: false
+        type: string
       dry_run:
         description: "Dry run (no issues created)"
         required: false
-        default: "false"
+        default: false
         type: boolean
 
 jobs:
@@ -54,8 +71,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            drift code scan --dry-run
-          else
-            drift code scan
+          ARGS=""
+
+          # Add org flag if specified
+          if [ -n "${{ inputs.org }}" ]; then
+            ARGS="$ARGS --org ${{ inputs.org }}"
           fi
+
+          # Add repo flag if specified (requires org)
+          if [ -n "${{ inputs.repo }}" ]; then
+            ARGS="$ARGS --repo ${{ inputs.repo }}"
+          fi
+
+          # Add dry-run flag if specified
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          drift code scan $ARGS
