@@ -87,12 +87,15 @@ export function isGitHubActions(): boolean {
  * These create annotations in the Actions UI for better visibility.
  * See: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
  */
+/* eslint-disable no-console */
 export const actionsOutput = {
   /**
    * Create an error annotation in GitHub Actions
    */
   error(message: string, file?: string): void {
-    if (!isGitHubActions()) return;
+    if (!isGitHubActions()) {
+      return;
+    }
     const fileParam = file ? ` file=${file}` : "";
     console.log(`::error${fileParam}::${message}`);
   },
@@ -101,7 +104,9 @@ export const actionsOutput = {
    * Create a warning annotation in GitHub Actions
    */
   warning(message: string, file?: string): void {
-    if (!isGitHubActions()) return;
+    if (!isGitHubActions()) {
+      return;
+    }
     const fileParam = file ? ` file=${file}` : "";
     console.log(`::warning${fileParam}::${message}`);
   },
@@ -110,7 +115,9 @@ export const actionsOutput = {
    * Create a notice annotation in GitHub Actions
    */
   notice(message: string): void {
-    if (!isGitHubActions()) return;
+    if (!isGitHubActions()) {
+      return;
+    }
     console.log(`::notice::${message}`);
   },
 
@@ -118,7 +125,9 @@ export const actionsOutput = {
    * Start a collapsible group in GitHub Actions logs
    */
   startGroup(title: string): void {
-    if (!isGitHubActions()) return;
+    if (!isGitHubActions()) {
+      return;
+    }
     console.log(`::group::${title}`);
   },
 
@@ -126,7 +135,10 @@ export const actionsOutput = {
    * End a collapsible group in GitHub Actions logs
    */
   endGroup(): void {
-    if (!isGitHubActions()) return;
+    if (!isGitHubActions()) {
+      return;
+    }
     console.log("::endgroup::");
   },
 };
+/* eslint-enable no-console */
