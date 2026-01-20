@@ -84,7 +84,10 @@ describe("diff", () => {
       const baseCommit = getHeadCommit();
 
       // Add new file
-      writeFileSync(join(testDir, "config.toml"), "enabled = true\nname = 'test'\n");
+      writeFileSync(
+        join(testDir, "config.toml"),
+        "enabled = true\nname = 'test'\n"
+      );
       git("add config.toml");
       git("commit -m 'Add config'");
 
@@ -101,7 +104,10 @@ describe("diff", () => {
       initGitRepo();
 
       // Create file
-      writeFileSync(join(testDir, "config.toml"), "enabled = true\nname = 'test'\n");
+      writeFileSync(
+        join(testDir, "config.toml"),
+        "enabled = true\nname = 'test'\n"
+      );
       git("add config.toml");
       git("commit -m 'Initial commit'");
       const baseCommit = getHeadCommit();
@@ -164,7 +170,9 @@ describe("diff", () => {
         repoUrl: "https://github.com/owner/repo",
       });
 
-      expect(result.fullDiffUrl).toContain("https://github.com/owner/repo/commit/");
+      expect(result.fullDiffUrl).toContain(
+        "https://github.com/owner/repo/commit/"
+      );
       expect(result.fullDiffUrl).toContain(headCommit);
     });
 
