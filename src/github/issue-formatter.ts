@@ -25,6 +25,19 @@ function truncateDiff(
 }
 
 /**
+ * Truncate issue body if it exceeds GitHub's max length.
+ */
+function truncateBody(body: string): string {
+  if (body.length <= GITHUB_ISSUES.maxBodyLength) {
+    return body;
+  }
+  return (
+    body.slice(0, GITHUB_ISSUES.maxBodyLength - 100) +
+    "\n\n... (truncated)\n\n---\n_Created by drift-toolkit_"
+  );
+}
+
+/**
  * Format a single file change as markdown.
  */
 function formatFileChange(change: FileChange): string {
@@ -166,61 +179,36 @@ export function getMissingProjectsIssueLabel(): string {
   return GITHUB_ISSUES.missingProjectsLabel;
 }
 
-/**
- * Build the complete issue body for tier-ruleset mismatch detection.
- */
+/** Build the complete issue body for tier-ruleset mismatch detection. */
 export function formatTierMismatchIssueBody(
   detection: TierMismatchDetection
 ): string {
-  const parts: string[] = [];
-
-  // Header
-  parts.push("## Tier-Ruleset Mismatch Detected\n");
-  parts.push(`Repository: \`${detection.repository}\``);
-  parts.push(`Scan time: ${detection.scanTime}\n`);
-
-  // Mismatch details
-  parts.push("### Mismatch Details\n");
-  parts.push(`| Field | Value |`);
-  parts.push(`|-------|-------|`);
-  parts.push(`| **Tier** | ${detection.tier} |`);
-  parts.push(`| **Expected Pattern** | \`${detection.expectedPattern}\` |`);
-  parts.push(`| **Current Rulesets** | ${detection.rulesets.map((r) => `\`${r}\``).join(", ") || "_none_"} |`);
-  parts.push("");
-
-  // Error message
-  parts.push("### Issue\n");
-  parts.push(`${detection.error}\n`);
-
-  // Action required
-  parts.push("### Action Required\n");
-  parts.push(
-    "The repository tier does not match the rulesets being used. This can cause:\n"
-  );
-  parts.push("- Production repositories running with non-production standards");
-  parts.push("- Missing security or quality checks appropriate for the tier\n");
-  parts.push("**To fix:**\n");
-  parts.push(
-    `1. Update \`check.toml\` to use a ruleset matching \`${detection.expectedPattern}\``
-  );
-  parts.push(
-    "2. Or update `repo-metadata.yaml` tier if the current rulesets are correct"
-  );
-  parts.push("3. Close this issue once the mismatch is resolved\n");
-
-  // Footer
-  parts.push("---\n_Created by drift-toolkit_");
-
-  let body = parts.join("\n");
-
-  // Ensure we don't exceed GitHub's limit
-  if (body.length > GITHUB_ISSUES.maxBodyLength) {
-    body =
-      body.slice(0, GITHUB_ISSUES.maxBodyLength - 100) +
-      "\n\n... (content truncated due to length)\n\n---\n_Created by drift-toolkit_";
-  }
-
-  return body;
+  const rulesets =
+    detection.rulesets.map((r) => `\`${r}\``).join(", ") || "_none_";
+  const parts = [
+    "## Tier-Ruleset Mismatch Detected\n",
+    `Repository: \`${detection.repository}\``,
+    `Scan time: ${detection.scanTime}\n`,
+    "### Mismatch Details\n",
+    `| Field | Value |`,
+    `|-------|-------|`,
+    `| **Tier** | ${detection.tier} |`,
+    `| **Expected Pattern** | \`${detection.expectedPattern}\` |`,
+    `| **Current Rulesets** | ${rulesets} |`,
+    "",
+    "### Issue\n",
+    `${detection.error}\n`,
+    "### Action Required\n",
+    "The repository tier does not match the rulesets being used. This can cause:\n",
+    "- Production repositories running with non-production standards",
+    "- Missing security or quality checks appropriate for the tier\n",
+    "**To fix:**\n",
+    `1. Update \`check.toml\` to use a ruleset matching \`${detection.expectedPattern}\``,
+    "2. Or update `repo-metadata.yaml` tier if the current rulesets are correct",
+    "3. Close this issue once the mismatch is resolved\n",
+    "---\n_Created by drift-toolkit_",
+  ];
+  return truncateBody(parts.join("\n"));
 }
 
 /**

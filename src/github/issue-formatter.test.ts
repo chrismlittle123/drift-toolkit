@@ -299,7 +299,9 @@ describe("issue-formatter", () => {
       expect(body).toContain("2024-01-15 02:00 UTC");
       expect(body).toContain("| **Tier** | production |");
       expect(body).toContain("| **Expected Pattern** | `*-production` |");
-      expect(body).toContain("| **Current Rulesets** | `typescript-internal` |");
+      expect(body).toContain(
+        "| **Current Rulesets** | `typescript-internal` |"
+      );
       expect(body).toContain("No ruleset matching pattern");
       expect(body).toContain("Action Required");
       expect(body).toContain("Created by drift-toolkit");

@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync, chmodSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { z } from "zod";
-import { TIMEOUTS, GITHUB_API, FILE_PATTERNS } from "../constants.js";
+import { TIMEOUTS, GITHUB_API } from "../constants.js";
 import { extractExecError } from "../utils/index.js";
 import { fetchWithRetry, sanitizeError } from "./api-utils.js";
 
@@ -234,55 +234,8 @@ export async function repoExists(
   return response.ok;
 }
 
-/** Check if a file exists in a repository via GitHub Content API. */
-export async function fileExists(
-  org: string,
-  repo: string,
-  path: string,
-  token?: string
-): Promise<boolean> {
-  const headers = buildApiHeaders(token);
-  const response = await fetchWithRetry(
-    `${GITHUB_API.baseUrl}/repos/${org}/${repo}/contents/${path}`,
-    { headers },
-    token
-  );
-
-  return response.ok;
-}
-
-/**
- * Check if a repository is scannable (has required metadata files).
- * A repo is scannable if it has BOTH:
- * - repo-metadata.yaml (or .yml variant)
- * - check.toml
- */
-export async function isRepoScannable(
-  org: string,
-  repo: string,
-  token?: string
-): Promise<boolean> {
-  // Check for any metadata file variant (repo-metadata.yaml or repo-metadata.yml)
-  const metadataChecks = FILE_PATTERNS.metadata.map((file) =>
-    fileExists(org, repo, file, token)
-  );
-  const metadataResults = await Promise.all(metadataChecks);
-  const hasMetadata = metadataResults.some((exists) => exists);
-
-  if (!hasMetadata) {
-    return false;
-  }
-
-  // Check for check.toml
-  const hasCheckToml = await fileExists(
-    org,
-    repo,
-    FILE_PATTERNS.checkToml,
-    token
-  );
-
-  return hasCheckToml;
-}
+// Re-export file checking functions from repo-checks module
+export { fileExists, isRepoScannable } from "./repo-checks.js";
 
 export interface GitHubIssue {
   number: number;

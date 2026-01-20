@@ -29,7 +29,9 @@ interface CmValidateTierOutput {
  * @param repoPath - Path to the repository root
  * @returns TierValidationResult or null if validation cannot be performed
  */
-export function validateTierRuleset(repoPath: string): TierValidationResult | null {
+export function validateTierRuleset(
+  repoPath: string
+): TierValidationResult | null {
   try {
     const result = execSync("cm validate tier --format json", {
       cwd: repoPath,
