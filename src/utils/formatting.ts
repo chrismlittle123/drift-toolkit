@@ -74,3 +74,59 @@ export function printWarnings(
   console.log("");
 }
 /* eslint-enable no-console */
+
+/**
+ * Check if running in GitHub Actions environment
+ */
+export function isGitHubActions(): boolean {
+  return process.env.GITHUB_ACTIONS === "true";
+}
+
+/**
+ * GitHub Actions workflow commands for enhanced CI output.
+ * These create annotations in the Actions UI for better visibility.
+ * See: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions
+ */
+export const actionsOutput = {
+  /**
+   * Create an error annotation in GitHub Actions
+   */
+  error(message: string, file?: string): void {
+    if (!isGitHubActions()) return;
+    const fileParam = file ? ` file=${file}` : "";
+    console.log(`::error${fileParam}::${message}`);
+  },
+
+  /**
+   * Create a warning annotation in GitHub Actions
+   */
+  warning(message: string, file?: string): void {
+    if (!isGitHubActions()) return;
+    const fileParam = file ? ` file=${file}` : "";
+    console.log(`::warning${fileParam}::${message}`);
+  },
+
+  /**
+   * Create a notice annotation in GitHub Actions
+   */
+  notice(message: string): void {
+    if (!isGitHubActions()) return;
+    console.log(`::notice::${message}`);
+  },
+
+  /**
+   * Start a collapsible group in GitHub Actions logs
+   */
+  startGroup(title: string): void {
+    if (!isGitHubActions()) return;
+    console.log(`::group::${title}`);
+  },
+
+  /**
+   * End a collapsible group in GitHub Actions logs
+   */
+  endGroup(): void {
+    if (!isGitHubActions()) return;
+    console.log("::endgroup::");
+  },
+};

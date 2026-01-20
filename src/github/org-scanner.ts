@@ -59,6 +59,7 @@ import {
   updateOrgSummaryFromRepo,
   hasIssues,
   getErrorMessage,
+  actionsOutput,
 } from "../utils/index.js";
 
 export interface OrgScanOptions {
@@ -487,10 +488,12 @@ export async function scanOrg(
   // Check if config repo exists
   const configRepoExists = await repoExists(org, configRepoName, token);
   if (!configRepoExists) {
-    console.error(`Error: Config repo ${org}/${configRepoName} not found.`);
+    const errorMsg = `Config repo ${org}/${configRepoName} not found`;
+    console.error(`Error: ${errorMsg}.`);
     console.error(
       `Create a '${configRepoName}' repo with drift.config.yaml and approved/ folder.`
     );
+    actionsOutput.error(errorMsg);
     process.exit(1);
   }
 
@@ -505,18 +508,18 @@ export async function scanOrg(
       }
       cloneRepo(org, configRepoName, configDir, token);
     } catch (error) {
-      console.error(
-        `Error: Failed to clone config repo: ${getErrorMessage(error)}`
-      );
+      const errorMsg = `Failed to clone config repo: ${getErrorMessage(error)}`;
+      console.error(`Error: ${errorMsg}`);
+      actionsOutput.error(errorMsg);
       process.exit(1);
     }
 
     // Load config - will exit if not found, so config is guaranteed non-null after this
     const loadedConfig = loadConfig(configDir);
     if (!loadedConfig) {
-      console.error(
-        `Error: No drift.config.yaml found in ${org}/${configRepoName}`
-      );
+      const errorMsg = `No drift.config.yaml found in ${org}/${configRepoName}`;
+      console.error(`Error: ${errorMsg}`);
+      actionsOutput.error(errorMsg);
       process.exit(1);
       return orgResults; // Never reached, but helps TypeScript understand control flow
     }
@@ -651,6 +654,8 @@ export async function scanOrg(
           );
         } else if (hasIssues(result.results)) {
           console.log(`${COLORS.red}✗ issues found${COLORS.reset}`);
+          // GitHub Actions warning for repos with issues
+          actionsOutput.warning(`Drift detected in ${org}/${repoName}`);
         } else {
           console.log(`${COLORS.green}✓ ok${COLORS.reset}`);
         }
@@ -851,7 +856,12 @@ function printOrgResults(results: OrgScanResults): void {
     console.log(
       `${COLORS.red}✗ ISSUES DETECTED IN ${results.summary.reposWithIssues} REPO${results.summary.reposWithIssues > 1 ? "S" : ""}${COLORS.reset}`
     );
+    // GitHub Actions error annotation for visibility
+    actionsOutput.error(
+      `Drift detected in ${results.summary.reposWithIssues} repository(s)`
+    );
   } else {
     console.log(`${COLORS.green}✓ All repos passed${COLORS.reset}`);
+    actionsOutput.notice("All repositories passed drift checks");
   }
 }

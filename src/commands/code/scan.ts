@@ -23,6 +23,7 @@ import {
   createEmptyResults,
   updateIntegritySummary,
   updateScanSummary,
+  actionsOutput,
 } from "../../utils/index.js";
 
 export interface ScanOptions {
@@ -102,8 +103,10 @@ export async function scan(options: ScanOptions): Promise<void> {
     targetPath = resolve(options.path);
   } else if (options.repo) {
     // --repo without --org is an error
-    console.error("Error: --repo requires --org to be specified.");
+    const errorMsg = "--repo requires --org to be specified";
+    console.error(`Error: ${errorMsg}.`);
     console.error("Use --path to scan a local directory.");
+    actionsOutput.error(errorMsg);
     process.exit(1);
     return;
   } else {
@@ -113,7 +116,9 @@ export async function scan(options: ScanOptions): Promise<void> {
 
   // Verify path exists
   if (!existsSync(targetPath)) {
-    console.error(`Error: Path does not exist: ${targetPath}`);
+    const errorMsg = `Path does not exist: ${targetPath}`;
+    console.error(`Error: ${errorMsg}`);
+    actionsOutput.error(errorMsg);
     process.exit(1);
     return; // For TypeScript and tests
   }
@@ -316,9 +321,14 @@ function printResults(results: DriftResults): void {
     results.summary.integrityMissing > 0
   ) {
     console.log(`${COLORS.red}✗ INTEGRITY VIOLATIONS DETECTED${COLORS.reset}`);
+    actionsOutput.error(
+      `Integrity violations: ${results.summary.integrityFailed} drifted, ${results.summary.integrityMissing} missing`
+    );
   } else if (results.summary.scansFailed > 0) {
     console.log(`${COLORS.red}✗ SCAN FAILURES DETECTED${COLORS.reset}`);
+    actionsOutput.error(`Scan failures: ${results.summary.scansFailed} failed`);
   } else {
     console.log(`${COLORS.green}✓ All checks passed${COLORS.reset}`);
+    actionsOutput.notice("All checks passed");
   }
 }
