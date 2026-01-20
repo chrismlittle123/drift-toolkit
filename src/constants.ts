@@ -61,6 +61,8 @@ export const DEFAULTS = {
   configRepo: "drift-config",
   /** Default scan timeout in seconds (before conversion to ms) */
   scanTimeoutSeconds: 60,
+  /** Default commit window in hours for smart scanning */
+  commitWindowHours: 24,
 } as const;
 
 /**

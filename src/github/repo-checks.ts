@@ -55,3 +55,46 @@ export async function isRepoScannable(
   // Check for check.toml
   return fileExists(org, repo, FILE_PATTERNS.checkToml, token);
 }
+
+/**
+ * Check if a repository has commits within the specified time window.
+ * Checks the default branch (main, then falls back to master).
+ *
+ * @param org - GitHub organization or user
+ * @param repo - Repository name
+ * @param hours - Number of hours to look back
+ * @param token - GitHub token (optional)
+ * @returns true if commits exist within the time window
+ */
+export async function hasRecentCommits(
+  org: string,
+  repo: string,
+  hours: number,
+  token?: string
+): Promise<boolean> {
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  const headers = buildApiHeaders(token);
+
+  // Try main branch first
+  const mainUrl = `${GITHUB_API.baseUrl}/repos/${org}/${repo}/commits?sha=main&since=${since}&per_page=1`;
+  const mainResponse = await fetchWithRetry(mainUrl, { headers }, token);
+
+  if (mainResponse.ok) {
+    const commits = (await mainResponse.json()) as unknown[];
+    return commits.length > 0;
+  }
+
+  // Fall back to master branch if main doesn't exist (404)
+  if (mainResponse.status === 404) {
+    const masterUrl = `${GITHUB_API.baseUrl}/repos/${org}/${repo}/commits?sha=master&since=${since}&per_page=1`;
+    const masterResponse = await fetchWithRetry(masterUrl, { headers }, token);
+
+    if (masterResponse.ok) {
+      const commits = (await masterResponse.json()) as unknown[];
+      return commits.length > 0;
+    }
+  }
+
+  // If both fail, assume no recent commits (or repo has no commits)
+  return false;
+}

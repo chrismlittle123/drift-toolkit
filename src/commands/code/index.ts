@@ -26,6 +26,15 @@ export function registerCodeCommands(program: Command): void {
       "-n, --dry-run",
       "Show what issues would be created without creating them"
     )
+    .option(
+      "-a, --all",
+      "Scan all repos regardless of commit activity (org scan only)"
+    )
+    .option(
+      "--since <hours>",
+      "Hours to look back for commits (default: 24, org scan only)",
+      (value) => parseInt(value, 10)
+    )
     .action(scan);
 
   program

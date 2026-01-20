@@ -34,6 +34,8 @@ export interface ScanOptions {
   githubToken?: string;
   json?: boolean;
   dryRun?: boolean;
+  all?: boolean; // Skip commit window filter (scan all repos)
+  since?: number; // Hours to look back for commits (default: 24)
 }
 
 /**
@@ -87,6 +89,8 @@ export async function scan(options: ScanOptions): Promise<void> {
       token: options.githubToken,
       json: options.json,
       dryRun: options.dryRun,
+      all: options.all,
+      since: options.since,
     });
     return;
   }

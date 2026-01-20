@@ -9,6 +9,7 @@ import {
   createIssue,
   isRepoScannable,
 } from "./client.js";
+import { hasRecentCommits } from "./repo-checks.js";
 import {
   formatDriftIssueBody,
   getDriftIssueTitle,
@@ -67,6 +68,8 @@ export interface OrgScanOptions {
   token?: string;
   json?: boolean;
   dryRun?: boolean; // Log but don't create issues
+  all?: boolean; // Skip commit window filter (scan all repos)
+  since?: number; // Hours to look back for commits (default: 24)
 }
 
 /**
@@ -617,6 +620,24 @@ export async function scanOrg(
           results: createEmptyResults(`${org}/${repoName}`),
           error: "missing required files",
         } as RepoScanResult;
+      }
+
+      // Check for recent commits (unless --all flag is set)
+      if (!options.all) {
+        const hours = options.since ?? DEFAULTS.commitWindowHours;
+        const hasActivity = await hasRecentCommits(org, repoName, hours, token);
+        if (!hasActivity) {
+          if (!options.json) {
+            console.log(
+              `${COLORS.dim}○ skipped (no recent activity)${COLORS.reset}`
+            );
+          }
+          return {
+            repo: repoName,
+            results: createEmptyResults(`${org}/${repoName}`),
+            error: "no recent activity",
+          } as RepoScanResult;
+        }
       }
 
       // scanSingleRepo is sync but we wrap in promise for parallelLimit
