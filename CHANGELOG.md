@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0
+
+### Minor Changes
+
+- c658a46: Add diff generation for changed files with generateFileDiff(), supporting truncation, GitHub URLs, and markdown formatting.
+
 ## 1.6.0
 
 ### Minor Changes
