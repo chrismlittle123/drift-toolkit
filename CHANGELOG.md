@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.0
+
+### Minor Changes
+
+- 38b4df0: Add example GitHub Action workflow for scheduled drift code scanning
+
 ## 1.11.0
 
 ### Minor Changes
