@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.2
+
+### Patch Changes
+
+- a3765ea: Re-enable typescript-internal registry and add gitleaks allowlist for test files
+
 ## 1.7.1
 
 ### Patch Changes
