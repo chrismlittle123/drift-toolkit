@@ -1,6 +1,6 @@
 # drift-toolkit Features
 
-> **Version:** 1.12.2
+> **Version:** 1.13.0
 > **Last Updated:** 2026-01-20
 
 This document lists all current features of drift-toolkit. It is automatically updated when PRs are created.
