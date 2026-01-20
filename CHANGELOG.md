@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.1
+
+### Patch Changes
+
+- d8291a5: Add branch protection configuration to require CI checks to pass before merging PRs
+- 52f100b: Enable enforce_admins for branch protection to block direct pushes to main
+- ba45320: Add TypeScript naming convention rules to ESLint configuration
+- d158aa7: Remove branch protection config from check.toml (managed via GitHub Rulesets)
+- 467542f: Revert enforce_admins to allow release workflow to push to main
+
 ## 1.7.0
 
 ### Minor Changes
