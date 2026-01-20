@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.0
+
+### Minor Changes
+
+- a5df732: Add GitHub Actions error reporting with workflow command annotations
+
 ## 1.12.2
 
 ### Patch Changes
