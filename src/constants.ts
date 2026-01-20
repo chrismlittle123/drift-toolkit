@@ -86,3 +86,13 @@ export const GITHUB_ISSUES = {
   /** Issue title for configuration drift */
   driftTitle: "[drift:code] Configuration changes detected",
 } as const;
+
+/**
+ * Workflow file patterns that are always tracked for drift detection.
+ * These are critical CI/CD files that should be monitored regardless of
+ * cm dependencies output.
+ */
+export const WORKFLOW_PATTERNS = {
+  /** GitHub Actions workflow file patterns */
+  patterns: [".github/workflows/*.yml", ".github/workflows/*.yaml"] as const,
+} as const;
