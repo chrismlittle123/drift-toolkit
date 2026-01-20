@@ -66,3 +66,13 @@ export {
   getDependencies,
   clearDependencyCache,
 } from "./dependencies.js";
+
+export {
+  // Types
+  type FileDiff,
+  type FileDiffOptions,
+  // Functions
+  generateFileDiff,
+  generateMultipleDiffs,
+  formatDiffForMarkdown,
+} from "./diff.js";
