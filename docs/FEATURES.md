@@ -1,6 +1,6 @@
 # drift-toolkit Features
 
-> **Version:** 1.9.0
+> **Version:** 1.12.2
 > **Last Updated:** 2026-01-20
 
 This document lists all current features of drift-toolkit. It is automatically updated when PRs are created.
@@ -41,6 +41,9 @@ drift code scan --json
 | `--config-repo <repo>` | Config repo name (default: drift-config) |
 | `--github-token <token>` | GitHub token (or set GITHUB_TOKEN env var) |
 | `--json` | Output results as JSON |
+| `-n, --dry-run` | Show what issues would be created without creating them |
+| `-a, --all` | Scan all repos regardless of commit activity (org scan only) |
+| `--since <hours>` | Hours to look back for commits (default: 24, org scan only) |
 
 ### `drift code fix`
 
@@ -64,6 +67,45 @@ drift code fix --file CODEOWNERS
 | `-c, --config <config>` | Path to drift.config.yaml |
 | `-f, --file <file>` | Fix a specific file only |
 | `-n, --dry-run` | Show what would be fixed without making changes |
+
+---
+
+## Organization Scanning Features
+
+### Smart Scanning
+
+By default, organization-wide scans only check repositories with commits to `main` or `master` in the last 24 hours. This dramatically reduces scan time for large organizations.
+
+```bash
+# Default: only scan repos with recent commits (last 24h)
+drift code scan --org myorg
+
+# Scan all repos regardless of activity
+drift code scan --org myorg --all
+
+# Custom time window (e.g., last 48 hours)
+drift code scan --org myorg --since 48
+```
+
+The commit check uses the GitHub Commits API before cloning, so inactive repositories are filtered without any disk I/O.
+
+### Pre-Clone Filtering
+
+Before cloning repositories, drift-toolkit checks via the GitHub Content API whether each repo has the required files:
+- `repo-metadata.yaml` (or `.yml`)
+- `check.toml`
+
+Repositories missing either file are skipped during org-wide scans, avoiding unnecessary clones.
+
+### GitHub Actions Annotations
+
+When running in GitHub Actions, drift-toolkit outputs workflow commands for enhanced CI visibility:
+
+- `::error::` annotations for failures (config not found, drift detected)
+- `::warning::` annotations for repos with issues
+- `::notice::` annotations for successful runs
+
+These annotations appear in the GitHub Actions summary and file views.
 
 ---
 
@@ -362,9 +404,11 @@ import {
   DISPLAY_LIMITS, // { diffLines: 20, commandPreview: 50 }
   GITHUB_API, // { baseUrl, version, perPage }
   CONCURRENCY, // { maxRepoScans: 5 }
-  DEFAULTS, // { configRepo: "drift-config", scanTimeoutSeconds: 60 }
+  DEFAULTS, // { configRepo: "drift-config", scanTimeoutSeconds: 60, commitWindowHours: 24 }
   FILE_PATTERNS, // { config: [...], metadata: [...], checkToml: "check.toml" }
   BRANCH_PATTERNS, // { types: [...], excluded: [...] }
+  GITHUB_ISSUES, // { maxBodyLength, driftLabel, driftTitle, ... }
+  WORKFLOW_PATTERNS, // { patterns: [".github/workflows/*.yml", ...] }
 } from "drift-toolkit/constants";
 ```
 
@@ -376,5 +420,5 @@ import {
 - **Project Detection:** 9 tests
 - **Change Tracking:** 29 tests
 - **Issue Formatting:** 16 tests
-- **Total Tests:** 732
+- **Total Tests:** 820
 - **Minimum Coverage:** 80% for `src/repo/**`
