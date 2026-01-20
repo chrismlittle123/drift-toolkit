@@ -58,12 +58,40 @@ describe("repo detection", () => {
   });
 
   describe("parseRepoMetadata", () => {
-    it("returns null for invalid YAML", () => {
-      expect(parseRepoMetadata("{{invalid")).toBeNull();
+    it("returns defaults with warning for invalid YAML", () => {
+      const result = parseRepoMetadata("{{invalid");
+      expect(result).not.toBeNull();
+      expect(result?.metadata.tier).toBe("internal");
+      expect(result?.metadata.status).toBe("active");
+      expect(result?.warnings).toHaveLength(1);
+      expect(result?.warnings[0]).toContain("Failed to parse YAML");
     });
 
-    it("returns null for non-object YAML", () => {
-      expect(parseRepoMetadata("just a string")).toBeNull();
+    it("returns defaults with warning for non-object YAML", () => {
+      const result = parseRepoMetadata("just a string");
+      expect(result).not.toBeNull();
+      expect(result?.metadata.tier).toBe("internal");
+      expect(result?.metadata.status).toBe("active");
+      expect(result?.warnings).toHaveLength(1);
+      expect(result?.warnings[0]).toContain("Invalid metadata format");
+    });
+
+    it("returns defaults with warning for empty file", () => {
+      const result = parseRepoMetadata("");
+      expect(result).not.toBeNull();
+      expect(result?.metadata.tier).toBe("internal");
+      expect(result?.metadata.status).toBe("active");
+      expect(result?.warnings).toHaveLength(1);
+      expect(result?.warnings[0]).toContain("File is empty");
+    });
+
+    it("returns defaults with warning for whitespace-only file", () => {
+      const result = parseRepoMetadata("   \n\t\n   ");
+      expect(result).not.toBeNull();
+      expect(result?.metadata.tier).toBe("internal");
+      expect(result?.metadata.status).toBe("active");
+      expect(result?.warnings).toHaveLength(1);
+      expect(result?.warnings[0]).toContain("File is empty");
     });
 
     it("parses valid metadata with all fields", () => {
@@ -129,6 +157,24 @@ custom_field: custom_value
       expect(result).not.toBeNull();
       expect(result?.metadata.tier).toBe("production");
       expect(result?.metadata.status).toBe("pre-release");
+    });
+
+    it("returns defaults with warning for empty metadata file", () => {
+      writeFileSync(join(testDir, "repo-metadata.yaml"), "");
+      const result = getRepoMetadata(testDir);
+      expect(result).not.toBeNull();
+      expect(result?.metadata.tier).toBe("internal");
+      expect(result?.warnings).toHaveLength(1);
+      expect(result?.warnings[0]).toContain("File is empty");
+    });
+
+    it("returns defaults with warning for invalid YAML in metadata file", () => {
+      writeFileSync(join(testDir, "repo-metadata.yaml"), "tier: production\n  bad: yaml");
+      const result = getRepoMetadata(testDir);
+      expect(result).not.toBeNull();
+      expect(result?.metadata.tier).toBe("internal");
+      expect(result?.warnings).toHaveLength(1);
+      expect(result?.warnings[0]).toContain("Failed to parse YAML");
     });
   });
 
