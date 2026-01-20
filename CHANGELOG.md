@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.2
+
+### Patch Changes
+
+- c9e1373: Add documentation for GitHub token requirements and configuration
+
 ## 1.12.1
 
 ### Patch Changes
