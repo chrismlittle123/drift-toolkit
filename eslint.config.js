@@ -59,6 +59,23 @@ export default [
       "@typescript-eslint/no-unused-vars": "error",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
+
+      // TypeScript-ESLint - Naming conventions
+      "@typescript-eslint/naming-convention": [
+        "error",
+        { selector: "enumMember", format: ["UPPER_CASE"] },
+        { selector: "typeLike", format: ["PascalCase"] },
+        {
+          selector: "variable",
+          format: ["camelCase", "UPPER_CASE", "PascalCase"],
+          leadingUnderscore: "allow",
+          trailingUnderscore: "allow",
+        },
+        { selector: "function", format: ["camelCase"] },
+        { selector: "parameter", format: ["camelCase"], leadingUnderscore: "allow" },
+        { selector: "classMethod", format: ["camelCase"] },
+        { selector: "classProperty", format: ["camelCase", "UPPER_CASE"] },
+      ],
     },
   },
   // CLI files legitimately need console output
