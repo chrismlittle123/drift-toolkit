@@ -3,8 +3,11 @@ import {
   formatDriftIssueBody,
   getDriftIssueTitle,
   getDriftIssueLabel,
+  formatMissingProjectsIssueBody,
+  getMissingProjectsIssueTitle,
+  getMissingProjectsIssueLabel,
 } from "./issue-formatter.js";
-import type { DriftDetection } from "../types.js";
+import type { DriftDetection, MissingProjectsDetection } from "../types.js";
 
 describe("issue-formatter", () => {
   describe("formatDriftIssueBody", () => {
@@ -170,6 +173,103 @@ describe("issue-formatter", () => {
   describe("getDriftIssueLabel", () => {
     it("returns correct label", () => {
       expect(getDriftIssueLabel()).toBe("drift:code");
+    });
+  });
+
+  describe("formatMissingProjectsIssueBody", () => {
+    it("formats basic missing projects detection", () => {
+      const detection: MissingProjectsDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        projects: [{ path: "packages/api", type: "typescript" }],
+      };
+
+      const body = formatMissingProjectsIssueBody(detection);
+
+      expect(body).toContain("New Project Detected Without Standards");
+      expect(body).toContain("`org/repo`");
+      expect(body).toContain("2024-01-15 02:00 UTC");
+      expect(body).toContain("Projects Missing check.toml");
+      expect(body).toContain("| packages/api | typescript |");
+      expect(body).toContain("Action Required");
+      expect(body).toContain("`cm init`");
+      expect(body).toContain("Created by drift-toolkit");
+    });
+
+    it("handles multiple missing projects", () => {
+      const detection: MissingProjectsDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        projects: [
+          { path: "packages/api", type: "typescript" },
+          { path: "packages/web", type: "typescript" },
+          { path: "lambdas/processor", type: "python" },
+        ],
+      };
+
+      const body = formatMissingProjectsIssueBody(detection);
+
+      expect(body).toContain("| packages/api | typescript |");
+      expect(body).toContain("| packages/web | typescript |");
+      expect(body).toContain("| lambdas/processor | python |");
+    });
+
+    it("handles root-level project", () => {
+      const detection: MissingProjectsDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        projects: [{ path: ".", type: "typescript" }],
+      };
+
+      const body = formatMissingProjectsIssueBody(detection);
+
+      expect(body).toContain("| . | typescript |");
+    });
+
+    it("truncates extremely large issue bodies", () => {
+      const manyProjects = Array.from({ length: 1000 }, (_, i) => ({
+        path: `very/long/nested/path/to/package${i}/that/is/really/deep`,
+        type: "typescript",
+      }));
+
+      const detection: MissingProjectsDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        projects: manyProjects,
+      };
+
+      const body = formatMissingProjectsIssueBody(detection);
+
+      expect(body.length).toBeLessThanOrEqual(60000);
+      expect(body).toContain("(content truncated due to length)");
+      expect(body).toContain("Created by drift-toolkit");
+    });
+
+    it("includes table headers", () => {
+      const detection: MissingProjectsDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        projects: [{ path: "pkg", type: "go" }],
+      };
+
+      const body = formatMissingProjectsIssueBody(detection);
+
+      expect(body).toContain("| Path | Type |");
+      expect(body).toContain("|------|------|");
+    });
+  });
+
+  describe("getMissingProjectsIssueTitle", () => {
+    it("returns correct title", () => {
+      expect(getMissingProjectsIssueTitle()).toBe(
+        "[drift:code] New project detected without standards"
+      );
+    });
+  });
+
+  describe("getMissingProjectsIssueLabel", () => {
+    it("returns correct label", () => {
+      expect(getMissingProjectsIssueLabel()).toBe("drift:code");
     });
   });
 });
