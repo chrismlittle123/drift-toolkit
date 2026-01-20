@@ -74,6 +74,21 @@ function extractStatus(
   return DEFAULTS.status;
 }
 
+function createDefaultResult(warning: string): {
+  metadata: RepoMetadata;
+  warnings: string[];
+} {
+  return {
+    metadata: {
+      tier: DEFAULTS.tier,
+      status: DEFAULTS.status,
+      team: undefined,
+      raw: {},
+    },
+    warnings: [warning],
+  };
+}
+
 export function findMetadataPath(repoPath: string): string | null {
   for (const filename of FILE_PATTERNS.metadata) {
     const metadataPath = join(repoPath, filename);
@@ -87,24 +102,33 @@ export function findMetadataPath(repoPath: string): string | null {
 export function parseRepoMetadata(
   content: string
 ): { metadata: RepoMetadata; warnings: string[] } | null {
+  if (content.trim() === "") {
+    return createDefaultResult("File is empty, using default values");
+  }
+
   try {
     const parsed = parseYaml(content) as Record<string, unknown> | null;
     if (!parsed || typeof parsed !== "object") {
-      return null;
+      const got = parsed === null ? "null" : typeof parsed;
+      return createDefaultResult(
+        `Invalid metadata format (expected object, got ${got}), using default values`
+      );
     }
     const warnings: string[] = [];
     const tier = extractTier(parsed, warnings);
     const status = extractStatus(parsed, warnings);
     const team = typeof parsed.team === "string" ? parsed.team : undefined;
     return { metadata: { tier, status, team, raw: parsed }, warnings };
-  } catch {
-    return null;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return createDefaultResult(`Failed to parse YAML: ${msg}, using default values`);
   }
 }
 
 /**
  * Load and parse repository metadata from repo-metadata.yaml.
- * Returns null if the file doesn't exist or can't be parsed.
+ * Returns null only if the file doesn't exist.
+ * For empty files, invalid YAML, or parse errors, returns default metadata with warnings.
  */
 export function getRepoMetadata(
   repoPath: string
