@@ -63,6 +63,15 @@ exclude_paths = ["**/*.test.ts", "**/*.md"]
 validate_format = true
 require_description = true
 
+[process.repo.branch_protection]
+branch = "main"
+required_reviews = 0
+dismiss_stale_reviews = false
+require_code_owner_reviews = false
+require_status_checks = ["test"]
+require_branches_up_to_date = true
+enforce_admins = false
+
 [process.docs]
 enabled = true
 path = "docs/"
