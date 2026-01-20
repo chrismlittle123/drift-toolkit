@@ -1,7 +1,7 @@
 # drift-toolkit Features
 
-> **Version:** 1.2.0
-> **Last Updated:** 2026-01-19
+> **Version:** 1.9.0
+> **Last Updated:** 2026-01-20
 
 This document lists all current features of drift-toolkit. It is automatically updated when PRs are created.
 
@@ -103,6 +103,31 @@ const files = findCheckTomlFiles("/path/to/repo");
 - `RepoStatus`: `"active" | "pre-release" | "deprecated"`
 - `RepoMetadata`: Parsed metadata with tier, status, team, and raw fields
 - `ScannabilityResult`: Result of scanning a repo for scannability
+
+### Project Detection
+
+Detect projects (including monorepo packages) that are missing check.toml configuration.
+
+```typescript
+import {
+  detectMissingProjects,
+  detectAllProjects,
+} from "drift-toolkit";
+
+// Detect projects without check.toml (uses cm projects detect)
+const missing = detectMissingProjects("/path/to/repo");
+// [{ path: "packages/new-api", type: "typescript" }, ...]
+
+// Get full project detection output
+const all = detectAllProjects("/path/to/repo");
+// { projects: [...], workspaceRoots: [...], summary: { total, withConfig, missingConfig } }
+```
+
+**Types:**
+
+- `MissingProject`: Project path and type
+- `MissingProjectsDetection`: Detection result with repository, scan time, and projects
+- `CmProjectsOutput`: Full output from `cm projects detect`
 
 ### Change Tracking
 
@@ -318,6 +343,13 @@ export type {
 
 // Change tracking types
 export type { CheckTomlChanges, ChangeDetectionOptions } from "drift-toolkit";
+
+// Project detection types
+export type {
+  MissingProject,
+  MissingProjectsDetection,
+  CmProjectsOutput,
+} from "drift-toolkit";
 ```
 
 ---
@@ -343,6 +375,9 @@ import {
 
 ## Test Coverage
 
-- **Repository Detection:** 31 tests
-- **Change Tracking:** 16 tests
+- **Repository Detection:** 35 tests
+- **Project Detection:** 9 tests
+- **Change Tracking:** 29 tests
+- **Issue Formatting:** 16 tests
+- **Total Tests:** 732
 - **Minimum Coverage:** 80% for `src/repo/**`
