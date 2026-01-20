@@ -17,6 +17,8 @@ export type {
   MetadataSchema,
   RepoContext,
   Severity,
+  MissingProject,
+  MissingProjectsDetection,
 } from "./types.js";
 
 // Config
@@ -81,3 +83,8 @@ export type {
   GetDependenciesOptions,
   GetDependenciesResult,
 } from "./repo/index.js";
+
+// Project detection (cm projects detect)
+export { detectMissingProjects, detectAllProjects } from "./repo/index.js";
+
+export type { CmProjectsOutput } from "./repo/index.js";

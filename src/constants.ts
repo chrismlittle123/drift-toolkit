@@ -85,6 +85,10 @@ export const GITHUB_ISSUES = {
   driftLabel: "drift:code",
   /** Issue title for configuration drift */
   driftTitle: "[drift:code] Configuration changes detected",
+  /** Issue title for projects missing check.toml */
+  missingProjectsTitle: "[drift:code] New project detected without standards",
+  /** Default label for missing projects issues */
+  missingProjectsLabel: "drift:code",
 } as const;
 
 /**

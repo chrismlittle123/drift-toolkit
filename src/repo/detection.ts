@@ -121,7 +121,9 @@ export function parseRepoMetadata(
     return { metadata: { tier, status, team, raw: parsed }, warnings };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
-    return createDefaultResult(`Failed to parse YAML: ${msg}, using default values`);
+    return createDefaultResult(
+      `Failed to parse YAML: ${msg}, using default values`
+    );
   }
 }
 

@@ -76,3 +76,11 @@ export {
   generateMultipleDiffs,
   formatDiffForMarkdown,
 } from "./diff.js";
+
+export {
+  // Types
+  type CmProjectsOutput,
+  // Functions
+  detectMissingProjects,
+  detectAllProjects,
+} from "./project-detection.js";

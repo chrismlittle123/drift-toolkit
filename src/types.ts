@@ -117,6 +117,7 @@ export interface RepoContext {
 export interface RepoScanResult {
   repo: string;
   results: DriftResults;
+  missingProjects?: MissingProject[];
   error?: string;
 }
 
@@ -160,4 +161,17 @@ export interface DriftDetection {
   commit: string;
   commitUrl: string;
   changes: FileChange[];
+}
+
+// New project detection (projects missing check.toml)
+
+export interface MissingProject {
+  path: string;
+  type: string; // "typescript", "python", etc.
+}
+
+export interface MissingProjectsDetection {
+  repository: string;
+  scanTime: string;
+  projects: MissingProject[];
 }

@@ -12,7 +12,11 @@ import {
   formatDriftIssueBody,
   getDriftIssueTitle,
   getDriftIssueLabel,
+  formatMissingProjectsIssueBody,
+  getMissingProjectsIssueTitle,
+  getMissingProjectsIssueLabel,
 } from "./issue-formatter.js";
+import { detectMissingProjects } from "../repo/project-detection.js";
 import {
   loadConfig,
   loadRepoMetadata,
@@ -29,6 +33,8 @@ import type {
   DriftDetection,
   FileChange,
   DriftIssueResult,
+  MissingProject,
+  MissingProjectsDetection,
 } from "../types.js";
 import { CONCURRENCY, DEFAULTS } from "../constants.js";
 import {
@@ -226,6 +232,89 @@ async function createDriftIssue(
   }
 }
 
+interface CreateMissingProjectsIssueOptions {
+  org: string;
+  repoName: string;
+  missingProjects: MissingProject[];
+  token: string;
+  dryRun: boolean;
+  json: boolean;
+}
+
+/**
+ * Create a GitHub issue for missing projects detection with error handling
+ */
+async function createMissingProjectsIssue(
+  options: CreateMissingProjectsIssueOptions
+): Promise<DriftIssueResult> {
+  const { org, repoName, missingProjects, token, dryRun, json } = options;
+
+  if (missingProjects.length === 0) {
+    return { created: false };
+  }
+
+  const detection: MissingProjectsDetection = {
+    repository: `${org}/${repoName}`,
+    scanTime: new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
+    projects: missingProjects,
+  };
+
+  if (dryRun) {
+    if (!json) {
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Would create issue: ${getMissingProjectsIssueTitle()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Repository: ${org}/${repoName}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Labels: ${getMissingProjectsIssueLabel()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Missing projects: ${missingProjects.map((p) => p.path).join(", ")}${COLORS.reset}`
+      );
+    }
+    return { created: false };
+  }
+
+  try {
+    const body = formatMissingProjectsIssueBody(detection);
+    const issue = await createIssue(
+      {
+        owner: org,
+        repo: repoName,
+        title: getMissingProjectsIssueTitle(),
+        body,
+        labels: [getMissingProjectsIssueLabel()],
+      },
+      token
+    );
+
+    if (!json) {
+      console.log(
+        `  ${COLORS.green}✓ Created issue #${issue.number}: ${issue.html_url}${COLORS.reset}`
+      );
+    }
+
+    return {
+      created: true,
+      issueNumber: issue.number,
+      issueUrl: issue.html_url,
+    };
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    if (!json) {
+      console.log(
+        `  ${COLORS.yellow}⚠ Failed to create missing projects issue: ${errorMessage}${COLORS.reset}`
+      );
+    }
+    return {
+      created: false,
+      error: errorMessage,
+    };
+  }
+}
+
 /**
  * Scan a single repository
  */
@@ -398,6 +487,9 @@ export async function scanOrg(
         cloneRepo(org, repoName, repoDir, token);
         repoResult.results = scanRepo(repoDir, config, approvedBasePath);
         repoResult.results.path = `${org}/${repoName}`;
+
+        // Detect projects missing check.toml
+        repoResult.missingProjects = detectMissingProjects(repoDir);
       } catch (error) {
         repoResult.error = getErrorMessage(error);
       } finally {
@@ -435,6 +527,23 @@ export async function scanOrg(
           org,
           repoName,
           results: result.results,
+          token,
+          dryRun: options.dryRun ?? false,
+          json: options.json ?? false,
+        });
+      }
+
+      // Create GitHub issue for repos with missing projects
+      if (
+        !result.error &&
+        result.missingProjects &&
+        result.missingProjects.length > 0 &&
+        token
+      ) {
+        await createMissingProjectsIssue({
+          org,
+          repoName,
+          missingProjects: result.missingProjects,
           token,
           dryRun: options.dryRun ?? false,
           json: options.json ?? false,
