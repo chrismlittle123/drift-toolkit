@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.1
+
+### Patch Changes
+
+- c33ee8d: Add org/repo targeting inputs and documentation for manual workflow runs
+
 ## 1.12.0
 
 ### Minor Changes
