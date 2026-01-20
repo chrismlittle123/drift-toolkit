@@ -72,7 +72,11 @@ export default [
           trailingUnderscore: "allow",
         },
         { selector: "function", format: ["camelCase"] },
-        { selector: "parameter", format: ["camelCase"], leadingUnderscore: "allow" },
+        {
+          selector: "parameter",
+          format: ["camelCase"],
+          leadingUnderscore: "allow",
+        },
         { selector: "classMethod", format: ["camelCase"] },
         { selector: "classProperty", format: ["camelCase", "UPPER_CASE"] },
       ],
