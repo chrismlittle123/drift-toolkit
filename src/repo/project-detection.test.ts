@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { execSync } from "child_process";
-import { detectMissingProjects, detectAllProjects } from "./project-detection.js";
+import {
+  detectMissingProjects,
+  detectAllProjects,
+} from "./project-detection.js";
 
 // Mock child_process
 vi.mock("child_process", () => ({
@@ -45,8 +48,16 @@ describe("project-detection", () => {
       mockExecSync.mockReturnValueOnce(
         JSON.stringify({
           projects: [
-            { path: "packages/api", type: "typescript", status: "missing-config" },
-            { path: "packages/web", type: "typescript", status: "missing-config" },
+            {
+              path: "packages/api",
+              type: "typescript",
+              status: "missing-config",
+            },
+            {
+              path: "packages/web",
+              type: "typescript",
+              status: "missing-config",
+            },
           ],
           workspaceRoots: [],
           summary: { total: 2, withConfig: 0, missingConfig: 2 },
@@ -117,7 +128,11 @@ describe("project-detection", () => {
       const cmOutput = {
         projects: [
           { path: ".", type: "typescript", status: "has-config" },
-          { path: "packages/api", type: "typescript", status: "missing-config" },
+          {
+            path: "packages/api",
+            type: "typescript",
+            status: "missing-config",
+          },
         ],
         workspaceRoots: ["packages"],
         summary: { total: 2, withConfig: 1, missingConfig: 1 },

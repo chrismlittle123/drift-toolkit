@@ -85,9 +85,6 @@ export type {
 } from "./repo/index.js";
 
 // Project detection (cm projects detect)
-export {
-  detectMissingProjects,
-  detectAllProjects,
-} from "./repo/index.js";
+export { detectMissingProjects, detectAllProjects } from "./repo/index.js";
 
 export type { CmProjectsOutput } from "./repo/index.js";

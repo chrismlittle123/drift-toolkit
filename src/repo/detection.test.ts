@@ -169,7 +169,10 @@ custom_field: custom_value
     });
 
     it("returns defaults with warning for invalid YAML in metadata file", () => {
-      writeFileSync(join(testDir, "repo-metadata.yaml"), "tier: production\n  bad: yaml");
+      writeFileSync(
+        join(testDir, "repo-metadata.yaml"),
+        "tier: production\n  bad: yaml"
+      );
       const result = getRepoMetadata(testDir);
       expect(result).not.toBeNull();
       expect(result?.metadata.tier).toBe("internal");
