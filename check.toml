@@ -1,8 +1,8 @@
 # Extend from community registry
-
-[extends]
-registry = "github:chrismlittle123/check-my-toolkit-registry-community"
-rulesets = ["typescript-internal"]
+# NOTE: Temporarily disabled due to TOML parse error in typescript-internal ruleset
+# [extends]
+# registry = "github:chrismlittle123/check-my-toolkit-registry-community"
+# rulesets = ["typescript-internal"]
 
 # Local overrides
 [code.linting.eslint]

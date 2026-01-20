@@ -39,15 +39,12 @@ jobs:
 
       - name: Run cm code audit
         run: cm code audit
-        continue-on-error: true  # Temporary: upstream registry issue
 
       - name: Run cm code check
         run: cm code check
-        continue-on-error: true  # Temporary: upstream registry issue
 
       - name: Run cm process check
         run: cm process check
-        continue-on-error: true  # Temporary: upstream registry issue
 
       - name: Build
         run: pnpm run build
