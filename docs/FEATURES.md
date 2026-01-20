@@ -109,10 +109,7 @@ const files = findCheckTomlFiles("/path/to/repo");
 Detect projects (including monorepo packages) that are missing check.toml configuration.
 
 ```typescript
-import {
-  detectMissingProjects,
-  detectAllProjects,
-} from "drift-toolkit";
+import { detectMissingProjects, detectAllProjects } from "drift-toolkit";
 
 // Detect projects without check.toml (uses cm projects detect)
 const missing = detectMissingProjects("/path/to/repo");
