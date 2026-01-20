@@ -6,6 +6,7 @@
 
 import { execSync } from "child_process";
 import { z } from "zod";
+import { WORKFLOW_PATTERNS } from "../constants.js";
 
 /**
  * Map of check names to their configuration files.
@@ -118,25 +119,39 @@ function buildCommand(options?: GetDependenciesOptions): string {
 }
 
 /**
+ * Ensure workflow patterns are included in the alwaysTracked array.
+ * This guarantees workflow files are tracked even if cm doesn't include them.
+ */
+function ensureWorkflowPatterns(alwaysTracked: string[]): string[] {
+  const patterns = new Set(alwaysTracked);
+  for (const pattern of WORKFLOW_PATTERNS.patterns) {
+    patterns.add(pattern);
+  }
+  return [...patterns];
+}
+
+/**
  * Create an empty result with an error message.
+ * Still includes workflow patterns as fallback for tracking.
  */
 function createErrorResult(error: string): GetDependenciesResult {
   return {
     files: [],
     byCheck: {},
-    alwaysTracked: [],
+    alwaysTracked: ensureWorkflowPatterns([]),
     error,
   };
 }
 
 /**
  * Transform cm output to GetDependenciesResult.
+ * Ensures workflow patterns are always included in alwaysTracked.
  */
 function transformOutput(output: CmDependenciesOutput): GetDependenciesResult {
   return {
     files: output.allFiles,
     byCheck: output.dependencies,
-    alwaysTracked: output.alwaysTracked,
+    alwaysTracked: ensureWorkflowPatterns(output.alwaysTracked),
   };
 }
 
