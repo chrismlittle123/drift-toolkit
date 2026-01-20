@@ -6,8 +6,15 @@ import {
   formatMissingProjectsIssueBody,
   getMissingProjectsIssueTitle,
   getMissingProjectsIssueLabel,
+  formatTierMismatchIssueBody,
+  getTierMismatchIssueTitle,
+  getTierMismatchIssueLabel,
 } from "./issue-formatter.js";
-import type { DriftDetection, MissingProjectsDetection } from "../types.js";
+import type {
+  DriftDetection,
+  MissingProjectsDetection,
+  TierMismatchDetection,
+} from "../types.js";
 
 describe("issue-formatter", () => {
   describe("formatDriftIssueBody", () => {
@@ -270,6 +277,96 @@ describe("issue-formatter", () => {
   describe("getMissingProjectsIssueLabel", () => {
     it("returns correct label", () => {
       expect(getMissingProjectsIssueLabel()).toBe("drift:code");
+    });
+  });
+
+  describe("formatTierMismatchIssueBody", () => {
+    it("formats tier mismatch detection correctly", () => {
+      const detection: TierMismatchDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        tier: "production",
+        rulesets: ["typescript-internal"],
+        expectedPattern: "*-production",
+        error:
+          "No ruleset matching pattern '*-production' found. Rulesets: [typescript-internal]",
+      };
+
+      const body = formatTierMismatchIssueBody(detection);
+
+      expect(body).toContain("## Tier-Ruleset Mismatch Detected");
+      expect(body).toContain("Repository: `org/repo`");
+      expect(body).toContain("2024-01-15 02:00 UTC");
+      expect(body).toContain("| **Tier** | production |");
+      expect(body).toContain("| **Expected Pattern** | `*-production` |");
+      expect(body).toContain("| **Current Rulesets** | `typescript-internal` |");
+      expect(body).toContain("No ruleset matching pattern");
+      expect(body).toContain("Action Required");
+      expect(body).toContain("Created by drift-toolkit");
+    });
+
+    it("handles multiple rulesets", () => {
+      const detection: TierMismatchDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        tier: "internal",
+        rulesets: ["typescript-production", "security-production"],
+        expectedPattern: "*-internal",
+        error: "Mismatch detected",
+      };
+
+      const body = formatTierMismatchIssueBody(detection);
+
+      expect(body).toContain(
+        "| **Current Rulesets** | `typescript-production`, `security-production` |"
+      );
+    });
+
+    it("handles empty rulesets", () => {
+      const detection: TierMismatchDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        tier: "prototype",
+        rulesets: [],
+        expectedPattern: "*-prototype",
+        error: "No rulesets found",
+      };
+
+      const body = formatTierMismatchIssueBody(detection);
+
+      expect(body).toContain("| **Current Rulesets** | _none_ |");
+    });
+
+    it("includes remediation steps", () => {
+      const detection: TierMismatchDetection = {
+        repository: "org/repo",
+        scanTime: "2024-01-15 02:00 UTC",
+        tier: "production",
+        rulesets: ["typescript-internal"],
+        expectedPattern: "*-production",
+        error: "Mismatch",
+      };
+
+      const body = formatTierMismatchIssueBody(detection);
+
+      expect(body).toContain(
+        "Update `check.toml` to use a ruleset matching `*-production`"
+      );
+      expect(body).toContain("update `repo-metadata.yaml` tier");
+    });
+  });
+
+  describe("getTierMismatchIssueTitle", () => {
+    it("returns correct title", () => {
+      expect(getTierMismatchIssueTitle()).toBe(
+        "[drift:code] Tier-ruleset mismatch detected"
+      );
+    });
+  });
+
+  describe("getTierMismatchIssueLabel", () => {
+    it("returns correct label", () => {
+      expect(getTierMismatchIssueLabel()).toBe("drift:code");
     });
   });
 });

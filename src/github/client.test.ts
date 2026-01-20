@@ -409,6 +409,142 @@ describe("github client API functions", () => {
     });
   });
 
+  describe("fileExists", () => {
+    it("returns true when file exists", async () => {
+      const { fileExists } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("{}", { status: 200 })
+      );
+
+      const result = await fileExists(
+        "test-org",
+        "test-repo",
+        "repo-metadata.yaml"
+      );
+
+      expect(result).toBe(true);
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "/repos/test-org/test-repo/contents/repo-metadata.yaml"
+        ),
+        expect.any(Object),
+        undefined
+      );
+    });
+
+    it("returns false when file does not exist", async () => {
+      const { fileExists } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("Not Found", { status: 404 })
+      );
+
+      const result = await fileExists(
+        "test-org",
+        "test-repo",
+        "missing-file.txt"
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it("passes token to request headers", async () => {
+      const { fileExists } = await import("./client.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("{}", { status: 200 })
+      );
+
+      await fileExists("test-org", "test-repo", "check.toml", "my-token");
+
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer my-token",
+          }),
+        }),
+        "my-token"
+      );
+    });
+  });
+
+  describe("isRepoScannable", () => {
+    it("returns true when both metadata and check.toml exist", async () => {
+      const { isRepoScannable } = await import("./client.js");
+
+      // Mock: repo-metadata.yaml exists, check.toml exists
+      mockFetchWithRetry
+        .mockResolvedValueOnce(new Response("{}", { status: 200 })) // repo-metadata.yaml
+        .mockResolvedValueOnce(new Response("{}", { status: 404 })) // repo-metadata.yml (not found)
+        .mockResolvedValueOnce(new Response("{}", { status: 200 })); // check.toml
+
+      const result = await isRepoScannable("test-org", "test-repo");
+
+      expect(result).toBe(true);
+    });
+
+    it("returns true when repo-metadata.yml variant exists", async () => {
+      const { isRepoScannable } = await import("./client.js");
+
+      // Mock: repo-metadata.yaml not found, repo-metadata.yml exists, check.toml exists
+      mockFetchWithRetry
+        .mockResolvedValueOnce(new Response("Not Found", { status: 404 })) // repo-metadata.yaml
+        .mockResolvedValueOnce(new Response("{}", { status: 200 })) // repo-metadata.yml
+        .mockResolvedValueOnce(new Response("{}", { status: 200 })); // check.toml
+
+      const result = await isRepoScannable("test-org", "test-repo");
+
+      expect(result).toBe(true);
+    });
+
+    it("returns false when metadata file is missing", async () => {
+      const { isRepoScannable } = await import("./client.js");
+
+      // Mock: neither metadata variant exists
+      mockFetchWithRetry
+        .mockResolvedValueOnce(new Response("Not Found", { status: 404 })) // repo-metadata.yaml
+        .mockResolvedValueOnce(new Response("Not Found", { status: 404 })); // repo-metadata.yml
+
+      const result = await isRepoScannable("test-org", "test-repo");
+
+      expect(result).toBe(false);
+      // Should not check for check.toml since metadata is missing
+      expect(mockFetchWithRetry).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns false when check.toml is missing", async () => {
+      const { isRepoScannable } = await import("./client.js");
+
+      // Mock: metadata exists but check.toml missing
+      mockFetchWithRetry
+        .mockResolvedValueOnce(new Response("{}", { status: 200 })) // repo-metadata.yaml
+        .mockResolvedValueOnce(new Response("{}", { status: 404 })) // repo-metadata.yml
+        .mockResolvedValueOnce(new Response("Not Found", { status: 404 })); // check.toml
+
+      const result = await isRepoScannable("test-org", "test-repo");
+
+      expect(result).toBe(false);
+    });
+
+    it("passes token to all file checks", async () => {
+      const { isRepoScannable } = await import("./client.js");
+
+      mockFetchWithRetry
+        .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+        .mockResolvedValueOnce(new Response("{}", { status: 404 }))
+        .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+
+      await isRepoScannable("test-org", "test-repo", "my-token");
+
+      // All calls should include the token
+      for (const call of mockFetchWithRetry.mock.calls) {
+        expect(call[2]).toBe("my-token");
+      }
+    });
+  });
+
   describe("parseRepoResponse error handling", () => {
     it("throws error for invalid JSON response", async () => {
       const { listOrgRepos } = await import("./client.js");

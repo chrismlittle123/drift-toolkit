@@ -7,6 +7,7 @@ import {
   getGitHubToken,
   repoExists,
   createIssue,
+  isRepoScannable,
 } from "./client.js";
 import {
   formatDriftIssueBody,
@@ -15,8 +16,15 @@ import {
   formatMissingProjectsIssueBody,
   getMissingProjectsIssueTitle,
   getMissingProjectsIssueLabel,
+  formatTierMismatchIssueBody,
+  getTierMismatchIssueTitle,
+  getTierMismatchIssueLabel,
 } from "./issue-formatter.js";
 import { detectMissingProjects } from "../repo/project-detection.js";
+import {
+  validateTierRuleset,
+  hasTierMismatch,
+} from "../repo/tier-validation.js";
 import {
   loadConfig,
   loadRepoMetadata,
@@ -35,6 +43,8 @@ import type {
   DriftIssueResult,
   MissingProject,
   MissingProjectsDetection,
+  TierValidationResult,
+  TierMismatchDetection,
 } from "../types.js";
 import { CONCURRENCY, DEFAULTS } from "../constants.js";
 import {
@@ -315,6 +325,92 @@ async function createMissingProjectsIssue(
   }
 }
 
+interface CreateTierMismatchIssueOptions {
+  org: string;
+  repoName: string;
+  tierValidation: TierValidationResult;
+  token: string;
+  dryRun: boolean;
+  json: boolean;
+}
+
+/**
+ * Create a GitHub issue for tier-ruleset mismatch detection with error handling
+ */
+async function createTierMismatchIssue(
+  options: CreateTierMismatchIssueOptions
+): Promise<DriftIssueResult> {
+  const { org, repoName, tierValidation, token, dryRun, json } = options;
+
+  if (tierValidation.valid || !tierValidation.error) {
+    return { created: false };
+  }
+
+  const detection: TierMismatchDetection = {
+    repository: `${org}/${repoName}`,
+    scanTime: new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
+    tier: tierValidation.tier,
+    rulesets: tierValidation.rulesets,
+    expectedPattern: tierValidation.expectedPattern,
+    error: tierValidation.error,
+  };
+
+  if (dryRun) {
+    if (!json) {
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Would create issue: ${getTierMismatchIssueTitle()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Repository: ${org}/${repoName}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Labels: ${getTierMismatchIssueLabel()}${COLORS.reset}`
+      );
+      console.log(
+        `  ${COLORS.cyan}[DRY-RUN] Tier: ${tierValidation.tier}, Expected: ${tierValidation.expectedPattern}${COLORS.reset}`
+      );
+    }
+    return { created: false };
+  }
+
+  try {
+    const body = formatTierMismatchIssueBody(detection);
+    const issue = await createIssue(
+      {
+        owner: org,
+        repo: repoName,
+        title: getTierMismatchIssueTitle(),
+        body,
+        labels: [getTierMismatchIssueLabel()],
+      },
+      token
+    );
+
+    if (!json) {
+      console.log(
+        `  ${COLORS.green}✓ Created tier mismatch issue #${issue.number}: ${issue.html_url}${COLORS.reset}`
+      );
+    }
+
+    return {
+      created: true,
+      issueNumber: issue.number,
+      issueUrl: issue.html_url,
+    };
+  } catch (error) {
+    const errorMessage = getErrorMessage(error);
+    if (!json) {
+      console.log(
+        `  ${COLORS.yellow}⚠ Failed to create tier mismatch issue: ${errorMessage}${COLORS.reset}`
+      );
+    }
+    return {
+      created: false,
+      error: errorMessage,
+    };
+  }
+}
+
 /**
  * Scan a single repository
  */
@@ -490,6 +586,9 @@ export async function scanOrg(
 
         // Detect projects missing check.toml
         repoResult.missingProjects = detectMissingProjects(repoDir);
+
+        // Validate tier-ruleset alignment
+        repoResult.tierValidation = validateTierRuleset(repoDir) ?? undefined;
       } catch (error) {
         repoResult.error = getErrorMessage(error);
       } finally {
@@ -503,6 +602,21 @@ export async function scanOrg(
     const repoResults = await parallelLimit(reposToScan, async (repoName) => {
       if (!options.json) {
         process.stdout.write(`Scanning ${org}/${repoName}... `);
+      }
+
+      // Check if repo has required files before cloning
+      const scannable = await isRepoScannable(org, repoName, token);
+      if (!scannable) {
+        if (!options.json) {
+          console.log(
+            `${COLORS.dim}○ skipped (missing required files)${COLORS.reset}`
+          );
+        }
+        return {
+          repo: repoName,
+          results: createEmptyResults(`${org}/${repoName}`),
+          error: "missing required files",
+        } as RepoScanResult;
       }
 
       // scanSingleRepo is sync but we wrap in promise for parallelLimit
@@ -544,6 +658,23 @@ export async function scanOrg(
           org,
           repoName,
           missingProjects: result.missingProjects,
+          token,
+          dryRun: options.dryRun ?? false,
+          json: options.json ?? false,
+        });
+      }
+
+      // Create GitHub issue for repos with tier-ruleset mismatch
+      if (
+        !result.error &&
+        result.tierValidation &&
+        hasTierMismatch(result.tierValidation) &&
+        token
+      ) {
+        await createTierMismatchIssue({
+          org,
+          repoName,
+          tierValidation: result.tierValidation,
           token,
           dryRun: options.dryRun ?? false,
           json: options.json ?? false,

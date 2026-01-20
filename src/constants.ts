@@ -89,6 +89,10 @@ export const GITHUB_ISSUES = {
   missingProjectsTitle: "[drift:code] New project detected without standards",
   /** Default label for missing projects issues */
   missingProjectsLabel: "drift:code",
+  /** Issue title for tier-ruleset mismatch */
+  tierMismatchTitle: "[drift:code] Tier-ruleset mismatch detected",
+  /** Default label for tier mismatch issues */
+  tierMismatchLabel: "drift:code",
 } as const;
 
 /**

@@ -118,6 +118,7 @@ export interface RepoScanResult {
   repo: string;
   results: DriftResults;
   missingProjects?: MissingProject[];
+  tierValidation?: TierValidationResult;
   error?: string;
 }
 
@@ -174,4 +175,24 @@ export interface MissingProjectsDetection {
   repository: string;
   scanTime: string;
   projects: MissingProject[];
+}
+
+// Tier validation (tier-ruleset alignment)
+
+export interface TierValidationResult {
+  valid: boolean;
+  tier: string;
+  rulesets: string[];
+  expectedPattern: string;
+  matchedRulesets: string[];
+  error?: string;
+}
+
+export interface TierMismatchDetection {
+  repository: string;
+  scanTime: string;
+  tier: string;
+  rulesets: string[];
+  expectedPattern: string;
+  error: string;
 }
