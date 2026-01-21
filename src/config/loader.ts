@@ -1,68 +1,13 @@
 import { readFileSync, existsSync } from "fs";
 import { parse } from "yaml";
 import { z } from "zod";
-import type {
-  CodeDomainConfig,
-  DriftConfig,
-  MetadataSchema,
-  RepoContext,
-} from "../types.js";
+import type { DriftConfig, MetadataSchema, RepoContext } from "../types.js";
 import { FILE_PATTERNS } from "../constants.js";
 import { safeJoinPath, PathTraversalError } from "../utils/paths.js";
-
-// Re-export security functions for backward compatibility
-export { validateScanCommand, validateConfigSecurity } from "./security.js";
-
-/**
- * Get the code domain config from a DriftConfig.
- * Normalizes both legacy flat format and new nested format.
- */
-export function getCodeConfig(config: DriftConfig): CodeDomainConfig | null {
-  // New nested format takes precedence
-  if (config.code) {
-    return config.code;
-  }
-
-  // Legacy flat format - construct CodeDomainConfig from flat structure
-  if (config.integrity || config.scans) {
-    return {
-      integrity: config.integrity,
-      scans: config.scans,
-    };
-  }
-
-  return null;
-}
 
 /**
  * Zod schema for validating drift configuration
  */
-const SEVERITY_SCHEMA = z.enum(["critical", "high", "medium", "low"]);
-
-const INTEGRITY_CHECK_SCHEMA = z.object({
-  file: z.string().min(1, "file path is required"),
-  approved: z.string().min(1, "approved path is required"),
-  severity: SEVERITY_SCHEMA,
-});
-
-const DISCOVERY_PATTERN_SCHEMA = z.object({
-  pattern: z.string().min(1, "pattern is required"),
-  suggestion: z.string().min(1, "suggestion is required"),
-});
-
-const SCAN_DEFINITION_SCHEMA = z.object({
-  name: z.string().min(1, "scan name is required"),
-  description: z.string().optional(),
-  command: z.string().min(1, "command is required"),
-  if: z.union([z.string(), z.array(z.string())]).optional(), // deprecated
-  if_file: z.union([z.string(), z.array(z.string())]).optional(),
-  if_command: z.string().optional(),
-  tiers: z.array(z.string()).optional(),
-  outputFormat: z.enum(["json", "text", "exitcode"]).optional(),
-  severity: SEVERITY_SCHEMA.optional(),
-  timeout: z.number().positive().optional(),
-});
-
 const METADATA_SCHEMA_SCHEMA = z
   .object({
     tiers: z.array(z.string()).optional(),
@@ -70,26 +15,9 @@ const METADATA_SCHEMA_SCHEMA = z
   })
   .optional();
 
-const INTEGRITY_SCHEMA = z
-  .object({
-    protected: z.array(INTEGRITY_CHECK_SCHEMA).optional(),
-    discover: z.array(DISCOVERY_PATTERN_SCHEMA).optional(),
-  })
-  .optional();
-
-const CODE_DOMAIN_SCHEMA = z
-  .object({
-    integrity: INTEGRITY_SCHEMA,
-    scans: z.array(SCAN_DEFINITION_SCHEMA).optional(),
-  })
-  .optional();
-
 const DRIFT_CONFIG_SCHEMA = z.object({
   schema: METADATA_SCHEMA_SCHEMA,
-  integrity: INTEGRITY_SCHEMA,
-  scans: z.array(SCAN_DEFINITION_SCHEMA).optional(),
   exclude: z.array(z.string()).optional(),
-  code: CODE_DOMAIN_SCHEMA,
 });
 
 /**
