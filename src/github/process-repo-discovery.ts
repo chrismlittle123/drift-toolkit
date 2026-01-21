@@ -108,6 +108,7 @@ function buildResult(o: ResultOpts): ProcessRepoDiscoveryResult {
 }
 
 /** Discover repositories with check.toml, optionally filtering by recent activity. */
+// eslint-disable-next-line max-lines-per-function
 export async function discoverProcessRepos(
   opts: DiscoverProcessReposOptions
 ): Promise<ProcessRepoDiscoveryResult> {
