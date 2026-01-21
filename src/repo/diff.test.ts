@@ -434,7 +434,10 @@ describe("diff", () => {
       initGitRepo();
 
       // Create file in first commit
-      writeFileSync(join(testDir, "to-delete.txt"), "original content\nline 2\n");
+      writeFileSync(
+        join(testDir, "to-delete.txt"),
+        "original content\nline 2\n"
+      );
       git("add to-delete.txt");
       git("commit -m 'Add file'");
       const commitWithFile = getHeadCommit();
@@ -490,7 +493,9 @@ describe("diff", () => {
         repoUrl: "https://github.com/owner/repo",
       });
 
-      expect(result.fullDiffUrl).toContain("https://github.com/owner/repo/commit/");
+      expect(result.fullDiffUrl).toContain(
+        "https://github.com/owner/repo/commit/"
+      );
       expect(result.fullDiffUrl).toContain(headCommit);
     });
 
@@ -511,7 +516,9 @@ describe("diff", () => {
         repoUrl: "https://github.com/owner/repo",
       });
 
-      expect(result.fullDiffUrl).toContain("https://github.com/owner/repo/commit/");
+      expect(result.fullDiffUrl).toContain(
+        "https://github.com/owner/repo/commit/"
+      );
       expect(result.fullDiffUrl).toContain(commitWithFile);
     });
 
@@ -523,7 +530,8 @@ describe("diff", () => {
       git("commit -m 'Initial commit'");
 
       // Create file with many lines
-      const manyLines = Array.from({ length: 50 }, (_, i) => `line ${i + 1}`).join("\n") + "\n";
+      const manyLines =
+        Array.from({ length: 50 }, (_, i) => `line ${i + 1}`).join("\n") + "\n";
       writeFileSync(join(testDir, "large.txt"), manyLines);
       git("add large.txt");
       git("commit -m 'Add large file'");
@@ -543,7 +551,8 @@ describe("diff", () => {
       initGitRepo();
 
       // Create file with many lines
-      const manyLines = Array.from({ length: 50 }, (_, i) => `line ${i + 1}`).join("\n") + "\n";
+      const manyLines =
+        Array.from({ length: 50 }, (_, i) => `line ${i + 1}`).join("\n") + "\n";
       writeFileSync(join(testDir, "large.txt"), manyLines);
       git("add large.txt");
       git("commit -m 'Add large file'");

@@ -89,7 +89,7 @@ describe("formatting", () => {
     it("does not print additional message when not provided", () => {
       printWarnings("Title", ["warning"]);
 
-      const calls = consoleSpy.mock.calls.map((call) => call[0]);
+      const calls = consoleSpy.mock.calls.map((call: unknown[]) => call[0]);
       expect(calls).not.toContain(undefined);
     });
   });
@@ -177,7 +177,9 @@ describe("formatting", () => {
       describe("error", () => {
         it("outputs error command without file", () => {
           actionsOutput.error("test error message");
-          expect(consoleSpy).toHaveBeenCalledWith("::error::test error message");
+          expect(consoleSpy).toHaveBeenCalledWith(
+            "::error::test error message"
+          );
         });
 
         it("outputs error command with file", () => {
