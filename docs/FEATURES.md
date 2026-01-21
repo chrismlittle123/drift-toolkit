@@ -92,6 +92,7 @@ The commit check uses the GitHub Commits API before cloning, so inactive reposit
 ### Pre-Clone Filtering
 
 Before cloning repositories, drift-toolkit checks via the GitHub Content API whether each repo has the required files:
+
 - `repo-metadata.yaml` (or `.yml`)
 - `check.toml`
 
@@ -213,7 +214,10 @@ const diff = compareCheckTomlFiles("/path/to/repo", "main", "feature-branch");
 Detect changes to all configuration files tracked by `cm dependencies` (eslint configs, tsconfigs, workflow files, etc.).
 
 ```typescript
-import { detectDependencyChanges, getTrackedDependencyFiles } from "drift-toolkit";
+import {
+  detectDependencyChanges,
+  getTrackedDependencyFiles,
+} from "drift-toolkit";
 
 // Get list of all tracked dependency files
 const files = getTrackedDependencyFiles("/path/to/repo");
@@ -234,6 +238,7 @@ const changes = detectDependencyChanges("/path/to/repo", {
 ```
 
 When changes are detected during org scans, a GitHub issue is created with:
+
 - File diffs grouped by check type (eslint, tsc, etc.)
 - Links to the commit
 - Action items for investigation

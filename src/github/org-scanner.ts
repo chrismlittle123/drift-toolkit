@@ -469,11 +469,13 @@ function buildDependencyChangesDetection(
   for (const [checkType, checkChanges] of Object.entries(changes.byCheck)) {
     byCheck[checkType] = checkChanges.map((change) => {
       const fileChange = fileChanges.find((fc) => fc.file === change.file);
-      return fileChange || {
-        file: change.file,
-        status: change.status,
-        checkType: change.checkType,
-      };
+      return (
+        fileChange || {
+          file: change.file,
+          status: change.status,
+          checkType: change.checkType,
+        }
+      );
     });
   }
 
