@@ -12,14 +12,6 @@ export interface DriftConfig {
   exclude?: string[]; // repo name patterns to exclude from org scanning
 }
 
-// Repository context for metadata validation
-
-export interface RepoContext {
-  tier?: string;
-  team?: string;
-  metadata?: Record<string, unknown>;
-}
-
 // Overall results
 
 export interface DriftResults {
