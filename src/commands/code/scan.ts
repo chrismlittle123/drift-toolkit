@@ -29,9 +29,9 @@ import {
   hasMetadata,
   hasCheckToml,
   getRepoMetadata,
-  validateCheckToml,
   findCheckTomlFiles,
 } from "../../repo/detection.js";
+import { validateCheckToml } from "../../repo/check-toml.js";
 
 export interface ScanOptions {
   org?: string;
@@ -90,9 +90,7 @@ function validateRepoFiles(targetPath: string): string[] {
     for (const checkTomlPath of checkTomlPaths) {
       const validation = validateCheckToml(targetPath, checkTomlPath);
       if (!validation.valid) {
-        warnings.push(
-          `Invalid TOML in ${checkTomlPath}: ${validation.error}`
-        );
+        warnings.push(`Invalid TOML in ${checkTomlPath}: ${validation.error}`);
       }
     }
   }
