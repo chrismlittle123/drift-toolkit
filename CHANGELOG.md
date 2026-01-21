@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.5
+
+### Patch Changes
+
+- ffe468f: fix: suppress issue creation message when using --json flag in process scan
+
 ## 3.4.4
 
 ### Patch Changes
