@@ -17,9 +17,8 @@ describe("process-repo-discovery", () => {
 
   describe("discoverProcessRepos", () => {
     it("returns repos that have check.toml", async () => {
-      const { discoverProcessRepos } = await import(
-        "./process-repo-discovery.js"
-      );
+      const { discoverProcessRepos } =
+        await import("./process-repo-discovery.js");
 
       // Mock org with 3 repos, only 2 have check.toml
       mockListRepos.mockResolvedValueOnce({
@@ -67,9 +66,8 @@ describe("process-repo-discovery", () => {
     });
 
     it("returns empty array when no repos have check.toml", async () => {
-      const { discoverProcessRepos } = await import(
-        "./process-repo-discovery.js"
-      );
+      const { discoverProcessRepos } =
+        await import("./process-repo-discovery.js");
 
       mockListRepos.mockResolvedValueOnce({
         repos: [
@@ -96,9 +94,8 @@ describe("process-repo-discovery", () => {
     });
 
     it("returns empty result when org has no repos", async () => {
-      const { discoverProcessRepos } = await import(
-        "./process-repo-discovery.js"
-      );
+      const { discoverProcessRepos } =
+        await import("./process-repo-discovery.js");
 
       mockListRepos.mockResolvedValueOnce({
         repos: [],
@@ -116,9 +113,8 @@ describe("process-repo-discovery", () => {
     });
 
     it("works with user accounts (not orgs)", async () => {
-      const { discoverProcessRepos } = await import(
-        "./process-repo-discovery.js"
-      );
+      const { discoverProcessRepos } =
+        await import("./process-repo-discovery.js");
 
       mockListRepos.mockResolvedValueOnce({
         repos: [
@@ -145,9 +141,8 @@ describe("process-repo-discovery", () => {
     });
 
     it("calls onProgress callback during discovery", async () => {
-      const { discoverProcessRepos } = await import(
-        "./process-repo-discovery.js"
-      );
+      const { discoverProcessRepos } =
+        await import("./process-repo-discovery.js");
 
       mockListRepos.mockResolvedValueOnce({
         repos: [
@@ -186,9 +181,8 @@ describe("process-repo-discovery", () => {
     });
 
     it("respects concurrency limit", async () => {
-      const { discoverProcessRepos } = await import(
-        "./process-repo-discovery.js"
-      );
+      const { discoverProcessRepos } =
+        await import("./process-repo-discovery.js");
 
       // Create 10 repos to test concurrency limiting
       const repos = Array.from({ length: 10 }, (_, i) => ({
@@ -211,8 +205,8 @@ describe("process-repo-discovery", () => {
       mockHasRemoteCheckToml.mockImplementation(async () => {
         currentConcurrent++;
         maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
-        // Simulate some async work
-        await new Promise((r) => setTimeout(r, 10));
+        // Yield to allow other promises to start
+        await Promise.resolve();
         currentConcurrent--;
         return true;
       });

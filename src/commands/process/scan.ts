@@ -1,11 +1,8 @@
 import { validateProcess, type ValidateProcessResult } from "check-my-toolkit";
 import { version } from "../../version.js";
 import { actionsOutput, COLORS } from "../../utils/index.js";
-import {
-  createIssue,
-  getGitHubToken,
-  discoverProcessRepos,
-} from "../../github/client.js";
+import { createIssue, getGitHubToken } from "../../github/client.js";
+import { discoverProcessRepos } from "../../github/process-repo-discovery.js";
 import {
   formatProcessViolationsIssueBody,
   getProcessViolationsIssueTitle,
@@ -188,16 +185,21 @@ async function discoverOrgRepos(
   return repoNames;
 }
 
+interface SingleRepoScanOptions {
+  repo: string;
+  config?: string;
+  json: boolean;
+  dryRun: boolean;
+  token: string;
+}
+
 /**
  * Scan a single repository for process violations.
  */
 async function scanSingleRepo(
-  repo: string,
-  config: string | undefined,
-  json: boolean,
-  dryRun: boolean,
-  token: string
+  options: SingleRepoScanOptions
 ): Promise<boolean> {
+  const { repo, config, json, dryRun, token } = options;
   const [owner, repoName] = repo.split("/");
 
   if (!json) {
@@ -295,13 +297,13 @@ export async function scan(options: ProcessScanOptions): Promise<void> {
         return;
       }
 
-      const hasViolations = await scanSingleRepo(
+      const hasViolations = await scanSingleRepo({
         repo,
         config,
-        json ?? false,
-        dryRun ?? false,
-        token
-      );
+        json: json ?? false,
+        dryRun: dryRun ?? false,
+        token,
+      });
 
       if (hasViolations) {
         process.exit(1);
