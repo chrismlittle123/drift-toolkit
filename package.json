@@ -72,7 +72,6 @@
   "dependencies": {
     "check-my-toolkit": "1.3.1",
     "commander": "^14.0.0",
-    "glob": "^13.0.0",
     "minimatch": "^10.1.1",
     "yaml": "^2.8.2",
     "zod": "^4.3.5"

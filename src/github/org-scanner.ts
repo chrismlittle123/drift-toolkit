@@ -471,9 +471,7 @@ export async function scanOrg(
   if (!configRepoExists) {
     const errorMsg = `Config repo ${org}/${configRepoName} not found`;
     console.error(`Error: ${errorMsg}.`);
-    console.error(
-      `Create a '${configRepoName}' repo with drift.config.yaml.`
-    );
+    console.error(`Create a '${configRepoName}' repo with drift.config.yaml.`);
     if (!token) {
       console.error(
         `Hint: If this is a private repo, ensure GITHUB_TOKEN is set or pass --token.`
@@ -761,17 +759,27 @@ function printOrgResults(results: OrgScanResults): void {
 
     // Missing projects
     if (repoResult.missingProjects && repoResult.missingProjects.length > 0) {
-      console.log(`  ⚠ Missing projects: ${repoResult.missingProjects.map((p) => p.path).join(", ")}`);
+      console.log(
+        `  ⚠ Missing projects: ${repoResult.missingProjects.map((p) => p.path).join(", ")}`
+      );
     }
 
     // Tier mismatch
-    if (repoResult.tierValidation && hasTierMismatch(repoResult.tierValidation)) {
+    if (
+      repoResult.tierValidation &&
+      hasTierMismatch(repoResult.tierValidation)
+    ) {
       console.log(`  ⚠ Tier mismatch: ${repoResult.tierValidation.error}`);
     }
 
     // Dependency changes
-    if (repoResult.dependencyChanges && repoResult.dependencyChanges.changes.length > 0) {
-      console.log(`  ⚠ Dependency changes: ${repoResult.dependencyChanges.changes.map((c) => c.file).join(", ")}`);
+    if (
+      repoResult.dependencyChanges &&
+      repoResult.dependencyChanges.changes.length > 0
+    ) {
+      console.log(
+        `  ⚠ Dependency changes: ${repoResult.dependencyChanges.changes.map((c) => c.file).join(", ")}`
+      );
     }
   }
 

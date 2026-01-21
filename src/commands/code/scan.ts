@@ -4,7 +4,11 @@ import { loadConfig, findConfigPath } from "../../config/loader.js";
 import { scanOrg } from "../../github/org-scanner.js";
 import { version } from "../../version.js";
 import { actionsOutput } from "../../utils/index.js";
-import { hasMetadata, hasCheckToml, getRepoMetadata } from "../../repo/detection.js";
+import {
+  hasMetadata,
+  hasCheckToml,
+  getRepoMetadata,
+} from "../../repo/detection.js";
 
 export interface ScanOptions {
   org?: string;
@@ -59,7 +63,9 @@ function validateRepoFiles(targetPath: string): string[] {
  * Print repo file warnings
  */
 function printRepoFileWarnings(warnings: string[]): void {
-  if (warnings.length === 0) {return;}
+  if (warnings.length === 0) {
+    return;
+  }
 
   console.log("\n⚠️  REPO CONFIGURATION WARNINGS");
   console.log("─".repeat(50));
