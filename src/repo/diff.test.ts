@@ -403,5 +403,164 @@ describe("diff", () => {
       // Should still produce a diff
       expect(result.diff).toBeTruthy();
     });
+
+    it("handles new file when git diff fails (fallback to manual diff)", () => {
+      initGitRepo();
+
+      // Create initial commit to establish repo
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      git("commit -m 'Initial commit'");
+
+      // Create a new file in the second commit
+      writeFileSync(join(testDir, "new-file.txt"), "new content\nline 2\n");
+      git("add new-file.txt");
+      git("commit -m 'Add new file'");
+
+      // Compare using an invalid fromCommit that will cause git diff to fail
+      // but file will exist at HEAD
+      const result = generateFileDiff(testDir, "new-file.txt", {
+        fromCommit: "0000000000000000000000000000000000000000", // non-existent commit
+        toCommit: "HEAD",
+      });
+
+      // handleNoDiff should detect file exists at HEAD but not at fromCommit
+      // and generate a "new file" style diff with + prefixes
+      expect(result.diff).toContain("+new content");
+      expect(result.diff).toContain("+line 2");
+    });
+
+    it("handles deleted file when git diff fails (fallback to manual diff)", () => {
+      initGitRepo();
+
+      // Create file in first commit
+      writeFileSync(join(testDir, "to-delete.txt"), "original content\nline 2\n");
+      git("add to-delete.txt");
+      git("commit -m 'Add file'");
+      const commitWithFile = getHeadCommit();
+
+      // Delete file in second commit
+      git("rm to-delete.txt");
+      git("commit -m 'Delete file'");
+
+      // Compare using an invalid toCommit that will cause git diff to fail
+      // but file will exist at fromCommit
+      const result = generateFileDiff(testDir, "to-delete.txt", {
+        fromCommit: commitWithFile,
+        toCommit: "0000000000000000000000000000000000000000", // non-existent commit
+      });
+
+      // handleNoDiff should detect file exists at fromCommit but not at toCommit
+      // and generate a "deleted file" style diff with - prefixes
+      expect(result.diff).toContain("-original content");
+      expect(result.diff).toContain("-line 2");
+    });
+
+    it("handles new file on first commit with default options", () => {
+      initGitRepo();
+
+      // Create file in FIRST commit only
+      writeFileSync(join(testDir, "first-file.txt"), "first content\n");
+      git("add first-file.txt");
+      git("commit -m 'First and only commit'");
+
+      // Use default options - this will try HEAD~1 which doesn't exist
+      const result = generateFileDiff(testDir, "first-file.txt");
+
+      // Should still produce a diff showing the file as new
+      // When HEAD~1 doesn't exist, git diff fails and handleNoDiff kicks in
+      expect(result.diff).toContain("+first content");
+    });
+
+    it("includes fullDiffUrl for new file fallback path", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      git("commit -m 'Initial commit'");
+
+      writeFileSync(join(testDir, "new-file.txt"), "content\n");
+      git("add new-file.txt");
+      git("commit -m 'Add new file'");
+      const headCommit = getHeadCommit();
+
+      const result = generateFileDiff(testDir, "new-file.txt", {
+        fromCommit: "0000000000000000000000000000000000000000",
+        toCommit: "HEAD",
+        repoUrl: "https://github.com/owner/repo",
+      });
+
+      expect(result.fullDiffUrl).toContain("https://github.com/owner/repo/commit/");
+      expect(result.fullDiffUrl).toContain(headCommit);
+    });
+
+    it("includes fullDiffUrl for deleted file fallback path", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "to-delete.txt"), "content\n");
+      git("add to-delete.txt");
+      git("commit -m 'Add file'");
+      const commitWithFile = getHeadCommit();
+
+      git("rm to-delete.txt");
+      git("commit -m 'Delete file'");
+
+      const result = generateFileDiff(testDir, "to-delete.txt", {
+        fromCommit: commitWithFile,
+        toCommit: "0000000000000000000000000000000000000000",
+        repoUrl: "https://github.com/owner/repo",
+      });
+
+      expect(result.fullDiffUrl).toContain("https://github.com/owner/repo/commit/");
+      expect(result.fullDiffUrl).toContain(commitWithFile);
+    });
+
+    it("truncates new file fallback diff when content exceeds maxLines", () => {
+      initGitRepo();
+
+      writeFileSync(join(testDir, "README.md"), "# Test");
+      git("add README.md");
+      git("commit -m 'Initial commit'");
+
+      // Create file with many lines
+      const manyLines = Array.from({ length: 50 }, (_, i) => `line ${i + 1}`).join("\n") + "\n";
+      writeFileSync(join(testDir, "large.txt"), manyLines);
+      git("add large.txt");
+      git("commit -m 'Add large file'");
+
+      const result = generateFileDiff(testDir, "large.txt", {
+        fromCommit: "0000000000000000000000000000000000000000",
+        toCommit: "HEAD",
+        maxLines: 10,
+      });
+
+      expect(result.truncated).toBe(true);
+      expect(result.totalLines).toBe(50);
+      expect(result.diff).toContain("+...");
+    });
+
+    it("truncates deleted file fallback diff when content exceeds maxLines", () => {
+      initGitRepo();
+
+      // Create file with many lines
+      const manyLines = Array.from({ length: 50 }, (_, i) => `line ${i + 1}`).join("\n") + "\n";
+      writeFileSync(join(testDir, "large.txt"), manyLines);
+      git("add large.txt");
+      git("commit -m 'Add large file'");
+      const commitWithFile = getHeadCommit();
+
+      git("rm large.txt");
+      git("commit -m 'Delete file'");
+
+      const result = generateFileDiff(testDir, "large.txt", {
+        fromCommit: commitWithFile,
+        toCommit: "0000000000000000000000000000000000000000",
+        maxLines: 10,
+      });
+
+      expect(result.truncated).toBe(true);
+      expect(result.totalLines).toBe(50);
+      expect(result.diff).toContain("-...");
+    });
   });
 });

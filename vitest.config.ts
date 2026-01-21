@@ -5,12 +5,12 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      // Enforce minimum coverage thresholds (current: ~58%, target: 80%)
+      // Enforce minimum coverage thresholds (target: 80%)
       thresholds: {
-        statements: 50,
-        branches: 50,
-        functions: 50,
-        lines: 50,
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
       },
       // Only measure coverage for src files, excluding tests and re-export files
       include: ["src/**/*.ts"],
