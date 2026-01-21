@@ -4,193 +4,102 @@
 
 ## Overview
 
-`drift infra scan` validates that AWS infrastructure matches what's declared in CDK code. It detects missing resources, orphaned resources, and attribute drift across all 3 environments (dev, staging, prod). It also verifies that deprecated projects have their resources cleaned up.
+`drift infra scan` validates that AWS infrastructure matches what's declared in CDK code. It calls check-my-toolkit's `scanInfra` API and creates GitHub issues when violations are found.
+
+**Scope:** drift-toolkit is the orchestration layer. All CDK parsing, AWS API queries, and drift detection logic lives in check-my-toolkit.
+
+```
+drift-toolkit                    check-my-toolkit
+─────────────                    ────────────────
+Repo discovery          ───►     cm infra scan
+Issue creation          ◄───     JSON results
+Org-wide scanning
+GitHub Action
+```
 
 ---
 
 ## Prerequisites (check-my-toolkit)
 
-**Already exists in check-my-toolkit:**
+**Required from check-my-toolkit:**
 
-| Feature                  | Status             | Description                         |
-| ------------------------ | ------------------ | ----------------------------------- |
-| `[infra.tagging]` schema | **Already exists** | AWS resource tagging validation     |
-| `cm infra check`         | **Already exists** | Run infrastructure tagging checks   |
-| `cm infra audit`         | **Already exists** | Verify infrastructure configs exist |
+| Feature          | Command/API                        | Purpose                        |
+| ---------------- | ---------------------------------- | ------------------------------ |
+| Infra scanning   | `scanInfra()` / `cm infra scan`    | Compare CDK vs AWS state       |
+| JSON output      | `--json` flag                      | Structured results for parsing |
+| Multi-account    | `--account all`                    | Scan dev/staging/prod          |
+| Status-awareness | Reads `repo-metadata.yaml` status  | Handle deprecated projects     |
 
-**Missing features needed for drift:**
+**Blocked until:** `cm infra scan` is available in check-my-toolkit.
 
-| Feature               | Status      | Description                                      |
-| --------------------- | ----------- | ------------------------------------------------ |
-| Extended infra schema | Not started | `[infra]` section for stacks, accounts, CDK path |
-| `cm infra validate`   | Not started | Validate CDK code vs actual AWS resources        |
-| CDK synth integration | Not started | Parse CloudFormation templates from CDK          |
-| Multi-account support | Not started | Query resources across dev/staging/prod          |
-| Deployment tracking   | Not started | Track last deployed commit per environment       |
-
-**Blocked until:** `cm infra validate` is available
-
-**Note:** This is the most complex domain. The existing `[infra.tagging]` check is separate from the proposed CDK validation feature. The CLI command is `cm` (not `cmt`).
+**Note:** The CLI command is `cm` (not `cmt`).
 
 ---
 
 ## Milestones
 
-### Milestone 1: Infra Schema Design
+### Milestone 1: Basic Integration
 
-**Goal:** Define infrastructure configuration in check.toml
+**Goal:** Call check-my-toolkit and create issues
 
-| Task                | Description                                          |
-| ------------------- | ---------------------------------------------------- |
-| Basic infra schema  | `[infra]` - enabled, path, stacks                    |
-| Account mapping     | `[infra.accounts]` - dev, staging, prod account IDs  |
-| Account auth config | Support profiles and role ARNs per account           |
-| Tracked attributes  | `[infra.tracked_attributes]` - attributes to monitor |
+| Task                 | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| Programmatic API     | Import and call `scanInfra()` from check-my-toolkit |
+| Parse results        | Extract issues from JSON response               |
+| Issue creation       | Create GitHub issue with violations             |
+| Error handling       | Handle missing config, permission errors        |
 
-**Output:** Documented schema for infra configuration in check.toml
-
----
-
-### Milestone 2: CDK Integration (check-my-toolkit)
-
-**Goal:** Parse CDK code to determine expected resources
-
-| Task                | Description                                   |
-| ------------------- | --------------------------------------------- |
-| CDK synth wrapper   | Run `cdk synth` and capture output            |
-| Template parsing    | Parse CloudFormation templates from cdk.out   |
-| Resource extraction | Extract resource types, logical IDs           |
-| Source mapping      | Map resources back to TypeScript source files |
-
-**Output:** `cm infra validate` can determine expected resources from CDK
+**Output:** `drift infra scan` creates issues for a single repo
 
 ---
 
-### Milestone 3: AWS API Integration (check-my-toolkit)
-
-**Goal:** Query AWS for actual resource state
-
-| Task                   | Description                                 |
-| ---------------------- | ------------------------------------------- |
-| CloudFormation queries | DescribeStacks, DescribeStackResources      |
-| S3 queries             | GetBucketPolicy, GetPublicAccessBlock, etc. |
-| Lambda queries         | GetFunction, GetFunctionConfiguration       |
-| IAM queries            | GetRole, GetPolicy, GetRolePolicy           |
-| Multi-account support  | Assume roles or use profiles per account    |
-
-**Output:** `cm infra validate` can query actual AWS state
-
----
-
-### Milestone 4: Basic Drift Detection (check-my-toolkit)
-
-**Goal:** Compare expected vs actual resources
-
-| Task               | Description                         |
-| ------------------ | ----------------------------------- |
-| Missing detection  | Resources in CDK but not in AWS     |
-| Orphaned detection | Resources in AWS but not in CDK     |
-| Basic comparison   | Resource exists yes/no              |
-| JSON output        | Structured output for drift-toolkit |
-
-**Output:** `cm infra validate --json` returns validation results
-
----
-
-### Milestone 5: Attribute Drift Detection (check-my-toolkit)
-
-**Goal:** Detect when resource attributes have changed
-
-| Task                    | Description                                 |
-| ----------------------- | ------------------------------------------- |
-| S3 attribute checks     | PublicAccessBlock, BucketPolicy, Versioning |
-| Lambda attribute checks | Runtime, Timeout, VpcConfig                 |
-| IAM attribute checks    | PolicyDocument, AssumeRolePolicyDocument    |
-| Security group checks   | IpPermissions, IpPermissionsEgress          |
-| Configurable attributes | Use `[infra.tracked_attributes]`            |
-
-**Output:** Attribute drift detected and reported
-
----
-
-### Milestone 6: Deployment Tracking
-
-**Goal:** Only validate deployed resources per environment
-
-| Task                        | Description                                                       |
-| --------------------------- | ----------------------------------------------------------------- |
-| Git tag tracking            | Read deployed commit from git tags (e.g., `deployed-prod-abc123`) |
-| CloudFormation tag tracking | Read commit SHA from stack tags                                   |
-| Environment filtering       | Skip resources not deployed to target environment                 |
-| New resource handling       | Don't report "missing in prod" for resources only in dev          |
-
-**Output:** Accurate drift detection based on actual deployments
-
----
-
-### Milestone 7: drift-toolkit Integration
-
-**Goal:** Integrate infra validation into drift-toolkit
-
-| Task                   | Description                                           |
-| ---------------------- | ----------------------------------------------------- |
-| Call cm infra validate | Shell out to `cm infra validate --json --account all` |
-| Parse results          | Extract issues from JSON output                       |
-| Format issue           | Convert to GitHub issue format                        |
-| All 3 accounts         | Scan dev, staging, prod in one run                    |
-
-**Output:** `drift infra scan` creates issues for infra drift
-
----
-
-### Milestone 8: Status-based Scanning (Pre-release & Deprecated)
+### Milestone 2: Status-based Scanning
 
 **Goal:** Handle different project statuses appropriately
 
-| Task                      | Description                                           |
-| ------------------------- | ----------------------------------------------------- |
-| Read status from metadata | Check `status` field in repo-metadata.yaml            |
-| Pre-release handling      | Skip prod account scanning (not yet deployed)         |
-| Deprecated handling       | Expect NO resources to exist in any account           |
-| Cleanup issue             | Create issue listing resources that should be deleted |
-| Stack deletion check      | Verify CloudFormation stacks are deleted              |
+| Task                 | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| Read status          | Get `status` from repo-metadata.yaml                 |
+| Deprecated handling  | Use cleanup issue format for deprecated projects     |
+| Pre-release handling | Skip prod account for pre-release projects           |
 
 **Status behaviors:**
-| Status | Behavior |
-|--------|----------|
-| `active` | Normal scanning - all 3 accounts |
-| `pre-release` | Skip prod account (not yet deployed to production) |
-| `deprecated` | Inverted validation - expect all resources deleted |
 
-**Output:** Status-appropriate scanning with correct issue creation
+| Status        | Behavior                                           |
+| ------------- | -------------------------------------------------- |
+| `active`      | Normal scanning - all 3 accounts                   |
+| `pre-release` | Skip prod account (not yet deployed to production) |
+| `deprecated`  | Expect all resources deleted, report any remaining |
+
+**Output:** Correct issue format based on project status
 
 ---
 
-### Milestone 9: Org-wide Infra Scanning
+### Milestone 3: Org-wide Scanning
 
-**Goal:** Scan all repos in an organization for infra drift
+**Goal:** Scan all repos in an organization
 
-| Task                    | Description                                     |
-| ----------------------- | ----------------------------------------------- |
-| Filter repos with infra | Only scan repos with `[infra]` in check.toml    |
-| AWS credentials         | Require credentials with access to all accounts |
-| Parallel execution      | Scan multiple repos (but rate limit AWS calls)  |
-| Per-repo issues         | Create separate issue in each repo              |
+| Task               | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| Repo discovery     | Find repos with `[infra]` in check.toml          |
+| Parallel execution | Scan multiple repos concurrently                 |
+| Rate limiting      | Respect AWS API limits across parallel scans     |
+| Per-repo issues    | Create separate issue in each repo               |
 
 **Output:** `drift infra scan --org <org>` works end-to-end
 
 ---
 
-### Milestone 10: GitHub Action Integration
+### Milestone 4: GitHub Action Integration
 
 **Goal:** Run as scheduled GitHub Action
 
-| Task                 | Description                             |
-| -------------------- | --------------------------------------- |
-| Action workflow      | Add infra scan to drift-config workflow |
-| AWS credentials      | Document IAM role/credentials setup     |
-| Multi-account access | Configure role assumption or profiles   |
-| Error handling       | Handle permission errors gracefully     |
+| Task                | Description                               |
+| ------------------- | ----------------------------------------- |
+| Action workflow     | Add infra scan to drift-config workflow   |
+| AWS credentials     | Document IAM role setup for Actions       |
+| Multi-account roles | Configure cross-account role assumption   |
+| Error handling      | Skip repos where credentials fail         |
 
 **Output:** Scheduled infra scans via GitHub Action
 
@@ -215,8 +124,58 @@ drift infra scan --org <org> --repo <repo>
 # JSON output
 drift infra scan --json
 
-# Dry run
+# Dry run (show issues without creating them)
 drift infra scan --dry-run
+```
+
+---
+
+## Integration with check-my-toolkit
+
+### Programmatic API (Preferred)
+
+```typescript
+import { scanInfra } from "check-my-toolkit";
+
+const result = await scanInfra({
+  configPath: "./check.toml",
+  account: "all",
+});
+
+if (!result.valid) {
+  await createGitHubIssue(formatInfraIssue(result));
+}
+```
+
+### CLI Fallback
+
+```bash
+cm infra scan --account all --json
+```
+
+### Expected Response Format
+
+```json
+{
+  "valid": false,
+  "account": "prod",
+  "accountId": "333333333333",
+  "summary": {
+    "found": 12,
+    "missing": 1,
+    "orphaned": 2,
+    "drifted": 1
+  },
+  "issues": [
+    {
+      "type": "missing",
+      "arn": "arn:aws:s3:::my-app-data-bucket",
+      "source": "infra/lib/storage-stack.ts",
+      "construct": "DataBucket",
+      "stack": "MyAppStack"
+    }
+  ]
+}
 ```
 
 ---
@@ -330,167 +289,29 @@ _Created by drift-toolkit_
 
 ---
 
-## Infra Configuration Reference
-
-### Basic Configuration
-
-```toml
-[infra]
-enabled = true
-path = "./infra"
-stacks = ["MyAppStack", "DataStack"]
-
-[infra.accounts]
-dev = "111111111111"
-staging = "222222222222"
-prod = "333333333333"
-```
-
-### With Authentication
-
-```toml
-[infra.accounts.dev]
-account_id = "111111111111"
-profile = "dev-profile"
-
-[infra.accounts.prod]
-account_id = "333333333333"
-role_arn = "arn:aws:iam::333333333333:role/InfraValidator"
-```
-
-### With Tracked Attributes
-
-```toml
-[infra.tracked_attributes]
-s3 = ["PublicAccessBlockConfiguration", "BucketPolicy", "Versioning"]
-lambda = ["Runtime", "Timeout", "VpcConfig", "Environment"]
-iam = ["PolicyDocument", "AssumeRolePolicyDocument"]
-rds = ["PubliclyAccessible", "StorageEncrypted"]
-security_group = ["IpPermissions", "IpPermissionsEgress"]
-```
-
----
-
-## AWS Permissions Required
-
-The scanning role/credentials need these permissions:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "cloudformation:DescribeStacks",
-        "cloudformation:DescribeStackResources",
-        "cloudformation:ListStacks",
-        "s3:GetBucketPolicy",
-        "s3:GetBucketPolicyStatus",
-        "s3:GetPublicAccessBlock",
-        "s3:GetBucketVersioning",
-        "lambda:GetFunction",
-        "lambda:GetFunctionConfiguration",
-        "iam:GetRole",
-        "iam:GetRolePolicy",
-        "iam:GetPolicy",
-        "iam:GetPolicyVersion",
-        "ec2:DescribeSecurityGroups",
-        "rds:DescribeDBInstances",
-        "dynamodb:DescribeTable",
-        "apigateway:GET"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-For multi-account, create this role in each account and allow assumption from the scanning account.
-
----
-
 ## Dependencies
 
-| Package          | Purpose                                                   |
-| ---------------- | --------------------------------------------------------- |
-| check-my-toolkit | CLI (`cm`): `infra validate` command (to be built)        |
-| @aws-sdk/\*      | AWS API queries (in check-my-toolkit)                     |
-| aws-cdk-lib      | CDK synth (in check-my-toolkit)                           |
-| @octokit/rest    | GitHub API for issue creation (existing in drift-toolkit) |
+| Package          | Purpose                                    |
+| ---------------- | ------------------------------------------ |
+| check-my-toolkit | `scanInfra()` API for drift detection      |
+| @octokit/rest    | GitHub API for issue creation (existing)   |
+
+**Note:** All AWS SDK dependencies are in check-my-toolkit, not drift-toolkit.
 
 ---
 
 ## Risks & Mitigations
 
-| Risk                              | Mitigation                                                |
-| --------------------------------- | --------------------------------------------------------- |
-| AWS API rate limiting             | Implement backoff, limit parallel account queries         |
-| CDK synth failures                | Cache last successful synth, report errors clearly        |
-| Missing IAM permissions           | Validate permissions upfront, skip inaccessible resources |
-| Large number of resources         | Paginate API calls, summarize in issues                   |
-| Environment branch mismatch       | Use deployment tracking via tags                          |
-| False positives for new resources | Track deployed commits, filter by deployment state        |
+| Risk                        | Mitigation                                     |
+| --------------------------- | ---------------------------------------------- |
+| check-my-toolkit not ready  | Block on milestone completion                  |
+| AWS credentials in Actions  | Document IAM role setup, use OIDC              |
+| Too many issues per org     | Rate limit issue creation, summarize in single issue option |
+| Scan timeouts               | Set reasonable timeout, report partial results |
 
 ---
 
-## Deployment Tracking Design
+## References
 
-### Option A: Git Tags
-
-```bash
-# After successful deployment
-git tag deployed-dev-$(git rev-parse HEAD)
-git tag deployed-prod-$(git rev-parse HEAD)
-git push --tags
-```
-
-drift reads these tags to know what's deployed where.
-
-### Option B: CloudFormation Stack Tags
-
-```typescript
-// In CDK
-new Stack(app, "MyStack", {
-  tags: {
-    "drift:deployed-commit": process.env.GITHUB_SHA,
-    "drift:deployed-at": new Date().toISOString(),
-  },
-});
-```
-
-drift reads stack tags to know deployed commit.
-
-### Option C: Deployment Manifest
-
-```json
-// deployments.json (committed after each deploy)
-{
-  "dev": {
-    "commit": "abc1234",
-    "deployedAt": "2024-01-15T10:00:00Z"
-  },
-  "prod": {
-    "commit": "def5678",
-    "deployedAt": "2024-01-14T15:00:00Z"
-  }
-}
-```
-
-**Recommendation:** Option B (CloudFormation tags) - most reliable, no extra files needed.
-
----
-
-## Success Criteria
-
-- [ ] Infra schema defined in check.toml
-- [ ] `cm infra validate` detects missing resources
-- [ ] `cm infra validate` detects orphaned resources
-- [ ] `cm infra validate` detects attribute drift
-- [ ] Deployment tracking implemented (know what's deployed where)
-- [ ] `drift infra scan` creates issues for infra drift
-- [ ] `drift infra scan` scans all 3 accounts
-- [ ] Deprecated projects scanned for remaining resources
-- [ ] `drift infra scan --org` scans all qualifying repos
-- [ ] GitHub Action runs infra scans on schedule
-- [ ] AWS credentials documented and working
+- **check-my-toolkit infra spec:** Full CDK parsing, AWS API, and drift detection logic
+- **check.toml schema:** See check-my-toolkit docs for `[infra]` configuration

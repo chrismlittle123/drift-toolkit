@@ -199,15 +199,3 @@ _Created by drift-toolkit_
 | Large diffs in issues | Truncate diffs, link to commit for full diff |
 | Rate limiting on org scan | Existing retry/backoff logic in GitHub client |
 
----
-
-## Success Criteria
-
-- [ ] `drift code scan` detects check.toml changes
-- [ ] `drift code scan` detects dependency file changes
-- [ ] `drift code scan` creates GitHub issues with diffs
-- [ ] `drift code scan --org` scans all qualifying repos
-- [ ] New projects without check.toml are surfaced
-- [ ] Tier-ruleset mismatches are detected
-- [ ] GitHub Action runs on schedule successfully
-```
