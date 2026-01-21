@@ -1,7 +1,11 @@
 import { validateProcess, type ValidateProcessResult } from "check-my-toolkit";
 import { version } from "../../version.js";
 import { actionsOutput, COLORS } from "../../utils/index.js";
-import { createIssue, getGitHubToken } from "../../github/client.js";
+import {
+  createIssue,
+  getGitHubToken,
+  discoverProcessRepos,
+} from "../../github/client.js";
 import {
   formatProcessViolationsIssueBody,
   getProcessViolationsIssueTitle,
@@ -14,7 +18,8 @@ import type {
 } from "../../types.js";
 
 export interface ProcessScanOptions {
-  repo: string;
+  repo?: string;
+  org?: string;
   config?: string;
   json?: boolean;
   dryRun?: boolean;
@@ -124,19 +129,144 @@ function printResults(detection: ProcessViolationsDetection): void {
   }
 }
 
-export async function scan(options: ProcessScanOptions): Promise<void> {
-  const { repo, config, json, dryRun } = options;
+/**
+ * Discover repos with check.toml in an organization.
+ * This is the first step of org-wide scanning.
+ */
+async function discoverOrgRepos(
+  org: string,
+  token: string,
+  json: boolean
+): Promise<string[]> {
+  if (!json) {
+    console.log(`Discovering repos with check.toml in ${org}...`);
+  }
 
-  // Validate repo format
-  if (!repo.includes("/")) {
-    const errorMsg = "Repository must be in owner/repo format";
+  const result = await discoverProcessRepos({
+    org,
+    token,
+    onProgress: (checked, total) => {
+      if (!json) {
+        process.stdout.write(`\rChecking repos: ${checked}/${total}`);
+      }
+    },
+  });
+
+  if (!json) {
+    // Clear the progress line
+    process.stdout.write("\r" + " ".repeat(40) + "\r");
+  }
+
+  const repoNames = result.repos.map((r) => r.full_name);
+
+  if (json) {
+    console.log(
+      JSON.stringify(
+        {
+          org,
+          isOrg: result.isOrg,
+          totalRepos: result.totalRepos,
+          reposWithCheckToml: repoNames.length,
+          repos: repoNames,
+        },
+        null,
+        2
+      )
+    );
+  } else {
+    console.log(
+      `Found ${repoNames.length}/${result.totalRepos} repos with check.toml`
+    );
+    if (repoNames.length > 0) {
+      console.log("");
+      for (const name of repoNames) {
+        console.log(`  ${name}`);
+      }
+    }
+  }
+
+  return repoNames;
+}
+
+/**
+ * Scan a single repository for process violations.
+ */
+async function scanSingleRepo(
+  repo: string,
+  config: string | undefined,
+  json: boolean,
+  dryRun: boolean,
+  token: string
+): Promise<boolean> {
+  const [owner, repoName] = repo.split("/");
+
+  if (!json) {
+    console.log(`Scanning process standards for: ${repo}`);
+    if (config) {
+      console.log(`Using config: ${config}`);
+    }
+  }
+
+  // Call check-my-toolkit's validateProcess
+  const result = await validateProcess({
+    repo,
+    config,
+  });
+
+  // Map to drift-toolkit detection format
+  const detection = mapToDetection(result, repo);
+
+  // Output results
+  if (json) {
+    console.log(JSON.stringify(detection, null, 2));
+  } else {
+    printResults(detection);
+  }
+
+  // Create issue if there are violations
+  if (detection.violations.length > 0) {
+    if (dryRun) {
+      console.log(
+        `\n${COLORS.yellow}[DRY RUN] Would create issue in ${repo}${COLORS.reset}`
+      );
+      actionsOutput.warning(`Process violations detected in ${repo}`);
+    } else {
+      const issueResult = await createIssue(
+        {
+          owner,
+          repo: repoName,
+          title: getProcessViolationsIssueTitle(),
+          body: formatProcessViolationsIssueBody(detection),
+          labels: [getProcessViolationsIssueLabel()],
+        },
+        token
+      );
+      console.log(
+        `\n${COLORS.green}✓ Created issue #${issueResult.number}${COLORS.reset}`
+      );
+      console.log(`  ${issueResult.html_url}`);
+      actionsOutput.notice(
+        `Created issue #${issueResult.number} for process violations`
+      );
+    }
+    return true; // violations found
+  }
+
+  actionsOutput.notice(`Process scan passed for ${repo}`);
+  return false; // no violations
+}
+
+export async function scan(options: ProcessScanOptions): Promise<void> {
+  const { repo, org, config, json, dryRun } = options;
+
+  // Validate options: need either --repo or --org
+  if (!repo && !org) {
+    const errorMsg = "Either --repo or --org must be specified";
     console.error(`Error: ${errorMsg}`);
     actionsOutput.error(errorMsg);
     process.exit(1);
     return;
   }
-
-  const [owner, repoName] = repo.split("/");
 
   // Get GitHub token (required for validateProcess to fetch repo data)
   const token = getGitHubToken();
@@ -151,61 +281,50 @@ export async function scan(options: ProcessScanOptions): Promise<void> {
 
   if (!json) {
     console.log(`Drift v${version}`);
-    console.log(`Scanning process standards for: ${repo}`);
-    if (config) {
-      console.log(`Using config: ${config}`);
-    }
   }
 
   try {
-    // Call check-my-toolkit's validateProcess
-    const result = await validateProcess({
-      repo,
-      config,
-    });
-
-    // Map to drift-toolkit detection format
-    const detection = mapToDetection(result, repo);
-
-    // Output results
-    if (json) {
-      console.log(JSON.stringify(detection, null, 2));
-    } else {
-      printResults(detection);
-    }
-
-    // Create issue if there are violations
-    if (detection.violations.length > 0) {
-      if (dryRun) {
-        console.log(
-          `\n${COLORS.yellow}[DRY RUN] Would create issue in ${repo}${COLORS.reset}`
-        );
-        actionsOutput.warning(`Process violations detected in ${repo}`);
-      } else {
-        const issueResult = await createIssue(
-          {
-            owner,
-            repo: repoName,
-            title: getProcessViolationsIssueTitle(),
-            body: formatProcessViolationsIssueBody(detection),
-            labels: [getProcessViolationsIssueLabel()],
-          },
-          token
-        );
-        console.log(
-          `\n${COLORS.green}✓ Created issue #${issueResult.number}${COLORS.reset}`
-        );
-        console.log(`  ${issueResult.html_url}`);
-        actionsOutput.notice(
-          `Created issue #${issueResult.number} for process violations`
-        );
+    // Case 1: Single repo scan (--repo without --org, or --org with --repo)
+    if (repo) {
+      // Validate repo format
+      if (!repo.includes("/")) {
+        const errorMsg = "Repository must be in owner/repo format";
+        console.error(`Error: ${errorMsg}`);
+        actionsOutput.error(errorMsg);
+        process.exit(1);
+        return;
       }
 
-      // Exit with error code to indicate violations found
-      process.exit(1);
+      const hasViolations = await scanSingleRepo(
+        repo,
+        config,
+        json ?? false,
+        dryRun ?? false,
+        token
+      );
+
+      if (hasViolations) {
+        process.exit(1);
+      }
+      return;
     }
 
-    actionsOutput.notice(`Process scan passed for ${repo}`);
+    // Case 2: Org-wide discovery (--org without --repo)
+    // This discovers repos with check.toml - actual scanning is done in #118
+    if (org) {
+      const repoNames = await discoverOrgRepos(org, token, json ?? false);
+
+      // For now, just discover. Parallel scanning will be added in #118.
+      // If user wants to scan, they should use --repo to scan individual repos.
+      if (!json && repoNames.length > 0) {
+        console.log(
+          `\n${COLORS.dim}To scan these repos, use: drift process scan --repo <owner/repo>${COLORS.reset}`
+        );
+        console.log(
+          `${COLORS.dim}Parallel org-wide scanning coming soon.${COLORS.reset}`
+        );
+      }
+    }
   } catch (error) {
     const errorMsg =
       error instanceof Error ? error.message : "Unknown error occurred";

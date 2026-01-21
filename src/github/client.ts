@@ -241,7 +241,14 @@ export async function repoExists(
 }
 
 // Re-export file checking functions from repo-checks module
-export { fileExists, isRepoScannable } from "./repo-checks.js";
+export { fileExists, isRepoScannable, hasRemoteCheckToml } from "./repo-checks.js";
+
+// Re-export process repo discovery
+export {
+  discoverProcessRepos,
+  type ProcessRepoDiscoveryResult,
+  type DiscoverProcessReposOptions,
+} from "./process-repo-discovery.js";
 
 export interface GitHubIssue {
   number: number;
