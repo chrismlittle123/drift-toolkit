@@ -64,7 +64,12 @@ async function parallelLimit<T, R>(
 export async function discoverProcessRepos(
   options: DiscoverProcessReposOptions
 ): Promise<ProcessRepoDiscoveryResult> {
-  const { org, token, concurrency = CONCURRENCY.maxRepoScans, onProgress } = options;
+  const {
+    org,
+    token,
+    concurrency = CONCURRENCY.maxRepoScans,
+    onProgress,
+  } = options;
 
   // List all repos in org (handles org vs user auto-detection)
   const { repos: allRepos, isOrg } = await listRepos(org, token);
@@ -89,7 +94,9 @@ export async function discoverProcessRepos(
   );
 
   // Filter repos that have check.toml
-  const reposWithCheckToml = allRepos.filter((_, index) => hasCheckTomlResults[index]);
+  const reposWithCheckToml = allRepos.filter(
+    (_, index) => hasCheckTomlResults[index]
+  );
 
   return {
     repos: reposWithCheckToml,

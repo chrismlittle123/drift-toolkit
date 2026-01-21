@@ -88,7 +88,9 @@ describe("repo-checks", () => {
 
       expect(result).toBe(true);
       expect(mockFetchWithRetry).toHaveBeenCalledWith(
-        expect.stringContaining("/repos/test-org/test-repo/contents/check.toml"),
+        expect.stringContaining(
+          "/repos/test-org/test-repo/contents/check.toml"
+        ),
         expect.any(Object),
         undefined
       );
