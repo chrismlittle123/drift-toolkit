@@ -21,10 +21,47 @@ import {
 
 /**
  * Calculate SHA-256 hash of a file
+ * @throws Error with code property on file read failures
  */
 function hashFile(filePath: string): string {
   const content = readFileSync(filePath);
   return createHash("sha256").update(content).digest("hex");
+}
+
+/**
+ * Extract error code from a potential Node.js file system error
+ */
+function getErrorCode(error: unknown): string | null {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code: unknown }).code === "string"
+  ) {
+    return (error as { code: string }).code;
+  }
+  return null;
+}
+
+/**
+ * Get a human-readable error message for file system errors
+ */
+function getReadableErrorMessage(error: unknown): string {
+  const code = getErrorCode(error);
+  const baseMessage = error instanceof Error ? error.message : "Unknown error";
+
+  switch (code) {
+    case "EACCES":
+      return "Permission denied (cannot read file)";
+    case "ENOENT":
+      return "File not found";
+    case "EISDIR":
+      return "Path is a directory, not a file";
+    case "EMFILE":
+      return "Too many open files";
+    default:
+      return baseMessage;
+  }
 }
 
 /**
@@ -90,8 +127,26 @@ function compareFiles(
   paths: ResolvedPaths,
   timestamp: string
 ): IntegrityResult {
-  const approvedHash = hashFile(paths.approved);
-  const currentHash = hashFile(paths.current);
+  let approvedHash: string;
+  let currentHash: string;
+
+  // Hash approved file with error handling
+  try {
+    approvedHash = hashFile(paths.approved);
+  } catch (error) {
+    return buildResult(check, "error", timestamp, {
+      error: `Cannot read approved file: ${getReadableErrorMessage(error)}`,
+    });
+  }
+
+  // Hash current file with error handling
+  try {
+    currentHash = hashFile(paths.current);
+  } catch (error) {
+    return buildResult(check, "error", timestamp, {
+      error: `Cannot read current file: ${getReadableErrorMessage(error)}`,
+    });
+  }
 
   if (approvedHash === currentHash) {
     return buildResult(check, "match", timestamp, {
@@ -159,8 +214,8 @@ export function checkAllIntegrity(
  *
  * @param patterns - Array of glob patterns with suggestions
  * @param targetPath - The repository directory to search
- * @param protectedFiles - List of files already protected (for comparison)
- * @returns Array of discovered files with protection status
+ * @param protectedFiles - List of files already protected (excluded from results)
+ * @returns Array of discovered files (excludes already protected files)
  */
 export function discoverFiles(
   patterns: DiscoveryPattern[],
@@ -183,11 +238,16 @@ export function discoverFiles(
         // Use path.relative for safe path manipulation
         const relativePath = relative(targetPath, absolutePath);
 
+        // Skip files that are already protected
+        if (protectedSet.has(relativePath)) {
+          continue;
+        }
+
         results.push({
           file: relativePath,
           pattern: pattern.pattern,
           suggestion: pattern.suggestion,
-          isProtected: protectedSet.has(relativePath),
+          isProtected: false, // Always false since we skip protected files
         });
       }
     } catch (error) {

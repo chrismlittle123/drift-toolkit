@@ -216,7 +216,7 @@ describe("integrity checker", () => {
       expect(results.some((r) => r.file === "package.json")).toBe(true);
     });
 
-    it("marks protected files correctly", () => {
+    it("excludes protected files from results", () => {
       writeFileSync(join(repoDir, "protected.json"), "{}");
       writeFileSync(join(repoDir, "unprotected.json"), "{}");
 
@@ -224,12 +224,15 @@ describe("integrity checker", () => {
         { pattern: "*.json", suggestion: "Check this" },
       ];
       const results = discoverFiles(patterns, repoDir, ["protected.json"]);
+
+      // Protected files should be excluded from results
       const protectedResult = results.find((r) => r.file === "protected.json");
       const unprotectedResult = results.find(
         (r) => r.file === "unprotected.json"
       );
 
-      expect(protectedResult?.isProtected).toBe(true);
+      expect(protectedResult).toBeUndefined();
+      expect(unprotectedResult).toBeDefined();
       expect(unprotectedResult?.isProtected).toBe(false);
     });
 

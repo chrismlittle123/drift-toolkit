@@ -84,6 +84,19 @@ export type {
   GetDependenciesResult,
 } from "./repo/index.js";
 
+// Dependency change detection
+export {
+  detectDependencyChanges,
+  getTrackedDependencyFiles,
+} from "./repo/index.js";
+
+export type {
+  DependencyChangeStatus,
+  DependencyChange,
+  DependencyChanges,
+  DependencyChangeOptions,
+} from "./repo/index.js";
+
 // Project detection (cm projects detect)
 export { detectMissingProjects, detectAllProjects } from "./repo/index.js";
 

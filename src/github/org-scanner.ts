@@ -644,6 +644,11 @@ export async function scanOrg(
     console.error(
       `Create a '${configRepoName}' repo with drift.config.yaml and approved/ folder.`
     );
+    if (!token) {
+      console.error(
+        `Hint: If this is a private repo, ensure GITHUB_TOKEN is set or pass --token.`
+      );
+    }
     actionsOutput.error(errorMsg);
     process.exit(1);
   }

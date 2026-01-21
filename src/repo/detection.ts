@@ -99,9 +99,10 @@ export function findMetadataPath(repoPath: string): string | null {
   return null;
 }
 
-export function parseRepoMetadata(
-  content: string
-): { metadata: RepoMetadata; warnings: string[] } | null {
+export function parseRepoMetadata(content: string): {
+  metadata: RepoMetadata;
+  warnings: string[];
+} {
   if (content.trim() === "") {
     return createDefaultResult("File is empty, using default values");
   }
@@ -129,22 +130,29 @@ export function parseRepoMetadata(
 
 /**
  * Load and parse repository metadata from repo-metadata.yaml.
- * Returns null only if the file doesn't exist.
- * For empty files, invalid YAML, or parse errors, returns default metadata with warnings.
+ * Always returns an object with metadata and warnings fields.
+ * - If file doesn't exist: { metadata: null, warnings: [] }
+ * - If file is empty/invalid: { metadata: defaults, warnings: [...] }
+ * - If file is valid: { metadata: parsed, warnings: [] }
  */
-export function getRepoMetadata(
-  repoPath: string
-): { metadata: RepoMetadata; warnings: string[] } | null {
+export function getRepoMetadata(repoPath: string): {
+  metadata: RepoMetadata | null;
+  warnings: string[];
+} {
   const metadataPath = findMetadataPath(repoPath);
   if (!metadataPath) {
-    return null;
+    return { metadata: null, warnings: [] };
   }
 
   try {
     const content = readFileSync(metadataPath, "utf-8");
     return parseRepoMetadata(content);
-  } catch {
-    return null;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return {
+      metadata: null,
+      warnings: [`Failed to read metadata file: ${msg}`],
+    };
   }
 }
 
@@ -263,7 +271,7 @@ export function isScannableRepo(repoPath: string): ScannabilityResult {
   try {
     // Check for repo-metadata.yaml
     const metadataResult = getRepoMetadata(repoPath);
-    const hasMetadataFile = metadataResult !== null;
+    const hasMetadataFile = metadataResult.metadata !== null;
 
     // Find all check.toml files
     const checkTomlPaths = findCheckTomlFiles(repoPath);
@@ -277,7 +285,7 @@ export function isScannableRepo(repoPath: string): ScannabilityResult {
       hasMetadata: hasMetadataFile,
       hasCheckToml: hasCheckTomlFile,
       checkTomlPaths,
-      metadata: metadataResult?.metadata,
+      metadata: metadataResult.metadata ?? undefined,
     };
   } catch (error) {
     return {

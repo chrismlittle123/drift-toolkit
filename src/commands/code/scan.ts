@@ -25,6 +25,11 @@ import {
   updateScanSummary,
   actionsOutput,
 } from "../../utils/index.js";
+import {
+  hasMetadata,
+  hasCheckToml,
+  getRepoMetadata,
+} from "../../repo/detection.js";
 
 export interface ScanOptions {
   org?: string;
@@ -44,6 +49,49 @@ export interface ScanOptions {
  */
 function printMetadataWarnings(warnings: string[]): void {
   printWarnings("METADATA VALIDATION WARNINGS", warnings);
+}
+
+/**
+ * Validate that required repo files exist and are valid.
+ * Returns warnings for missing or empty files.
+ */
+function validateRepoFiles(targetPath: string): string[] {
+  const warnings: string[] = [];
+
+  // Check for repo-metadata.yaml
+  if (!hasMetadata(targetPath)) {
+    warnings.push(
+      "repo-metadata.yaml not found. Create this file to define tier and team for conditional scans."
+    );
+  } else {
+    // Check for empty metadata (has file but no content)
+    const metadataResult = getRepoMetadata(targetPath);
+    if (metadataResult.metadata === null) {
+      // File exists but couldn't be parsed (empty or read error)
+      if (metadataResult.warnings.length > 0) {
+        warnings.push(...metadataResult.warnings);
+      }
+    } else if (metadataResult.warnings.length > 0) {
+      // File parsed but has validation warnings (e.g., empty, invalid format)
+      warnings.push(...metadataResult.warnings);
+    }
+  }
+
+  // Check for check.toml
+  if (!hasCheckToml(targetPath)) {
+    warnings.push(
+      "check.toml not found. Create this file to configure check-my-toolkit standards."
+    );
+  }
+
+  return warnings;
+}
+
+/**
+ * Print repo file warnings
+ */
+function printRepoFileWarnings(warnings: string[]): void {
+  printWarnings("REPO CONFIGURATION WARNINGS", warnings);
 }
 
 /**
@@ -140,6 +188,14 @@ export async function scan(options: ScanOptions): Promise<void> {
   if (!config && !options.json) {
     printNoConfigHelp(targetPath);
     return;
+  }
+
+  // Validate required repo files (repo-metadata.yaml, check.toml)
+  if (!options.json) {
+    const repoFileWarnings = validateRepoFiles(targetPath);
+    if (repoFileWarnings.length > 0) {
+      printRepoFileWarnings(repoFileWarnings);
+    }
   }
 
   // Initialize results
