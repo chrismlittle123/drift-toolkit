@@ -89,6 +89,10 @@ export const GITHUB_ISSUES = {
   dependencyChangesTitle: "[drift:code] Dependency file changes detected",
   /** Default label for dependency changes issues */
   dependencyChangesLabel: "drift:code",
+  /** Issue title for process violations */
+  processViolationsTitle: "[drift:process] Process violations detected",
+  /** Default label for process violations issues */
+  processViolationsLabel: "drift:process",
 } as const;
 
 /**

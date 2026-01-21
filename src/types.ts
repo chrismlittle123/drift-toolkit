@@ -103,3 +103,27 @@ export interface DependencyChangesDetection {
   changes: DependencyFileChange[];
   byCheck: Record<string, DependencyFileChange[]>;
 }
+
+// Process violations detection
+
+export interface ProcessCheckSummary {
+  category: string;
+  passed: number;
+  failed: number;
+}
+
+export interface ProcessViolation {
+  category: string;
+  check: string;
+  rule: string;
+  message: string;
+  severity: "error" | "warning";
+  file?: string;
+}
+
+export interface ProcessViolationsDetection {
+  repository: string;
+  scanTime: string;
+  summary: ProcessCheckSummary[];
+  violations: ProcessViolation[];
+}

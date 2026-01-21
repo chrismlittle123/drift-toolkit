@@ -8,8 +8,8 @@ importers:
   .:
     dependencies:
       check-my-toolkit:
-        specifier: 1.3.1
-        version: 1.3.1
+        specifier: ^1.8.0
+        version: 1.8.1
       commander:
         specifier: ^14.0.0
         version: 14.0.2
@@ -2133,10 +2133,10 @@ packages:
         integrity: sha512-PsezH1rqdV9VvyNhxxOW32/d75r01NY7TQCmOqomRo15ZSOKbpTFVsfjghxo6JloQUCGnH4k1LGu0R4yCLlWQQ==,
       }
 
-  check-my-toolkit@1.3.1:
+  check-my-toolkit@1.8.1:
     resolution:
       {
-        integrity: sha512-kEjPZl7/yzUH6/TdCdhP+HGj4siM5Y9/12HZGko/eROEnP5UJiOhoftlnxpx/LtB7P+Ng9rtcthINcyZQJK41w==,
+        integrity: sha512-WMY4T/0Xv6WwdpvNmjrM1accPhZuN0+Q71djS8NFQcUDczs35kxxcNySUj4tKTb6weWInGdDt4rzkf2yR++fvw==,
       }
     engines: { node: ">=18", pnpm: ">=9" }
     hasBin: true
@@ -5982,7 +5982,7 @@ snapshots:
 
   chardet@2.1.1: {}
 
-  check-my-toolkit@1.3.1:
+  check-my-toolkit@1.8.1:
     dependencies:
       "@aws-sdk/client-resource-groups-tagging-api": 3.971.0
       "@aws-sdk/client-s3": 3.971.0

@@ -3,6 +3,7 @@
 import { program } from "commander";
 import { version } from "./version.js";
 import { registerCodeCommands } from "./commands/code/index.js";
+import { registerProcessCommands } from "./commands/process/index.js";
 
 program
   .name("drift")
@@ -17,5 +18,11 @@ const codeCmd = program
   .description("Code quality and integrity");
 
 registerCodeCommands(codeCmd);
+
+const processCmd = program
+  .command("process")
+  .description("Process standards and compliance");
+
+registerProcessCommands(processCmd);
 
 program.parse();
