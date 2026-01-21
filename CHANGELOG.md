@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.4
+
+### Patch Changes
+
+- 6ad8e4c: Remove unused --category flag from process spec to match actual implementation
+
 ## 3.4.3
 
 ### Patch Changes
