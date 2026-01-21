@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.14.3
+
+### Patch Changes
+
+- 87b790d: Fix multiple bug issues:
+  - **#108**: Fix dependency change detection failing with shallow clones by increasing clone depth from 1 to 2
+  - **#101**: Show "repo not found" error instead of "missing required files" when scanning a non-existent repository
+  - **#100**: Add TOML validation for check.toml files to report parse errors instead of silently succeeding
+
 ## 1.14.2
 
 ### Patch Changes
