@@ -12,12 +12,10 @@ import type {
   DependencyFileChange,
 } from "../types.js";
 
-/**
- * Truncate diff if it exceeds max lines.
- */
+/** Truncate diff if it exceeds max lines. */
 function truncateDiff(
   diff: string,
-  maxLines: number = DISPLAY_LIMITS.diffLines
+  maxLines = DISPLAY_LIMITS.diffLines
 ): string {
   const lines = diff.split("\n");
   if (lines.length <= maxLines) {
@@ -26,9 +24,7 @@ function truncateDiff(
   return lines.slice(0, maxLines).join("\n") + "\n... (truncated)";
 }
 
-/**
- * Truncate issue body if it exceeds GitHub's max length.
- */
+/** Truncate issue body if it exceeds GitHub's max length. */
 function truncateBody(body: string): string {
   if (body.length <= GITHUB_ISSUES.maxBodyLength) {
     return body;
@@ -39,27 +35,24 @@ function truncateBody(body: string): string {
   );
 }
 
-/**
- * Format a single file change as markdown.
- */
-function formatFileChange(change: FileChange): string {
+/** Format a single file change as markdown. */
+function formatFileChange(
+  change: FileChange,
+  checkType?: string | null
+): string {
   const statusLabel =
     change.status === "deleted"
       ? " (deleted)"
       : change.status === "added"
         ? " (new)"
         : "";
-
-  let section = `#### ${change.file}${statusLabel}\n\n`;
-
+  const checkLabel = checkType ? ` [${checkType}]` : "";
+  let section = `#### ${change.file}${statusLabel}${checkLabel}\n\n`;
   if (change.diff) {
-    section += "```diff\n";
-    section += truncateDiff(change.diff);
-    section += "\n```\n";
+    section += "```diff\n" + truncateDiff(change.diff) + "\n```\n";
   } else if (change.status === "deleted") {
     section += "_File was deleted_\n";
   }
-
   return section;
 }
 
@@ -227,84 +220,55 @@ export function getTierMismatchIssueLabel(): string {
   return GITHUB_ISSUES.tierMismatchLabel;
 }
 
-/**
- * Format a single dependency file change as markdown.
- */
-function formatDependencyFileChange(change: DependencyFileChange): string {
-  const statusLabel =
-    change.status === "deleted"
-      ? " (deleted)"
-      : change.status === "added"
-        ? " (new)"
-        : "";
-
-  const checkLabel = change.checkType ? ` [${change.checkType}]` : "";
-
-  let section = `#### ${change.file}${statusLabel}${checkLabel}\n\n`;
-
-  if (change.diff) {
-    section += "```diff\n";
-    section += truncateDiff(change.diff);
-    section += "\n```\n";
-  } else if (change.status === "deleted") {
-    section += "_File was deleted_\n";
+/** Format grouped changes by check type */
+function formatGroupedChanges(
+  byCheck: Record<string, DependencyFileChange[]>
+): string[] {
+  const parts: string[] = [];
+  const checkTypes = Object.keys(byCheck).sort();
+  if (checkTypes.length === 0) {
+    return parts;
   }
-
-  return section;
+  parts.push("### Changes by Check Type\n");
+  for (const checkType of checkTypes) {
+    parts.push(`#### ${checkType}\n`);
+    for (const change of byCheck[checkType]) {
+      parts.push(formatFileChange(change, change.checkType));
+    }
+  }
+  return parts;
 }
 
-/**
- * Build the complete issue body for dependency changes detection.
- */
+/** Format ungrouped changes (workflows, check.toml, etc.) */
+function formatUngroupedChanges(changes: DependencyFileChange[]): string[] {
+  const ungrouped = changes.filter((c) => !c.checkType);
+  if (ungrouped.length === 0) {
+    return [];
+  }
+  const parts = ["### Other Changed Files\n"];
+  for (const change of ungrouped) {
+    parts.push(formatFileChange(change));
+  }
+  return parts;
+}
+
+/** Build the complete issue body for dependency changes detection. */
 export function formatDependencyChangesIssueBody(
   detection: DependencyChangesDetection
 ): string {
-  const parts: string[] = [];
-
-  // Header
-  parts.push("## Dependency File Changes Detected\n");
-  parts.push(`Repository: \`${detection.repository}\``);
-  parts.push(`Scan time: ${detection.scanTime}`);
-  parts.push(
-    `Commit: [${detection.commit.slice(0, 7)}](${detection.commitUrl})\n`
-  );
-
-  // Group changes by check type for better organization
-  const checkTypes = Object.keys(detection.byCheck).sort();
-  const ungroupedChanges = detection.changes.filter((c) => !c.checkType);
-
-  // Changes grouped by check type
-  if (checkTypes.length > 0) {
-    parts.push("### Changes by Check Type\n");
-    for (const checkType of checkTypes) {
-      const changes = detection.byCheck[checkType];
-      parts.push(`#### ${checkType}\n`);
-      for (const change of changes) {
-        parts.push(formatDependencyFileChange(change));
-      }
-    }
-  }
-
-  // Ungrouped changes (workflows, check.toml, etc.)
-  if (ungroupedChanges.length > 0) {
-    parts.push("### Other Changed Files\n");
-    for (const change of ungroupedChanges) {
-      parts.push(formatDependencyFileChange(change));
-    }
-  }
-
-  // Action required
-  parts.push("### Action Required\n");
-  parts.push(
-    "Review these dependency file changes and close this issue once investigated.\n"
-  );
-  parts.push(
-    "These files affect how code standards are enforced in this repository.\n"
-  );
-
-  // Footer
-  parts.push("---\n_Created by drift-toolkit_");
-
+  const commitLink = `[${detection.commit.slice(0, 7)}](${detection.commitUrl})`;
+  const parts = [
+    "## Dependency File Changes Detected\n",
+    `Repository: \`${detection.repository}\``,
+    `Scan time: ${detection.scanTime}`,
+    `Commit: ${commitLink}\n`,
+    ...formatGroupedChanges(detection.byCheck),
+    ...formatUngroupedChanges(detection.changes),
+    "### Action Required\n",
+    "Review these dependency file changes and close this issue once investigated.",
+    "These files affect how code standards are enforced in this repository.\n",
+    "---\n_Created by drift-toolkit_",
+  ];
   return truncateBody(parts.join("\n"));
 }
 
