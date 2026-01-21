@@ -3,104 +3,169 @@
  * Discovers repositories in an organization that are configured for process scanning.
  */
 
-import { CONCURRENCY } from "../constants.js";
+import { CONCURRENCY, DEFAULTS } from "../constants.js";
 import { listRepos, type GitHubRepo } from "./client.js";
-import { hasRemoteCheckToml } from "./repo-checks.js";
+import { hasRemoteCheckToml, hasRecentCommits } from "./repo-checks.js";
 
 export interface ProcessRepoDiscoveryResult {
-  /** Repos that have check.toml and can be scanned */
   repos: GitHubRepo[];
-  /** Total repos in org (before filtering) */
   totalRepos: number;
-  /** Whether the target is an org (true) or user (false) */
+  reposWithCheckToml: number;
   isOrg: boolean;
+  filteredByActivity: boolean;
+  activityWindowHours?: number;
 }
 
 export interface DiscoverProcessReposOptions {
-  /** GitHub organization or user name */
   org: string;
-  /** GitHub token for API access */
   token?: string;
-  /** Maximum concurrent API calls for check.toml detection */
   concurrency?: number;
-  /** Callback for progress updates */
   onProgress?: (checked: number, total: number) => void;
+  onActivityProgress?: (checked: number, total: number) => void;
+  sinceHours?: number;
+  includeAll?: boolean;
 }
 
-/**
- * Run async tasks with limited concurrency.
- * Similar to Promise.all but limits how many run in parallel.
- */
-async function parallelLimit<T, R>(
-  items: T[],
-  fn: (item: T) => Promise<R>,
-  concurrency: number
-): Promise<R[]> {
-  const results: R[] = [];
-  let index = 0;
+interface FilterContext {
+  token?: string;
+  concurrency: number;
+}
 
+interface ResultOpts {
+  base: { isOrg: boolean; totalRepos: number };
+  repos: GitHubRepo[];
+  checkTomlCount: number;
+  filtered: boolean;
+  hours?: number;
+}
+
+async function parallelFilter<T>(
+  items: T[],
+  predicate: (item: T) => Promise<boolean>,
+  concurrency: number
+): Promise<T[]> {
+  const results: boolean[] = [];
+  let index = 0;
   async function worker(): Promise<void> {
     while (index < items.length) {
-      const currentIndex = index++;
-      results[currentIndex] = await fn(items[currentIndex]);
+      const i = index++;
+      results[i] = await predicate(items[i]);
     }
   }
-
-  const workers = Array(Math.min(concurrency, items.length))
-    .fill(null)
-    .map(() => worker());
-
-  await Promise.all(workers);
-  return results;
+  await Promise.all(
+    Array(Math.min(concurrency, items.length))
+      .fill(null)
+      .map(() => worker())
+  );
+  return items.filter((_, i) => results[i]);
 }
 
-/**
- * Discover repositories in an organization that have check.toml files.
- * Uses GitHub API to list all repos and filter to those with check.toml.
- *
- * @param options - Discovery options
- * @returns List of repos with check.toml and discovery metadata
- */
+async function filterByCheckToml(
+  repos: GitHubRepo[],
+  ctx: FilterContext,
+  onProgress?: (n: number, total: number) => void
+): Promise<GitHubRepo[]> {
+  let n = 0;
+  return parallelFilter(
+    repos,
+    async (r) => {
+      const [o, name] = r.full_name.split("/");
+      const has = await hasRemoteCheckToml(o, name, ctx.token);
+      onProgress?.(++n, repos.length);
+      return has;
+    },
+    ctx.concurrency
+  );
+}
+
+async function filterByActivity(
+  repos: GitHubRepo[],
+  ctx: FilterContext,
+  hours: number,
+  onProgress?: (n: number, total: number) => void
+): Promise<GitHubRepo[]> {
+  let n = 0;
+  return parallelFilter(
+    repos,
+    async (r) => {
+      const [o, name] = r.full_name.split("/");
+      const has = await hasRecentCommits(o, name, hours, ctx.token);
+      onProgress?.(++n, repos.length);
+      return has;
+    },
+    ctx.concurrency
+  );
+}
+
+function buildResult(o: ResultOpts): ProcessRepoDiscoveryResult {
+  return {
+    ...o.base,
+    repos: o.repos,
+    reposWithCheckToml: o.checkTomlCount,
+    filteredByActivity: o.filtered,
+    activityWindowHours: o.hours,
+  };
+}
+
+/** Discover repositories with check.toml, optionally filtering by recent activity. */
+// eslint-disable-next-line max-lines-per-function
 export async function discoverProcessRepos(
-  options: DiscoverProcessReposOptions
+  opts: DiscoverProcessReposOptions
 ): Promise<ProcessRepoDiscoveryResult> {
   const {
     org,
     token,
     concurrency = CONCURRENCY.maxRepoScans,
     onProgress,
-  } = options;
+    onActivityProgress,
+    sinceHours = DEFAULTS.commitWindowHours,
+    includeAll = false,
+  } = opts;
+  const { repos: all, isOrg } = await listRepos(org, token);
+  const ctx: FilterContext = { token, concurrency };
+  const base = { isOrg, totalRepos: all.length };
 
-  // List all repos in org (handles org vs user auto-detection)
-  const { repos: allRepos, isOrg } = await listRepos(org, token);
-  const totalRepos = allRepos.length;
-
-  if (totalRepos === 0) {
-    return { repos: [], totalRepos: 0, isOrg };
+  if (all.length === 0) {
+    return buildResult({
+      base,
+      repos: [],
+      checkTomlCount: 0,
+      filtered: !includeAll,
+      hours: includeAll ? undefined : sinceHours,
+    });
   }
 
-  // Check each repo for check.toml in parallel with concurrency limit
-  let checked = 0;
-  const hasCheckTomlResults = await parallelLimit(
-    allRepos,
-    async (repo) => {
-      const [owner, repoName] = repo.full_name.split("/");
-      const hasConfig = await hasRemoteCheckToml(owner, repoName, token);
-      checked++;
-      onProgress?.(checked, totalRepos);
-      return hasConfig;
-    },
-    concurrency
-  );
+  const withConfig = await filterByCheckToml(all, ctx, onProgress);
 
-  // Filter repos that have check.toml
-  const reposWithCheckToml = allRepos.filter(
-    (_, index) => hasCheckTomlResults[index]
-  );
+  if (includeAll) {
+    return buildResult({
+      base,
+      repos: withConfig,
+      checkTomlCount: withConfig.length,
+      filtered: false,
+    });
+  }
+  if (withConfig.length === 0) {
+    return buildResult({
+      base,
+      repos: [],
+      checkTomlCount: 0,
+      filtered: true,
+      hours: sinceHours,
+    });
+  }
 
-  return {
-    repos: reposWithCheckToml,
-    totalRepos,
-    isOrg,
-  };
+  const active = await filterByActivity(
+    withConfig,
+    ctx,
+    sinceHours,
+    onActivityProgress
+  );
+  return buildResult({
+    base,
+    repos: active,
+    checkTomlCount: withConfig.length,
+    filtered: true,
+    hours: sinceHours,
+  });
 }
