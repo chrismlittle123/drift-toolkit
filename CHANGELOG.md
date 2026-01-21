@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.1
+
+### Patch Changes
+
+- 3dc9407: Add process scan to drift-scan.yml workflow. Users can now run code scans, process scans, or both via the scan_type input. Scheduled runs execute both scans by default.
+
 ## 3.4.0
 
 ### Minor Changes
