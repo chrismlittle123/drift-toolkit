@@ -20,6 +20,8 @@ export interface ProcessScanOptions {
   config?: string;
   json?: boolean;
   dryRun?: boolean;
+  all?: boolean;
+  since?: string;
 }
 
 /**
@@ -126,32 +128,51 @@ function printResults(detection: ProcessViolationsDetection): void {
   }
 }
 
+interface DiscoverOrgReposOptions {
+  org: string;
+  token: string;
+  json: boolean;
+  includeAll: boolean;
+  sinceHours: number;
+}
+
 /**
  * Discover repos with check.toml in an organization.
  * This is the first step of org-wide scanning.
  */
-async function discoverOrgRepos(
-  org: string,
-  token: string,
-  json: boolean
-): Promise<string[]> {
+async function discoverOrgRepos(options: DiscoverOrgReposOptions): Promise<string[]> {
+  const { org, token, json, includeAll, sinceHours } = options;
+
   if (!json) {
-    console.log(`Discovering repos with check.toml in ${org}...`);
+    if (includeAll) {
+      console.log(`Discovering repos with check.toml in ${org}...`);
+    } else {
+      console.log(
+        `Discovering repos with check.toml in ${org} (commits in last ${sinceHours}h)...`
+      );
+    }
   }
 
   const result = await discoverProcessRepos({
     org,
     token,
+    includeAll,
+    sinceHours,
     onProgress: (checked, total) => {
       if (!json) {
-        process.stdout.write(`\rChecking repos: ${checked}/${total}`);
+        process.stdout.write(`\rChecking repos for check.toml: ${checked}/${total}`);
+      }
+    },
+    onActivityProgress: (checked, total) => {
+      if (!json) {
+        process.stdout.write(`\rFiltering by recent activity: ${checked}/${total}`);
       }
     },
   });
 
   if (!json) {
     // Clear the progress line
-    process.stdout.write("\r" + " ".repeat(40) + "\r");
+    process.stdout.write("\r" + " ".repeat(50) + "\r");
   }
 
   const repoNames = result.repos.map((r) => r.full_name);
@@ -163,7 +184,10 @@ async function discoverOrgRepos(
           org,
           isOrg: result.isOrg,
           totalRepos: result.totalRepos,
-          reposWithCheckToml: repoNames.length,
+          reposWithCheckToml: result.reposWithCheckToml,
+          filteredByActivity: result.filteredByActivity,
+          activityWindowHours: result.activityWindowHours,
+          activeRepos: repoNames.length,
           repos: repoNames,
         },
         null,
@@ -171,9 +195,18 @@ async function discoverOrgRepos(
       )
     );
   } else {
-    console.log(
-      `Found ${repoNames.length}/${result.totalRepos} repos with check.toml`
-    );
+    if (result.filteredByActivity) {
+      console.log(
+        `Found ${result.reposWithCheckToml}/${result.totalRepos} repos with check.toml`
+      );
+      console.log(
+        `Active in last ${result.activityWindowHours}h: ${repoNames.length} repos`
+      );
+    } else {
+      console.log(
+        `Found ${repoNames.length}/${result.totalRepos} repos with check.toml`
+      );
+    }
     if (repoNames.length > 0) {
       console.log("");
       for (const name of repoNames) {
@@ -259,7 +292,8 @@ async function scanSingleRepo(
 }
 
 export async function scan(options: ProcessScanOptions): Promise<void> {
-  const { repo, org, config, json, dryRun } = options;
+  const { repo, org, config, json, dryRun, all, since } = options;
+  const sinceHours = parseInt(since ?? "24", 10);
 
   // Validate options: need either --repo or --org
   if (!repo && !org) {
@@ -314,7 +348,13 @@ export async function scan(options: ProcessScanOptions): Promise<void> {
     // Case 2: Org-wide discovery (--org without --repo)
     // This discovers repos with check.toml - actual scanning is done in #118
     if (org) {
-      const repoNames = await discoverOrgRepos(org, token, json ?? false);
+      const repoNames = await discoverOrgRepos({
+        org,
+        token,
+        json: json ?? false,
+        includeAll: all ?? false,
+        sinceHours,
+      });
 
       // For now, just discover. Parallel scanning will be added in #118.
       // If user wants to scan, they should use --repo to scan individual repos.
