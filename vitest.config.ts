@@ -21,6 +21,8 @@ export default defineConfig({
         "src/types.ts", // Type definitions only
         "src/cli.ts", // CLI entry point
         "src/github/org-scanner.ts", // Complex integration, tested via e2e
+        "src/commands/**/*.ts", // Command files tested via e2e
+        "src/config/loader.ts", // Config loading tested via e2e
       ],
     },
   },
