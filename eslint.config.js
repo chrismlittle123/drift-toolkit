@@ -32,9 +32,9 @@ export default [
       // Code quality limits
       "max-depth": ["error", { max: 4 }],
       "max-params": ["error", { max: 4 }],
-      "max-lines-per-function": "error",
-      "max-lines": "error",
-      complexity: "error",
+      "max-lines-per-function": ["error", { max: 50 }],
+      "max-lines": ["error", { max: 400 }],
+      complexity: ["error", { max: 15 }],
       "no-console": ["error", { allow: ["error", "warn"] }],
 
       // Core ESLint - Best practices
@@ -56,7 +56,10 @@ export default [
       "import/no-cycle": ["error", { maxDepth: 2 }],
 
       // TypeScript-ESLint - Basic checks (AST-based, fast)
-      "@typescript-eslint/no-unused-vars": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
 

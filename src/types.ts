@@ -127,3 +127,28 @@ export interface ProcessViolationsDetection {
   summary: ProcessCheckSummary[];
   violations: ProcessViolation[];
 }
+
+// Org-wide process scanning
+
+export interface ProcessRepoScanResult {
+  repo: string;
+  detection?: ProcessViolationsDetection;
+  issueCreated?: boolean;
+  issueNumber?: number;
+  issueUrl?: string;
+  error?: string;
+}
+
+export interface ProcessOrgScanSummary {
+  reposScanned: number;
+  reposWithViolations: number;
+  reposSkipped: number;
+  issuesCreated: number;
+}
+
+export interface ProcessOrgScanResults {
+  org: string;
+  timestamp: string;
+  repos: ProcessRepoScanResult[];
+  summary: ProcessOrgScanSummary;
+}
