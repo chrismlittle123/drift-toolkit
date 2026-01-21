@@ -31,17 +31,25 @@ interface FilterContext {
   concurrency: number;
 }
 
-async function parallelLimit<T, R>(
+interface ResultOpts {
+  base: { isOrg: boolean; totalRepos: number };
+  repos: GitHubRepo[];
+  checkTomlCount: number;
+  filtered: boolean;
+  hours?: number;
+}
+
+async function parallelFilter<T>(
   items: T[],
-  fn: (item: T) => Promise<R>,
+  predicate: (item: T) => Promise<boolean>,
   concurrency: number
-): Promise<R[]> {
-  const results: R[] = [];
+): Promise<T[]> {
+  const results: boolean[] = [];
   let index = 0;
   async function worker(): Promise<void> {
     while (index < items.length) {
-      const currentIndex = index++;
-      results[currentIndex] = await fn(items[currentIndex]);
+      const i = index++;
+      results[i] = await predicate(items[i]);
     }
   }
   await Promise.all(
@@ -49,53 +57,59 @@ async function parallelLimit<T, R>(
       .fill(null)
       .map(() => worker())
   );
-  return results;
+  return items.filter((_, i) => results[i]);
 }
 
 async function filterByCheckToml(
   repos: GitHubRepo[],
   ctx: FilterContext,
-  onProgress?: (checked: number, total: number) => void
+  onProgress?: (n: number, total: number) => void
 ): Promise<GitHubRepo[]> {
-  let checked = 0;
-  const results = await parallelLimit(
+  let n = 0;
+  return parallelFilter(
     repos,
-    async (repo) => {
-      const [owner, name] = repo.full_name.split("/");
-      const has = await hasRemoteCheckToml(owner, name, ctx.token);
-      onProgress?.(++checked, repos.length);
+    async (r) => {
+      const [o, name] = r.full_name.split("/");
+      const has = await hasRemoteCheckToml(o, name, ctx.token);
+      onProgress?.(++n, repos.length);
       return has;
     },
     ctx.concurrency
   );
-  return repos.filter((_, i) => results[i]);
 }
 
 async function filterByActivity(
   repos: GitHubRepo[],
   ctx: FilterContext,
   hours: number,
-  onProgress?: (checked: number, total: number) => void
+  onProgress?: (n: number, total: number) => void
 ): Promise<GitHubRepo[]> {
-  let checked = 0;
-  const results = await parallelLimit(
+  let n = 0;
+  return parallelFilter(
     repos,
-    async (repo) => {
-      const [owner, name] = repo.full_name.split("/");
-      const has = await hasRecentCommits(owner, name, hours, ctx.token);
-      onProgress?.(++checked, repos.length);
+    async (r) => {
+      const [o, name] = r.full_name.split("/");
+      const has = await hasRecentCommits(o, name, hours, ctx.token);
+      onProgress?.(++n, repos.length);
       return has;
     },
     ctx.concurrency
   );
-  return repos.filter((_, i) => results[i]);
 }
 
-/**
- * Discover repositories with check.toml, optionally filtering by recent activity.
- */
+function buildResult(o: ResultOpts): ProcessRepoDiscoveryResult {
+  return {
+    ...o.base,
+    repos: o.repos,
+    reposWithCheckToml: o.checkTomlCount,
+    filteredByActivity: o.filtered,
+    activityWindowHours: o.hours,
+  };
+}
+
+/** Discover repositories with check.toml, optionally filtering by recent activity. */
 export async function discoverProcessRepos(
-  options: DiscoverProcessReposOptions
+  opts: DiscoverProcessReposOptions
 ): Promise<ProcessRepoDiscoveryResult> {
   const {
     org,
@@ -105,56 +119,52 @@ export async function discoverProcessRepos(
     onActivityProgress,
     sinceHours = DEFAULTS.commitWindowHours,
     includeAll = false,
-  } = options;
-
-  const { repos: allRepos, isOrg } = await listRepos(org, token);
+  } = opts;
+  const { repos: all, isOrg } = await listRepos(org, token);
   const ctx: FilterContext = { token, concurrency };
-  const base = { isOrg, totalRepos: allRepos.length };
+  const base = { isOrg, totalRepos: all.length };
 
-  if (allRepos.length === 0) {
-    const hours = includeAll ? undefined : sinceHours;
-    return {
-      ...base,
+  if (all.length === 0) {
+    return buildResult({
+      base,
       repos: [],
-      reposWithCheckToml: 0,
-      filteredByActivity: !includeAll,
-      activityWindowHours: hours,
-    };
+      checkTomlCount: 0,
+      filtered: !includeAll,
+      hours: includeAll ? undefined : sinceHours,
+    });
   }
 
-  const configRepos = await filterByCheckToml(allRepos, ctx, onProgress);
-  const configCount = configRepos.length;
+  const withConfig = await filterByCheckToml(all, ctx, onProgress);
 
   if (includeAll) {
-    return {
-      ...base,
-      repos: configRepos,
-      reposWithCheckToml: configCount,
-      filteredByActivity: false,
-    };
+    return buildResult({
+      base,
+      repos: withConfig,
+      checkTomlCount: withConfig.length,
+      filtered: false,
+    });
   }
-
-  if (configCount === 0) {
-    return {
-      ...base,
+  if (withConfig.length === 0) {
+    return buildResult({
+      base,
       repos: [],
-      reposWithCheckToml: 0,
-      filteredByActivity: true,
-      activityWindowHours: sinceHours,
-    };
+      checkTomlCount: 0,
+      filtered: true,
+      hours: sinceHours,
+    });
   }
 
   const active = await filterByActivity(
-    configRepos,
+    withConfig,
     ctx,
     sinceHours,
     onActivityProgress
   );
-  return {
-    ...base,
+  return buildResult({
+    base,
     repos: active,
-    reposWithCheckToml: configCount,
-    filteredByActivity: true,
-    activityWindowHours: sinceHours,
-  };
+    checkTomlCount: withConfig.length,
+    filtered: true,
+    hours: sinceHours,
+  });
 }
