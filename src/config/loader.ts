@@ -91,7 +91,3 @@ export function findConfigPath(basePath: string): string | null {
   }
   return null;
 }
-
-
-
-
