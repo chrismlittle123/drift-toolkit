@@ -76,6 +76,59 @@ describe("repo-checks", () => {
     });
   });
 
+  describe("hasRemoteCheckToml", () => {
+    it("returns true when check.toml exists", async () => {
+      const { hasRemoteCheckToml } = await import("./repo-checks.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("{}", { status: 200 })
+      );
+
+      const result = await hasRemoteCheckToml("test-org", "test-repo");
+
+      expect(result).toBe(true);
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "/repos/test-org/test-repo/contents/check.toml"
+        ),
+        expect.any(Object),
+        undefined
+      );
+    });
+
+    it("returns false when check.toml does not exist", async () => {
+      const { hasRemoteCheckToml } = await import("./repo-checks.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("Not Found", { status: 404 })
+      );
+
+      const result = await hasRemoteCheckToml("test-org", "test-repo");
+
+      expect(result).toBe(false);
+    });
+
+    it("passes token to request headers", async () => {
+      const { hasRemoteCheckToml } = await import("./repo-checks.js");
+
+      mockFetchWithRetry.mockResolvedValueOnce(
+        new Response("{}", { status: 200 })
+      );
+
+      await hasRemoteCheckToml("test-org", "test-repo", "my-token");
+
+      expect(mockFetchWithRetry).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer my-token",
+          }),
+        }),
+        "my-token"
+      );
+    });
+  });
+
   describe("hasRecentCommits", () => {
     it("returns true when main branch has recent commits", async () => {
       const { hasRecentCommits } = await import("./repo-checks.js");

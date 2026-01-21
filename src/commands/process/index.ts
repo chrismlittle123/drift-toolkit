@@ -8,9 +8,10 @@ export function registerProcessCommands(program: Command): void {
   program
     .command("scan")
     .description("Scan repository for process standard violations")
-    .requiredOption(
-      "-r, --repo <owner/repo>",
-      "Repository to scan (owner/repo format)"
+    .option("-r, --repo <owner/repo>", "Repository to scan (owner/repo format)")
+    .option(
+      "-o, --org <org>",
+      "Organization or user to discover repos with check.toml"
     )
     .option("-c, --config <path>", "Path to check.toml config file")
     .option("--json", "Output results as JSON")

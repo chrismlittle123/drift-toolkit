@@ -63,6 +63,23 @@ export async function isRepoScannable(
 }
 
 /**
+ * Check if a repository has a check.toml file at the root.
+ * Used for discovering repos that are configured for process scanning.
+ *
+ * @param org - GitHub organization or user
+ * @param repo - Repository name
+ * @param token - GitHub token (optional)
+ * @returns true if check.toml exists at the repository root
+ */
+export async function hasRemoteCheckToml(
+  org: string,
+  repo: string,
+  token?: string
+): Promise<boolean> {
+  return fileExists(org, repo, FILE_PATTERNS.checkToml, token);
+}
+
+/**
  * Check if a repository has commits within the specified time window.
  * Checks the default branch (main, then falls back to master).
  *
