@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.14.1
+
+### Patch Changes
+
+- a6a6638: Increase test coverage to 80% minimum threshold
+  - Add tests for `src/utils/formatting.ts` (61% → 100%)
+  - Add tests for `src/repo/diff.ts` (65% → 99%)
+  - Update vitest.config.ts coverage thresholds from 50% to 80%
+  - Overall coverage now at 95.57%
+
 ## 1.14.0
 
 ### Minor Changes
