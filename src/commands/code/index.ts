@@ -1,6 +1,5 @@
 import { Command } from "commander";
 import { scan } from "./scan.js";
-import { fix } from "./fix.js";
 
 /**
  * Register code domain commands on the given program
@@ -8,7 +7,7 @@ import { fix } from "./fix.js";
 export function registerCodeCommands(program: Command): void {
   program
     .command("scan")
-    .description("Scan for code integrity and run checks")
+    .description("Scan repositories for configuration drift")
     .option(
       "-p, --path <path>",
       "Local directory to scan (default: current directory)"
@@ -36,16 +35,4 @@ export function registerCodeCommands(program: Command): void {
       (value) => parseInt(value, 10)
     )
     .action(scan);
-
-  program
-    .command("fix")
-    .description("Fix drifted files by syncing from approved sources")
-    .option(
-      "-p, --path <path>",
-      "Local directory to fix (default: current directory)"
-    )
-    .option("-c, --config <config>", "Path to drift.config.yaml")
-    .option("-f, --file <file>", "Fix a specific file only")
-    .option("-n, --dry-run", "Show what would be fixed without making changes")
-    .action(fix);
 }

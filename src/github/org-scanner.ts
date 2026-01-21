@@ -11,9 +11,6 @@ import {
 } from "./client.js";
 import { hasRecentCommits } from "./repo-checks.js";
 import {
-  formatDriftIssueBody,
-  getDriftIssueTitle,
-  getDriftIssueLabel,
   formatMissingProjectsIssueBody,
   getMissingProjectsIssueTitle,
   getMissingProjectsIssueLabel,
@@ -35,21 +32,12 @@ import {
 } from "../repo/dependency-changes.js";
 import { generateFileDiff } from "../repo/diff.js";
 import { getHeadCommit } from "../repo/changes.js";
-import {
-  loadConfig,
-  loadRepoMetadata,
-  validateConfigSecurity,
-} from "../config/loader.js";
-import { checkAllIntegrity, discoverFiles } from "../integrity/checker.js";
-import { runAllScans } from "../scanner/runner.js";
+import { loadConfig } from "../config/loader.js";
 import { version } from "../version.js";
 import type {
   DriftConfig,
-  DriftResults,
   OrgScanResults,
   RepoScanResult,
-  DriftDetection,
-  FileChange,
   DriftIssueResult,
   MissingProject,
   MissingProjectsDetection,
@@ -60,15 +48,9 @@ import type {
 } from "../types.js";
 import { CONCURRENCY, DEFAULTS } from "../constants.js";
 import {
-  printWarnings,
   COLORS,
-  STATUS_ICONS,
   createEmptyResults,
   createEmptyOrgSummary,
-  updateIntegritySummary,
-  updateScanSummary,
-  updateOrgSummaryFromRepo,
-  hasIssues,
   getErrorMessage,
   actionsOutput,
 } from "../utils/index.js";
@@ -143,118 +125,6 @@ function printScanHeader(
   console.log(`Config repo: ${configRepoName}`);
   console.log(`Repos to scan: ${repoCount}`);
   console.log("");
-}
-
-/**
- * Convert DriftResults to DriftDetection format for issue creation
- */
-function buildDriftDetection(
-  org: string,
-  repoName: string,
-  results: DriftResults
-): DriftDetection | null {
-  const changes: FileChange[] = [];
-
-  // Add integrity failures as file changes
-  for (const integrity of results.integrity) {
-    if (integrity.status === "drift" || integrity.status === "missing") {
-      changes.push({
-        file: integrity.file,
-        status: integrity.status === "drift" ? "modified" : "deleted",
-        diff: integrity.diff,
-      });
-    }
-  }
-
-  if (changes.length === 0) {
-    return null;
-  }
-
-  return {
-    repository: `${org}/${repoName}`,
-    scanTime: new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC",
-    commit: "HEAD", // Could enhance to get actual commit
-    commitUrl: `https://github.com/${org}/${repoName}/commits/main`,
-    changes,
-  };
-}
-
-interface CreateDriftIssueOptions {
-  org: string;
-  repoName: string;
-  results: DriftResults;
-  token: string;
-  dryRun: boolean;
-  json: boolean;
-}
-
-/**
- * Create a GitHub issue for drift detection with error handling
- */
-async function createDriftIssue(
-  options: CreateDriftIssueOptions
-): Promise<DriftIssueResult> {
-  const { org, repoName, results, token, dryRun, json } = options;
-  const detection = buildDriftDetection(org, repoName, results);
-
-  if (!detection) {
-    return { created: false };
-  }
-
-  if (dryRun) {
-    if (!json) {
-      console.log(
-        `  ${COLORS.cyan}[DRY-RUN] Would create issue: ${getDriftIssueTitle()}${COLORS.reset}`
-      );
-      console.log(
-        `  ${COLORS.cyan}[DRY-RUN] Repository: ${org}/${repoName}${COLORS.reset}`
-      );
-      console.log(
-        `  ${COLORS.cyan}[DRY-RUN] Labels: ${getDriftIssueLabel()}${COLORS.reset}`
-      );
-      console.log(
-        `  ${COLORS.cyan}[DRY-RUN] Changed files: ${detection.changes.map((c) => c.file).join(", ")}${COLORS.reset}`
-      );
-    }
-    return { created: false };
-  }
-
-  try {
-    const body = formatDriftIssueBody(detection);
-    const issue = await createIssue(
-      {
-        owner: org,
-        repo: repoName,
-        title: getDriftIssueTitle(),
-        body,
-        labels: [getDriftIssueLabel()],
-      },
-      token
-    );
-
-    if (!json) {
-      console.log(
-        `  ${COLORS.green}✓ Created issue #${issue.number}: ${issue.html_url}${COLORS.reset}`
-      );
-    }
-
-    return {
-      created: true,
-      issueNumber: issue.number,
-      issueUrl: issue.html_url,
-    };
-  } catch (error) {
-    const errorMessage = getErrorMessage(error);
-    if (!json) {
-      console.log(
-        `  ${COLORS.yellow}⚠ Failed to create issue: ${errorMessage}${COLORS.reset}`
-      );
-    }
-    return {
-      created: false,
-      error: errorMessage,
-    };
-  }
 }
 
 interface CreateMissingProjectsIssueOptions {
@@ -567,59 +437,19 @@ async function createDependencyChangesIssue(
 }
 
 /**
- * Scan a single repository
+ * Check if a repo has any issues (missing projects, tier mismatch, dependency changes)
  */
-function scanRepo(
-  repoPath: string,
-  config: DriftConfig,
-  approvedBasePath: string
-): DriftResults {
-  const results = createEmptyResults(repoPath);
-
-  // Run integrity checks
-  if (config.integrity?.protected && config.integrity.protected.length > 0) {
-    results.integrity = checkAllIntegrity(
-      config.integrity.protected,
-      repoPath,
-      approvedBasePath
-    );
-    updateIntegritySummary(results.summary, results.integrity);
-  }
-
-  // Run file discovery
-  if (config.integrity?.discover && config.integrity.discover.length > 0) {
-    const protectedFiles = config.integrity.protected?.map((p) => p.file) || [];
-    results.discovered = discoverFiles(
-      config.integrity.discover,
-      repoPath,
-      protectedFiles
-    );
-    results.summary.discoveredFiles = results.discovered.filter(
-      (d) => !d.isProtected
-    ).length;
-  }
-
-  // Load repo metadata for conditional scans
-  const metadataResult = loadRepoMetadata(repoPath, config.schema);
-  const repoContext = metadataResult?.context;
-
-  // Run scans with context
-  if (config.scans && config.scans.length > 0) {
-    results.scans = runAllScans(
-      config.scans,
-      repoPath,
-      repoContext ?? undefined
-    );
-    updateScanSummary(results.summary, results.scans);
-  }
-
-  return results;
+function repoHasIssues(result: RepoScanResult): boolean {
+  return Boolean(
+    (result.missingProjects && result.missingProjects.length > 0) ||
+    (result.tierValidation && hasTierMismatch(result.tierValidation)) ||
+    (result.dependencyChanges && result.dependencyChanges.changes.length > 0)
+  );
 }
 
 /**
  * Scan all repositories in an organization
  */
-
 export async function scanOrg(
   options: OrgScanOptions
 ): Promise<OrgScanResults> {
@@ -641,9 +471,7 @@ export async function scanOrg(
   if (!configRepoExists) {
     const errorMsg = `Config repo ${org}/${configRepoName} not found`;
     console.error(`Error: ${errorMsg}.`);
-    console.error(
-      `Create a '${configRepoName}' repo with drift.config.yaml and approved/ folder.`
-    );
+    console.error(`Create a '${configRepoName}' repo with drift.config.yaml.`);
     if (!token) {
       console.error(
         `Hint: If this is a private repo, ensure GITHUB_TOKEN is set or pass --token.`
@@ -682,20 +510,6 @@ export async function scanOrg(
     // Create a const that TypeScript knows is non-null
     const config: DriftConfig = loadedConfig;
 
-    // Security validation - warn about potentially dangerous commands
-    if (!options.json) {
-      const securityWarnings = validateConfigSecurity(config);
-      if (securityWarnings.length > 0) {
-        printWarnings(
-          "SECURITY WARNING",
-          securityWarnings,
-          "Only run scans from trusted configuration sources."
-        );
-      }
-    }
-
-    const approvedBasePath = configDir;
-
     // Get list of repos to scan
     let reposToScan: string[];
     let isOrg = true;
@@ -730,7 +544,6 @@ export async function scanOrg(
     /**
      * Scan a single repository and return the result.
      * Handles cloning, scanning, and cleanup.
-     * Note: This function is synchronous but wrapped in Promise for use with parallelLimit.
      */
     function scanSingleRepo(repoName: string): RepoScanResult {
       const repoResult: RepoScanResult = {
@@ -741,9 +554,8 @@ export async function scanOrg(
       const repoDir = createTempDir(repoName);
 
       try {
-        // Clone and scan the repo
+        // Clone the repo
         cloneRepo(org, repoName, repoDir, token);
-        repoResult.results = scanRepo(repoDir, config, approvedBasePath);
         repoResult.results.path = `${org}/${repoName}`;
 
         // Detect projects missing check.toml
@@ -837,25 +649,13 @@ export async function scanOrg(
           console.log(
             `${COLORS.yellow}⚠ skipped (${result.error})${COLORS.reset}`
           );
-        } else if (hasIssues(result.results)) {
+        } else if (repoHasIssues(result)) {
           console.log(`${COLORS.red}✗ issues found${COLORS.reset}`);
           // GitHub Actions warning for repos with issues
           actionsOutput.warning(`Drift detected in ${org}/${repoName}`);
         } else {
           console.log(`${COLORS.green}✓ ok${COLORS.reset}`);
         }
-      }
-
-      // Create GitHub issue for repos with drift (integrity failures)
-      if (!result.error && hasIssues(result.results) && token) {
-        await createDriftIssue({
-          org,
-          repoName,
-          results: result.results,
-          token,
-          dryRun: options.dryRun ?? false,
-          json: options.json ?? false,
-        });
       }
 
       // Create GitHub issue for repos with missing projects
@@ -917,7 +717,10 @@ export async function scanOrg(
       if (repoResult.error) {
         orgResults.summary.reposSkipped++;
       } else {
-        updateOrgSummaryFromRepo(orgResults.summary, repoResult.results);
+        orgResults.summary.reposScanned++;
+        if (repoHasIssues(repoResult)) {
+          orgResults.summary.reposWithIssues++;
+        }
       }
       orgResults.repos.push(repoResult);
     }
@@ -959,53 +762,39 @@ function printOrgResults(results: OrgScanResults): void {
       continue;
     }
 
-    const r = repoResult.results;
-    const repoHasIssues = hasIssues(r);
+    const hasIssues = repoHasIssues(repoResult);
 
-    if (!repoHasIssues && r.integrity.length === 0 && r.scans.length === 0) {
-      // Skip repos with no checks
+    if (!hasIssues) {
+      // Skip repos with no issues
       continue;
     }
 
     console.log(`\n${repoResult.repo}`);
     console.log("─".repeat(60));
 
-    // Integrity results
-    for (const integrity of r.integrity) {
-      const icon =
-        integrity.status === "match"
-          ? STATUS_ICONS.match
-          : integrity.status === "drift"
-            ? STATUS_ICONS.drift
-            : STATUS_ICONS.missing;
-      const status =
-        integrity.status === "match"
-          ? "ok"
-          : integrity.status === "drift"
-            ? `DRIFT DETECTED (${integrity.severity})`
-            : `MISSING (${integrity.severity})`;
-      console.log(`  ${icon} ${integrity.file} - ${status}`);
+    // Missing projects
+    if (repoResult.missingProjects && repoResult.missingProjects.length > 0) {
+      console.log(
+        `  ⚠ Missing projects: ${repoResult.missingProjects.map((p) => p.path).join(", ")}`
+      );
     }
 
-    // Scan results
-    for (const scan of r.scans) {
-      const icon =
-        scan.status === "pass"
-          ? STATUS_ICONS.pass
-          : scan.status === "fail"
-            ? STATUS_ICONS.fail
-            : STATUS_ICONS.skip;
-      const status =
-        scan.status === "pass"
-          ? "passed"
-          : scan.status === "fail"
-            ? `failed (exit ${scan.exitCode})`
-            : `skipped`;
-      console.log(`  ${icon} ${scan.scan} - ${status}`);
+    // Tier mismatch
+    if (
+      repoResult.tierValidation &&
+      hasTierMismatch(repoResult.tierValidation)
+    ) {
+      console.log(`  ⚠ Tier mismatch: ${repoResult.tierValidation.error}`);
     }
 
-    if (!repoHasIssues) {
-      console.log(`  ${COLORS.green}✓ All checks passed${COLORS.reset}`);
+    // Dependency changes
+    if (
+      repoResult.dependencyChanges &&
+      repoResult.dependencyChanges.changes.length > 0
+    ) {
+      console.log(
+        `  ⚠ Dependency changes: ${repoResult.dependencyChanges.changes.map((c) => c.file).join(", ")}`
+      );
     }
   }
 
@@ -1024,33 +813,6 @@ function printOrgResults(results: OrgScanResults): void {
         ? `, ${COLORS.red}${results.summary.reposWithIssues} with issues${COLORS.reset}`
         : "")
   );
-
-  const totalIntegrity =
-    results.summary.totalIntegrityPassed +
-    results.summary.totalIntegrityFailed +
-    results.summary.totalIntegrityMissing;
-  if (totalIntegrity > 0) {
-    console.log(
-      `  Integrity: ${results.summary.totalIntegrityPassed}/${totalIntegrity} passed` +
-        (results.summary.totalIntegrityFailed > 0
-          ? `, ${COLORS.red}${results.summary.totalIntegrityFailed} drifted${COLORS.reset}`
-          : "") +
-        (results.summary.totalIntegrityMissing > 0
-          ? `, ${COLORS.yellow}${results.summary.totalIntegrityMissing} missing${COLORS.reset}`
-          : "")
-    );
-  }
-
-  const totalScans =
-    results.summary.totalScansPassed + results.summary.totalScansFailed;
-  if (totalScans > 0) {
-    console.log(
-      `  Scans: ${results.summary.totalScansPassed}/${totalScans} passed` +
-        (results.summary.totalScansFailed > 0
-          ? `, ${COLORS.red}${results.summary.totalScansFailed} failed${COLORS.reset}`
-          : "")
-    );
-  }
 
   console.log("");
 

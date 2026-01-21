@@ -13,9 +13,6 @@ importers:
       commander:
         specifier: ^14.0.0
         version: 14.0.2
-      glob:
-        specifier: ^13.0.0
-        version: 13.0.0
       minimatch:
         specifier: ^10.1.1
         version: 10.1.1

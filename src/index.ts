@@ -5,18 +5,9 @@ export { registerCodeCommands } from "./commands/code/index.js";
 
 // Types
 export type {
-  CodeDomainConfig,
   DriftConfig,
   DriftResults,
-  ScanDefinition,
-  ScanResult,
-  IntegrityCheck,
-  IntegrityResult,
-  DiscoveryPattern,
-  DiscoveryResult,
   MetadataSchema,
-  RepoContext,
-  Severity,
   MissingProject,
   MissingProjectsDetection,
 } from "./types.js";
@@ -27,18 +18,7 @@ export {
   findConfigPath,
   loadRepoMetadata,
   validateRepoMetadata,
-  getCodeConfig,
 } from "./config/loader.js";
-
-// Integrity
-export {
-  checkIntegrity,
-  checkAllIntegrity,
-  discoverFiles,
-} from "./integrity/checker.js";
-
-// Scanner
-export { runScan, runAllScans } from "./scanner/runner.js";
 
 // Repo detection
 export {
