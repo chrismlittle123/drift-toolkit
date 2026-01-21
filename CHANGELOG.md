@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.4
+
+### Patch Changes
+
+- 94b1c27: Simplify spec files to reference check-my-toolkit instead of duplicating documentation
+
 ## 1.14.3
 
 ### Patch Changes
