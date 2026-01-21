@@ -99,9 +99,10 @@ export function findMetadataPath(repoPath: string): string | null {
   return null;
 }
 
-export function parseRepoMetadata(
-  content: string
-): { metadata: RepoMetadata; warnings: string[] } {
+export function parseRepoMetadata(content: string): {
+  metadata: RepoMetadata;
+  warnings: string[];
+} {
   if (content.trim() === "") {
     return createDefaultResult("File is empty, using default values");
   }
@@ -134,9 +135,10 @@ export function parseRepoMetadata(
  * - If file is empty/invalid: { metadata: defaults, warnings: [...] }
  * - If file is valid: { metadata: parsed, warnings: [] }
  */
-export function getRepoMetadata(
-  repoPath: string
-): { metadata: RepoMetadata | null; warnings: string[] } {
+export function getRepoMetadata(repoPath: string): {
+  metadata: RepoMetadata | null;
+  warnings: string[];
+} {
   const metadataPath = findMetadataPath(repoPath);
   if (!metadataPath) {
     return { metadata: null, warnings: [] };
