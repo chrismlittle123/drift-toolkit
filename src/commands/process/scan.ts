@@ -140,7 +140,9 @@ interface DiscoverOrgReposOptions {
  * Discover repos with check.toml in an organization.
  * This is the first step of org-wide scanning.
  */
-async function discoverOrgRepos(options: DiscoverOrgReposOptions): Promise<string[]> {
+async function discoverOrgRepos(
+  options: DiscoverOrgReposOptions
+): Promise<string[]> {
   const { org, token, json, includeAll, sinceHours } = options;
 
   if (!json) {
@@ -160,12 +162,16 @@ async function discoverOrgRepos(options: DiscoverOrgReposOptions): Promise<strin
     sinceHours,
     onProgress: (checked, total) => {
       if (!json) {
-        process.stdout.write(`\rChecking repos for check.toml: ${checked}/${total}`);
+        process.stdout.write(
+          `\rChecking repos for check.toml: ${checked}/${total}`
+        );
       }
     },
     onActivityProgress: (checked, total) => {
       if (!json) {
-        process.stdout.write(`\rFiltering by recent activity: ${checked}/${total}`);
+        process.stdout.write(
+          `\rFiltering by recent activity: ${checked}/${total}`
+        );
       }
     },
   });
