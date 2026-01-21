@@ -169,19 +169,54 @@ Options:
 
 ### Required Scopes
 
-| Scope      | Purpose                                 | When Needed                 |
-| ---------- | --------------------------------------- | --------------------------- |
-| `repo`     | Read repository contents, create issues | Always                      |
-| `read:org` | List repositories in organization       | Org-wide scanning (`--org`) |
+| Scope      | Purpose                                      | When Needed                          |
+| ---------- | -------------------------------------------- | ------------------------------------ |
+| `repo`     | Read repository contents, create issues      | Always (code scan)                   |
+| `repo`     | Read branch protection settings              | Process scan                         |
+| `read:org` | List repositories in organization            | Org-wide scanning (`--org`)          |
 
-### Single Repository Scanning
+### Code Scanning
 
-For scanning a single repository, the default `GITHUB_TOKEN` provided by GitHub Actions is sufficient:
+For code scanning, the token needs access to repository contents and issues.
+
+**Single Repository:** The default `GITHUB_TOKEN` provided by GitHub Actions is sufficient:
 
 ```yaml
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+**Organization-Wide:** Requires a PAT with `repo` and `read:org` scopes.
+
+### Process Scanning
+
+Process scanning validates branch protection rules and repository settings. It requires additional permissions to read repository administration settings.
+
+**Classic PAT:**
+
+- `repo` (Full control of private repositories)
+- `read:org` (Read org membership)
+
+**Fine-Grained PAT:**
+
+- Repository access: All repositories (or select specific repos)
+- Repository permissions:
+  - Administration: Read (required for branch protection rules)
+  - Contents: Read
+  - Issues: Read and write
+  - Metadata: Read
+- Organization permissions:
+  - Members: Read
+
+**GitHub App:**
+
+- Repository permissions:
+  - Administration: Read
+  - Contents: Read
+  - Issues: Write
+  - Metadata: Read
+- Organization permissions:
+  - Members: Read
 
 ### Organization-Wide Scanning
 
@@ -192,13 +227,24 @@ For scanning all repositories in an organization, you need a Personal Access Tok
 - `repo` (Full control of private repositories)
 - `read:org` (Read org membership)
 
-**Fine-Grained PAT:**
+**Fine-Grained PAT (Code Scan):**
 
 - Repository access: All repositories (or select specific repos)
 - Permissions:
   - Contents: Read
   - Issues: Read and write
   - Metadata: Read
+
+**Fine-Grained PAT (Process Scan):**
+
+- Repository access: All repositories (or select specific repos)
+- Repository permissions:
+  - Administration: Read
+  - Contents: Read
+  - Issues: Read and write
+  - Metadata: Read
+- Organization permissions:
+  - Members: Read
 
 Store the token as a repository secret (e.g., `DRIFT_GITHUB_TOKEN`) and use it in your workflow:
 
@@ -217,11 +263,13 @@ env:
 
 ### Troubleshooting
 
-| Error                                    | Cause                                 | Solution                                         |
-| ---------------------------------------- | ------------------------------------- | ------------------------------------------------ |
-| `Resource not accessible by integration` | Default GITHUB_TOKEN lacks org access | Use a PAT with `read:org` scope                  |
-| `Not Found` on private repos             | Token lacks `repo` scope              | Add `repo` scope to your PAT                     |
-| `API rate limit exceeded`                | Too many API calls                    | Use a PAT (higher rate limits than GITHUB_TOKEN) |
+| Error                                    | Cause                                        | Solution                                              |
+| ---------------------------------------- | -------------------------------------------- | ----------------------------------------------------- |
+| `Resource not accessible by integration` | Default GITHUB_TOKEN lacks org access        | Use a PAT with `read:org` scope                       |
+| `Not Found` on private repos             | Token lacks `repo` scope                     | Add `repo` scope to your PAT                          |
+| `API rate limit exceeded`                | Too many API calls                           | Use a PAT (higher rate limits than GITHUB_TOKEN)      |
+| `403` on branch protection endpoints     | Token lacks admin read access                | Add Administration: Read permission (Fine-Grained PAT) |
+| Process scan skips repos                 | Token cannot access branch protection rules  | Ensure `repo` scope or Administration: Read           |
 
 ## GitHub Actions
 
