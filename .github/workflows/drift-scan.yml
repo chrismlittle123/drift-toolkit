@@ -1,4 +1,4 @@
-# Example workflow for running drift code scan on a schedule.
+# Example workflow for running drift scans (code and process) on a schedule.
 # Copy this file to your repository's .github/workflows/ directory.
 #
 # Requirements:
@@ -8,16 +8,21 @@
 # For org-wide scanning, you'll need a token with org-level permissions.
 # See: https://github.com/chrismlittle123/drift-toolkit#github-token-requirements
 #
+# Token Permissions:
+# - Code scan: repo (read contents, create issues)
+# - Process scan: repo (read branch protection, create issues), read:org (list repos)
+#
 # Manual Run Usage:
 # 1. Go to Actions tab in your repository
-# 2. Select "Drift Code Scan" workflow
+# 2. Select "Drift Scan" workflow
 # 3. Click "Run workflow"
 # 4. Optional inputs:
+#    - scan_type: Choose which scan to run (code, process, or both)
 #    - org: Scan all repos in an organization
 #    - repo: Scan a specific repo (requires org)
 #    - dry_run: Preview changes without creating issues
 
-name: Drift Code Scan
+name: Drift Scan
 
 on:
   schedule:
@@ -27,6 +32,15 @@ on:
   workflow_dispatch:
     # Allow manual triggering from Actions tab
     inputs:
+      scan_type:
+        description: "Type of scan to run"
+        required: false
+        default: "both"
+        type: choice
+        options:
+          - both
+          - code
+          - process
       org:
         description: "Organization to scan (scans all repos in org)"
         required: false
@@ -68,6 +82,7 @@ jobs:
         run: pnpm add -g drift-toolkit@latest
 
       - name: Run drift code scan
+        if: inputs.scan_type != 'process'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -89,3 +104,27 @@ jobs:
           fi
 
           drift code scan $ARGS
+
+      - name: Run drift process scan
+        if: inputs.scan_type != 'code'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS=""
+
+          # Add org flag if specified
+          if [ -n "${{ inputs.org }}" ]; then
+            ARGS="$ARGS --org ${{ inputs.org }}"
+          fi
+
+          # Add repo flag if specified (requires org)
+          if [ -n "${{ inputs.repo }}" ]; then
+            ARGS="$ARGS --repo ${{ inputs.repo }}"
+          fi
+
+          # Add dry-run flag if specified
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          drift process scan $ARGS
