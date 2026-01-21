@@ -1,7 +1,7 @@
 # drift-toolkit Features
 
-> **Version:** 1.13.0
-> **Last Updated:** 2026-01-20
+> **Version:** 1.14.1
+> **Last Updated:** 2026-01-21
 
 This document lists all current features of drift-toolkit. It is automatically updated when PRs are created.
 
@@ -470,5 +470,5 @@ import {
 - **Change Tracking:** 29 tests
 - **Dependency Change Detection:** 17 tests
 - **Issue Formatting:** 30 tests
-- **Total Tests:** 836
+- **Total Tests:** 866
 - **Minimum Coverage:** 80% for `src/repo/**`
