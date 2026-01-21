@@ -4,30 +4,32 @@
 
 ## Overview
 
-`drift process scan` checks GitHub repository settings against standards defined in check.toml. It validates branch protection, required files, CI workflows, and other process requirements. When violations are found, it creates GitHub issues.
+`drift process scan` validates GitHub repository settings against standards defined in check.toml. It calls check-my-toolkit's `validateProcess` API and creates GitHub issues when violations are found.
+
+**Scope:** drift-toolkit is the orchestration layer. All process validation logic lives in check-my-toolkit.
+
+```
+drift-toolkit                    check-my-toolkit
+─────────────                    ────────────────
+Repo discovery          ───►     cm process scan
+Issue creation          ◄───     JSON results
+Org-wide scanning
+GitHub Action
+```
 
 ---
 
 ## Prerequisites (check-my-toolkit)
 
-**Already exists in check-my-toolkit:**
+**Required from check-my-toolkit:**
 
-| Feature                      | Status             | Description                                                 |
-| ---------------------------- | ------------------ | ----------------------------------------------------------- |
-| Process schema in check.toml | **Already exists** | 12 process checks: hooks, ci, branches, commits, repo, etc. |
-| `cm process check`           | **Already exists** | Run workflow validation locally                             |
-| `cm process audit`           | **Already exists** | Verify workflow configs exist                               |
-| `cm process diff`            | **Already exists** | Show repository setting differences                         |
-| `cm process sync`            | **Already exists** | Synchronize repository settings                             |
+| Feature           | Command/API                             | Purpose                        |
+| ----------------- | --------------------------------------- | ------------------------------ |
+| Process scanning  | `validateProcess()` / `cm process scan` | Validate repo settings via API |
+| JSON output       | `--json` flag                           | Structured results for parsing |
+| Remote validation | `--repo owner/repo` flag                | Scan repos without cloning     |
 
-**Missing features needed for drift:**
-
-| Feature                           | Status      | Description                                                |
-| --------------------------------- | ----------- | ---------------------------------------------------------- |
-| Remote validation (`--repo` flag) | Not started | Validate process standards for remote repos via GitHub API |
-| `cm validate tier`                | Not started | Verify tier-ruleset alignment                              |
-
-**Blocked until:** Remote validation (`--repo` flag) is available for `cm process check`
+**Blocked until:** `cm process scan --repo` is available in check-my-toolkit.
 
 **Note:** The CLI command is `cm` (not `cmt`).
 
@@ -35,98 +37,37 @@
 
 ## Milestones
 
-### Milestone 1: Understand Existing Process Schema
+### Milestone 1: Basic Integration
 
-**Goal:** Map existing check-my-toolkit process checks to drift requirements
+**Goal:** Call check-my-toolkit and create issues
 
-check-my-toolkit already has these process checks:
+| Task             | Description                                               |
+| ---------------- | --------------------------------------------------------- |
+| Programmatic API | Import and call `validateProcess()` from check-my-toolkit |
+| Parse results    | Extract violations from JSON response                     |
+| Issue creation   | Create GitHub issue with violations                       |
+| Error handling   | Handle missing config, permission errors                  |
 
-| Check      | Section                | What it validates             |
-| ---------- | ---------------------- | ----------------------------- |
-| hooks      | `[process.hooks]`      | Husky git hooks presence      |
-| ci         | `[process.ci]`         | GitHub Actions workflows      |
-| branches   | `[process.branches]`   | Branch naming patterns        |
-| commits    | `[process.commits]`    | Commit message format         |
-| changesets | `[process.changesets]` | Changeset files               |
-| pr         | `[process.pr]`         | PR size limits                |
-| tickets    | `[process.tickets]`    | Jira/Linear references        |
-| coverage   | `[process.coverage]`   | Test coverage thresholds      |
-| repo       | `[process.repo]`       | Branch protection, CODEOWNERS |
-| backups    | `[process.backups]`    | S3 backup verification        |
-| codeowners | `[process.codeowners]` | CODEOWNERS file validation    |
-| docs       | `[process.docs]`       | Documentation requirements    |
-
-| Task                  | Description                                    |
-| --------------------- | ---------------------------------------------- |
-| Audit existing checks | Review what `cm process check` validates today |
-| Identify gaps         | Determine what drift needs that doesn't exist  |
-| Document schema       | Create reference for drift integration         |
-
-**Output:** Clear understanding of what exists vs what's needed
+**Output:** `drift process scan` creates issues for a single repo
 
 ---
 
-### Milestone 2: Remote Validation in check-my-toolkit
+### Milestone 2: Org-wide Scanning
 
-**Goal:** Add `--repo` flag to `cm process check` for remote validation
+**Goal:** Scan all repos in an organization
 
-| Task                   | Description                                        |
-| ---------------------- | -------------------------------------------------- |
-| GitHub API integration | Query branch protection, repo settings via API     |
-| `--repo` flag          | Add flag to specify `owner/repo` instead of local  |
-| `--token` flag         | Add flag for GitHub token                          |
-| JSON output            | Ensure `--format json` works for remote validation |
-
-**Output:** `cm process check --repo owner/repo --token $TOKEN` works
-
----
-
-### Milestone 3: drift process scan Foundation
-
-**Goal:** Basic process scanning using check-my-toolkit
-
-| Task                       | Description                                         |
-| -------------------------- | --------------------------------------------------- |
-| Integrate cm process check | Call `cm process check --repo <repo> --format json` |
-| Parse results              | Extract violations from JSON output                 |
-| GitHub issue creation      | Create issue in target repo with violations         |
-| Error handling             | Handle permission errors gracefully                 |
-
-**Output:** `drift process scan` creates issues for process violations
-
----
-
-### Milestone 4: Tier Validation
-
-**Goal:** Verify tier-appropriate rulesets are applied
-
-| Task                       | Description                                   |
-| -------------------------- | --------------------------------------------- |
-| Implement cm validate tier | New command in check-my-toolkit               |
-| Parse repo-metadata.yaml   | Extract tier from metadata                    |
-| Ruleset verification       | Check that rulesets match tier                |
-| Integration                | Call from drift and create issues on mismatch |
-
-**Output:** Tier-ruleset mismatches surfaced as issues
-
----
-
-### Milestone 5: Org-wide Process Scanning
-
-**Goal:** Scan all repos in an organization for process compliance
-
-| Task               | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| Repo iteration     | Scan all repos with repo-metadata.yaml + check.toml |
-| Smart scanning     | Only scan repos with commits in last 24h            |
-| Parallel execution | Scan multiple repos concurrently                    |
-| Per-repo issues    | Create separate issue in each repo with violations  |
+| Task               | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| Repo discovery     | Find repos with check.toml                         |
+| Smart scanning     | Only scan repos with commits in last 24h           |
+| Parallel execution | Scan multiple repos concurrently                   |
+| Per-repo issues    | Create separate issue in each repo with violations |
 
 **Output:** `drift process scan --org <org>` works end-to-end
 
 ---
 
-### Milestone 6: GitHub Action Integration
+### Milestone 3: GitHub Action Integration
 
 **Goal:** Run as scheduled GitHub Action
 
@@ -161,6 +102,69 @@ drift process scan --json
 
 # Dry run
 drift process scan --dry-run
+
+# Scan all repos (ignore commit activity filter)
+drift process scan --org <org> --all
+
+# Custom time window for activity filter
+drift process scan --org <org> --since 48
+```
+
+---
+
+## Integration with check-my-toolkit
+
+### Programmatic API (Preferred)
+
+```typescript
+import { validateProcess } from "check-my-toolkit";
+
+const result = await validateProcess({
+  repository: "myorg/my-app",
+  token: process.env.GITHUB_TOKEN,
+});
+
+if (!result.valid) {
+  await createGitHubIssue(formatProcessIssue(result));
+}
+```
+
+### CLI Fallback
+
+```bash
+cm process scan --repo myorg/my-app --json
+```
+
+### Expected Response Format
+
+```json
+{
+  "valid": false,
+  "repository": "myorg/my-app",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "summary": {
+    "passed": 5,
+    "failed": 3,
+    "warnings": 1
+  },
+  "checks": [
+    {
+      "category": "branches",
+      "check": "required_reviews",
+      "status": "fail",
+      "expected": 2,
+      "actual": 1
+    },
+    {
+      "category": "required_files",
+      "check": "pr_template",
+      "status": "fail",
+      "expected": true,
+      "actual": false,
+      "path": ".github/pull_request_template.md"
+    }
+  ]
+}
 ```
 
 ---
@@ -179,6 +183,14 @@ drift process scan --dry-run
 Repository: `myorg/my-app`
 Scan time: 2024-01-15 02:00 UTC
 
+### Summary
+
+| Category       | Passed | Failed |
+| -------------- | ------ | ------ |
+| branches       | 3      | 2      |
+| required_files | 1      | 1      |
+| ci             | 2      | 0      |
+
 ### Violations
 
 #### Branch Protection
@@ -187,12 +199,10 @@ Scan time: 2024-01-15 02:00 UTC
 | --------------------- | -------- | ------ |
 | Required reviews      | 2        | 1      |
 | Dismiss stale reviews | true     | false  |
-| Require status checks | true     | true   |
 
 #### Missing Required Files
 
 - [ ] `.github/pull_request_template.md` - not found
-- [x] `.github/CODEOWNERS` - exists
 
 #### Missing Status Checks
 
@@ -215,146 +225,29 @@ _Created by drift-toolkit_
 
 ---
 
-## Process Standards Reference (Actual check-my-toolkit Schema)
+## Validation Categories
 
-### Branch Naming with Issue Linking (`[process.branches]`)
+drift-toolkit can request specific categories from check-my-toolkit:
 
-```toml
-[process.branches]
-enabled = true
-# Branch format: <type>/<issue-number>/<description>
-pattern = "^(feature|fix|hotfix|docs)/([0-9]+)/[a-z0-9-]+$"
-exclude = ["main", "docs/*"]
-```
+| Category          | What It Validates                       |
+| ----------------- | --------------------------------------- |
+| `branches`        | Branch protection settings              |
+| `required_files`  | CODEOWNERS, PR template, etc.           |
+| `forbidden_files` | Files that must NOT exist (.env, etc.)  |
+| `commits`         | Commit message format                   |
+| `pull_requests`   | PR requirements (labels, linked issues) |
+| `ci`              | Workflow files and required commands    |
 
-**Examples:**
-
-- `feature/123/add-login` - Feature linked to issue #123
-- `fix/456/broken-button` - Bug fix linked to issue #456
-- `hotfix/789/security-patch` - Hotfix linked to issue #789
-
-**Note:** This validates branch NAMING patterns with required issue linking.
-
-### PR Issue Linking (GitHub Actions)
-
-PR descriptions must link to a GitHub issue using closing keywords:
-
-```markdown
-Closes #123
-Fixes #456
-Resolves #789
-```
-
-**Enforcement:**
-
-- Branch names validated by pre-push hook (`cm process check-branch`)
-- PR descriptions validated by `.github/workflows/pr-checks.yml`
-- Both checks return exit code 1 on violations (blocks push/PR)
-
-### Release Planning with Milestones
-
-GitHub Milestones track which issues/PRs ship in each release. Changesets determine the actual version number.
-
-| Tool           | Purpose                       | When Used                 |
-| -------------- | ----------------------------- | ------------------------- |
-| **Milestones** | Plan what goes into a release | Before/during development |
-| **Changesets** | Determine version number      | When PR is ready          |
-
-**Workflow:**
-
-1. Create milestone `v1.2.0` for planned release
-2. Assign issues to milestone
-3. Create branches with issue numbers: `feature/123/description`
-4. Add changeset to PR: `pnpm changeset`
-5. PR merges, changesets accumulate on main
-6. Release workflow calculates version from changeset types
-7. Close milestone when release ships
-
-**Milestone enforcement:** PR checks warn if milestone not assigned (non-blocking).
-
-### Branch Protection & CODEOWNERS (`[process.repo]`)
-
-```toml
-[process.repo]
-enabled = true
-require_branch_protection = true
-require_codeowners = true
-
-[process.repo.branch_protection]
-required_reviews = 2
-dismiss_stale_reviews = true
-require_code_owner_review = true
-require_status_checks = true
-required_status_checks = ["test", "lint", "build"]
-enforce_admins = false
-```
-
-### Commit Conventions (`[process.commits]`)
-
-```toml
-[process.commits]
-enabled = true
-types = ["feat", "fix", "docs", "chore", "refactor", "test", "ci"]
-require_scope = false
-max_subject_length = 72
-```
-
-### CI Requirements (`[process.ci]`)
-
-```toml
-[process.ci]
-enabled = true
-require_workflows = ["test.yml", "lint.yml"]
-
-[process.ci.jobs]
-required = ["test", "lint"]
-
-[process.ci.actions]
-forbidden = ["actions/checkout@v2"]  # Enforce v3+
-```
-
-### CODEOWNERS Validation (`[process.codeowners]`)
-
-```toml
-[process.codeowners]
-enabled = true
-
-[[process.codeowners.rules]]
-pattern = "*.ts"
-owners = ["@frontend-team"]
-
-[[process.codeowners.rules]]
-pattern = "/infra/*"
-owners = ["@platform-team"]
-```
-
-### PR Requirements (`[process.pr]`)
-
-```toml
-[process.pr]
-enabled = true
-max_files = 50
-max_lines = 500
-```
-
-### Git Hooks (`[process.hooks]`)
-
-```toml
-[process.hooks]
-enabled = true
-require_husky = true
-require_hooks = ["pre-commit", "commit-msg"]
-protected_branches = ["main", "develop"]
-```
+**Note:** Full configuration reference is in check-my-toolkit's process spec.
 
 ---
 
 ## Dependencies
 
-| Package          | Purpose                                                     |
-| ---------------- | ----------------------------------------------------------- |
-| check-my-toolkit | CLI (`cm`): `process check`, `process diff`, `process sync` |
-| @octokit/rest    | GitHub API (existing in drift-toolkit)                      |
+| Package          | Purpose                                  |
+| ---------------- | ---------------------------------------- |
+| check-my-toolkit | `validateProcess()` API for scanning     |
+| @octokit/rest    | GitHub API for issue creation (existing) |
 
 ---
 
@@ -362,13 +255,12 @@ protected_branches = ["main", "develop"]
 
 The GitHub token needs these permissions for process scanning:
 
-| Permission        | Scope    | Reason                                |
-| ----------------- | -------- | ------------------------------------- |
-| `repo`            | Full     | Read branch protection, create issues |
-| `read:org`        | Org      | List repos in organization            |
-| `admin:repo_hook` | Optional | Read webhook configurations           |
+| Permission | Scope | Reason                                |
+| ---------- | ----- | ------------------------------------- |
+| `repo`     | Full  | Read branch protection, create issues |
+| `read:org` | Org   | List repos in organization            |
 
-For GitHub Apps, these permissions are needed:
+For GitHub Apps:
 
 - Repository permissions: Administration (read), Contents (read), Issues (write), Metadata (read)
 - Organization permissions: Members (read)
@@ -377,22 +269,15 @@ For GitHub Apps, these permissions are needed:
 
 ## Risks & Mitigations
 
-| Risk                              | Mitigation                                 |
-| --------------------------------- | ------------------------------------------ |
-| Token lacks admin access          | Skip repos where 403 returned, log warning |
-| Branch protection API differences | Handle both legacy and ruleset APIs        |
-| Too many violations per repo      | Group by category, summarize counts        |
-| Private repos without access      | Filter to accessible repos only            |
+| Risk                     | Mitigation                                 |
+| ------------------------ | ------------------------------------------ |
+| Token lacks admin access | Skip repos where 403 returned, log warning |
+| Too many violations      | Group by category, summarize counts        |
+| Private repos            | Filter to accessible repos only            |
 
 ---
 
-## Success Criteria
+## References
 
-- [ ] Process schema defined in check.toml
-- [ ] Branch protection validated correctly
-- [ ] Required files checked
-- [ ] Required status checks validated
-- [ ] CI workflows validated
-- [ ] `drift process scan` creates issues with violations
-- [ ] `drift process scan --org` scans all qualifying repos
-- [ ] GitHub Action runs process scans on schedule
+- **check-my-toolkit process spec:** Full validation logic and check.toml schema
+- **check.toml schema:** See check-my-toolkit docs for `[process.*]` configuration
