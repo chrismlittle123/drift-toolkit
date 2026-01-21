@@ -1,7 +1,4 @@
-import {
-  validateProcess,
-  type ValidateProcessResult,
-} from "check-my-toolkit";
+import { validateProcess, type ValidateProcessResult } from "check-my-toolkit";
 import { version } from "../../version.js";
 import { actionsOutput, COLORS } from "../../utils/index.js";
 import { createIssue, getGitHubToken } from "../../github/client.js";
@@ -111,8 +108,7 @@ function printResults(detection: ProcessViolationsDetection): void {
     console.log("─".repeat(60));
 
     for (const v of detection.violations) {
-      const severityColor =
-        v.severity === "error" ? COLORS.red : COLORS.yellow;
+      const severityColor = v.severity === "error" ? COLORS.red : COLORS.yellow;
       const severityIcon = v.severity === "error" ? "✗" : "⚠";
       console.log(
         `${severityColor}${severityIcon}${COLORS.reset} [${v.category}] ${v.check}`

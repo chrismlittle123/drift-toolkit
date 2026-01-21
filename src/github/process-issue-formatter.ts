@@ -3,7 +3,11 @@
  */
 
 import { GITHUB_ISSUES } from "../constants.js";
-import type { ProcessViolationsDetection } from "../types.js";
+import type {
+  ProcessViolationsDetection,
+  ProcessViolation,
+  ProcessCheckSummary,
+} from "../types.js";
 
 /** Truncate issue body if it exceeds GitHub's max length. */
 function truncateBody(body: string): string {
@@ -16,83 +20,30 @@ function truncateBody(body: string): string {
   );
 }
 
-/**
- * Build the complete issue body for process violations detection.
- */
-export function formatProcessViolationsIssueBody(
-  detection: ProcessViolationsDetection
-): string {
-  const parts: string[] = [];
-
-  // Header
-  parts.push("## Process Violations Detected\n");
-  parts.push(`Repository: \`${detection.repository}\``);
-  parts.push(`Scan time: ${detection.scanTime}\n`);
-
-  // Summary table
-  parts.push("### Summary\n");
-  parts.push("| Category | Passed | Failed |");
-  parts.push("|----------|--------|--------|");
-
-  for (const cat of detection.summary) {
-    parts.push(`| ${cat.category} | ${cat.passed} | ${cat.failed} |`);
-  }
-
-  parts.push("");
-
-  // Violations by category
-  if (detection.violations.length > 0) {
-    parts.push("### Violations\n");
-
-    // Group violations by category
-    const byCategory = new Map<
-      string,
-      typeof detection.violations
-    >();
-    for (const v of detection.violations) {
-      const existing = byCategory.get(v.category) || [];
-      existing.push(v);
-      byCategory.set(v.category, existing);
-    }
-
-    // Output each category
-    for (const [category, violations] of byCategory) {
-      parts.push(`#### ${formatCategoryName(category)}\n`);
-
-      // Table of violations
-      parts.push("| Check | Message | Severity |");
-      parts.push("|-------|---------|----------|");
-
-      for (const v of violations) {
-        const severity = v.severity === "error" ? ":x:" : ":warning:";
-        const message = v.file ? `${v.message} (${v.file})` : v.message;
-        parts.push(`| ${v.check} | ${message} | ${severity} |`);
-      }
-
-      parts.push("");
-    }
-  }
-
-  // How to fix section
-  parts.push("### How to Fix\n");
-  parts.push(
-    "Review each violation above and take corrective action. Common fixes include:\n"
-  );
-  parts.push("1. **Branch protection**: Go to Settings > Branches > Branch protection rules");
-  parts.push("2. **Required files**: Add missing files like CODEOWNERS or PR templates");
-  parts.push("3. **CI checks**: Ensure required status checks are configured");
-  parts.push("4. **Repository settings**: Update visibility, security settings as needed\n");
-  parts.push("Close this issue once all violations are resolved.\n");
-
-  // Footer
-  parts.push("---\n_Created by drift-toolkit_");
-
-  return truncateBody(parts.join("\n"));
+/** Format the header section of the issue. */
+function formatHeader(repository: string, scanTime: string): string[] {
+  return [
+    "## Process Violations Detected\n",
+    `Repository: \`${repository}\``,
+    `Scan time: ${scanTime}\n`,
+  ];
 }
 
-/**
- * Format category name for display (e.g., "branches" -> "Branch Protection")
- */
+/** Format the summary table section. */
+function formatSummaryTable(summary: ProcessCheckSummary[]): string[] {
+  const parts = [
+    "### Summary\n",
+    "| Category | Passed | Failed |",
+    "|----------|--------|--------|",
+  ];
+  for (const cat of summary) {
+    parts.push(`| ${cat.category} | ${cat.passed} | ${cat.failed} |`);
+  }
+  parts.push("");
+  return parts;
+}
+
+/** Format category name for display (e.g., "branches" -> "Branch Protection") */
 function formatCategoryName(category: string): string {
   const names: Record<string, string> = {
     branches: "Branch Protection",
@@ -106,7 +57,79 @@ function formatCategoryName(category: string): string {
     hooks: "Git Hooks",
     docs: "Documentation",
   };
-  return names[category] || category.charAt(0).toUpperCase() + category.slice(1);
+  return (
+    names[category] || category.charAt(0).toUpperCase() + category.slice(1)
+  );
+}
+
+/** Format a single category's violations as a table. */
+function formatCategoryViolations(
+  category: string,
+  violations: ProcessViolation[]
+): string[] {
+  const parts = [
+    `#### ${formatCategoryName(category)}\n`,
+    "| Check | Message | Severity |",
+    "|-------|---------|----------|",
+  ];
+  for (const v of violations) {
+    const severity = v.severity === "error" ? ":x:" : ":warning:";
+    const message = v.file ? `${v.message} (${v.file})` : v.message;
+    parts.push(`| ${v.check} | ${message} | ${severity} |`);
+  }
+  parts.push("");
+  return parts;
+}
+
+/** Format the violations section grouped by category. */
+function formatViolationsSection(violations: ProcessViolation[]): string[] {
+  if (violations.length === 0) {
+    return [];
+  }
+
+  const parts = ["### Violations\n"];
+  const byCategory = new Map<string, ProcessViolation[]>();
+
+  for (const v of violations) {
+    const existing = byCategory.get(v.category) || [];
+    existing.push(v);
+    byCategory.set(v.category, existing);
+  }
+
+  for (const [category, catViolations] of byCategory) {
+    parts.push(...formatCategoryViolations(category, catViolations));
+  }
+
+  return parts;
+}
+
+/** Format the "How to Fix" section. */
+function formatHowToFix(): string[] {
+  return [
+    "### How to Fix\n",
+    "Review each violation above and take corrective action. Common fixes include:\n",
+    "1. **Branch protection**: Go to Settings > Branches > Branch protection rules",
+    "2. **Required files**: Add missing files like CODEOWNERS or PR templates",
+    "3. **CI checks**: Ensure required status checks are configured",
+    "4. **Repository settings**: Update visibility, security settings as needed\n",
+    "Close this issue once all violations are resolved.\n",
+    "---\n_Created by drift-toolkit_",
+  ];
+}
+
+/**
+ * Build the complete issue body for process violations detection.
+ */
+export function formatProcessViolationsIssueBody(
+  detection: ProcessViolationsDetection
+): string {
+  const parts = [
+    ...formatHeader(detection.repository, detection.scanTime),
+    ...formatSummaryTable(detection.summary),
+    ...formatViolationsSection(detection.violations),
+    ...formatHowToFix(),
+  ];
+  return truncateBody(parts.join("\n"));
 }
 
 /**
