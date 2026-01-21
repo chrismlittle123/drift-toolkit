@@ -214,9 +214,11 @@ async function scanSingleRepo(
   // Create issue if there are violations
   if (detection.violations.length > 0) {
     if (dryRun) {
-      console.log(
-        `\n${COLORS.yellow}[DRY RUN] Would create issue in ${repo}${COLORS.reset}`
-      );
+      if (!json) {
+        console.log(
+          `\n${COLORS.yellow}[DRY RUN] Would create issue in ${repo}${COLORS.reset}`
+        );
+      }
       actionsOutput.warning(`Process violations detected in ${repo}`);
     } else {
       const issueResult = await createIssue(
@@ -229,10 +231,12 @@ async function scanSingleRepo(
         },
         token
       );
-      console.log(
-        `\n${COLORS.green}✓ Created issue #${issueResult.number}${COLORS.reset}`
-      );
-      console.log(`  ${issueResult.html_url}`);
+      if (!json) {
+        console.log(
+          `\n${COLORS.green}✓ Created issue #${issueResult.number}${COLORS.reset}`
+        );
+        console.log(`  ${issueResult.html_url}`);
+      }
       actionsOutput.notice(
         `Created issue #${issueResult.number} for process violations`
       );
