@@ -179,7 +179,7 @@ export function cloneRepo(
     }
     execFileSync(
       "git",
-      ["clone", "--depth", "1", "--quiet", cloneUrl, targetDir],
+      ["clone", "--depth", "2", "--quiet", cloneUrl, targetDir],
       {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],

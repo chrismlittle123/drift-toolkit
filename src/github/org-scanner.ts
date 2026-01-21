@@ -780,6 +780,21 @@ export async function scanOrg(
         process.stdout.write(`Scanning ${org}/${repoName}... `);
       }
 
+      // When scanning a specific repo, check if it exists first
+      if (options.repo) {
+        const exists = await repoExists(org, repoName, token);
+        if (!exists) {
+          if (!options.json) {
+            console.log(`${COLORS.red}✗ repo not found${COLORS.reset}`);
+          }
+          return {
+            repo: repoName,
+            results: createEmptyResults(`${org}/${repoName}`),
+            error: "repo not found",
+          } as RepoScanResult;
+        }
+      }
+
       // Check if repo has required files before cloning
       const scannable = await isRepoScannable(org, repoName, token);
       if (!scannable) {

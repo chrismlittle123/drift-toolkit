@@ -3,6 +3,10 @@ import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, relative } from "path";
 import { parse as parseYaml } from "yaml";
 import { FILE_PATTERNS } from "../constants.js";
+import {
+  validateAllCheckToml,
+  type CheckTomlValidation,
+} from "./check-toml.js";
 
 export type RepoTier = "production" | "internal" | "prototype";
 export type RepoStatus = "active" | "pre-release" | "deprecated";
@@ -14,11 +18,15 @@ export interface RepoMetadata {
   raw: Record<string, unknown>;
 }
 
+// Re-export CheckTomlValidation type
+export type { CheckTomlValidation } from "./check-toml.js";
+
 export interface ScannabilityResult {
   scannable: boolean;
   hasMetadata: boolean;
   hasCheckToml: boolean;
   checkTomlPaths: string[];
+  checkTomlValidations?: CheckTomlValidation[];
   metadata?: RepoMetadata;
   error?: string;
 }
@@ -214,6 +222,9 @@ function searchForCheckToml(
   }
 }
 
+// Re-export validateCheckToml for backward compatibility
+export { validateCheckToml } from "./check-toml.js";
+
 /** Find all check.toml files in a repository. */
 export function findCheckTomlFiles(
   repoPath: string,
@@ -258,34 +269,24 @@ export function hasMetadata(repoPath: string): boolean {
   return findMetadataPath(repoPath) !== null;
 }
 
-/**
- * Determine if a repository is scannable by drift-toolkit.
- * A repository is scannable if it has both:
- * 1. A repo-metadata.yaml file
- * 2. At least one check.toml file
- *
- * @param repoPath - Path to the repository root
- * @returns ScannabilityResult with details about the repository
- */
+/** Determine if a repository is scannable (has metadata and valid check.toml). */
 export function isScannableRepo(repoPath: string): ScannabilityResult {
   try {
-    // Check for repo-metadata.yaml
     const metadataResult = getRepoMetadata(repoPath);
     const hasMetadataFile = metadataResult.metadata !== null;
-
-    // Find all check.toml files
     const checkTomlPaths = findCheckTomlFiles(repoPath);
     const hasCheckTomlFile = checkTomlPaths.length > 0;
-
-    // Both required for scannability
-    const scannable = hasMetadataFile && hasCheckTomlFile;
-
+    const validation = validateAllCheckToml(repoPath, checkTomlPaths);
+    const scannable =
+      hasMetadataFile && hasCheckTomlFile && validation.allValid;
     return {
       scannable,
       hasMetadata: hasMetadataFile,
       hasCheckToml: hasCheckTomlFile,
       checkTomlPaths,
+      checkTomlValidations: validation.validations,
       metadata: metadataResult.metadata ?? undefined,
+      error: validation.firstError,
     };
   } catch (error) {
     return {
