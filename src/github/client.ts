@@ -225,13 +225,19 @@ export async function repoExists(
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  const response = await fetchWithRetry(
-    `${GITHUB_API.baseUrl}/repos/${org}/${repo}`,
-    { headers },
-    token
-  );
 
-  return response.ok;
+  try {
+    const response = await fetchWithRetry(
+      `${GITHUB_API.baseUrl}/repos/${org}/${repo}`,
+      { headers },
+      token
+    );
+
+    return response.ok;
+  } catch {
+    // Network errors or retry exhaustion - treat as not found
+    return false;
+  }
 }
 
 // Re-export file checking functions from repo-checks module

@@ -144,8 +144,10 @@ custom_field: custom_value
   });
 
   describe("getRepoMetadata", () => {
-    it("returns null when no metadata file exists", () => {
-      expect(getRepoMetadata(testDir)).toBeNull();
+    it("returns { metadata: null, warnings: [] } when no metadata file exists", () => {
+      const result = getRepoMetadata(testDir);
+      expect(result.metadata).toBeNull();
+      expect(result.warnings).toEqual([]);
     });
 
     it("loads and parses metadata file", () => {
@@ -154,18 +156,18 @@ custom_field: custom_value
         "tier: production\nstatus: pre-release"
       );
       const result = getRepoMetadata(testDir);
-      expect(result).not.toBeNull();
-      expect(result?.metadata.tier).toBe("production");
-      expect(result?.metadata.status).toBe("pre-release");
+      expect(result.metadata).not.toBeNull();
+      expect(result.metadata?.tier).toBe("production");
+      expect(result.metadata?.status).toBe("pre-release");
     });
 
     it("returns defaults with warning for empty metadata file", () => {
       writeFileSync(join(testDir, "repo-metadata.yaml"), "");
       const result = getRepoMetadata(testDir);
-      expect(result).not.toBeNull();
-      expect(result?.metadata.tier).toBe("internal");
-      expect(result?.warnings).toHaveLength(1);
-      expect(result?.warnings[0]).toContain("File is empty");
+      expect(result.metadata).not.toBeNull();
+      expect(result.metadata?.tier).toBe("internal");
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain("File is empty");
     });
 
     it("returns defaults with warning for invalid YAML in metadata file", () => {
@@ -174,10 +176,10 @@ custom_field: custom_value
         "tier: production\n  bad: yaml"
       );
       const result = getRepoMetadata(testDir);
-      expect(result).not.toBeNull();
-      expect(result?.metadata.tier).toBe("internal");
-      expect(result?.warnings).toHaveLength(1);
-      expect(result?.warnings[0]).toContain("Failed to parse YAML");
+      expect(result.metadata).not.toBeNull();
+      expect(result.metadata?.tier).toBe("internal");
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain("Failed to parse YAML");
     });
   });
 

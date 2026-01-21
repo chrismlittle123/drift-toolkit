@@ -26,12 +26,18 @@ export async function fileExists(
   token?: string
 ): Promise<boolean> {
   const headers = buildApiHeaders(token);
-  const response = await fetchWithRetry(
-    `${GITHUB_API.baseUrl}/repos/${org}/${repo}/contents/${path}`,
-    { headers },
-    token
-  );
-  return response.ok;
+
+  try {
+    const response = await fetchWithRetry(
+      `${GITHUB_API.baseUrl}/repos/${org}/${repo}/contents/${path}`,
+      { headers },
+      token
+    );
+    return response.ok;
+  } catch {
+    // Network errors or retry exhaustion - treat as not found
+    return false;
+  }
 }
 
 /**
