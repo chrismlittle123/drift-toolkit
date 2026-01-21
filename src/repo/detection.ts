@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, relative } from "path";
 import { parse as parseYaml } from "yaml";
+import { parse as parseToml } from "smol-toml";
 import { FILE_PATTERNS } from "../constants.js";
 
 export type RepoTier = "production" | "internal" | "prototype";
@@ -14,11 +15,18 @@ export interface RepoMetadata {
   raw: Record<string, unknown>;
 }
 
+export interface CheckTomlValidation {
+  path: string;
+  valid: boolean;
+  error?: string;
+}
+
 export interface ScannabilityResult {
   scannable: boolean;
   hasMetadata: boolean;
   hasCheckToml: boolean;
   checkTomlPaths: string[];
+  checkTomlValidations?: CheckTomlValidation[];
   metadata?: RepoMetadata;
   error?: string;
 }
@@ -214,6 +222,25 @@ function searchForCheckToml(
   }
 }
 
+/**
+ * Validate a check.toml file by parsing its TOML content.
+ * Returns validation result with any parse errors.
+ */
+export function validateCheckToml(
+  repoPath: string,
+  checkTomlPath: string
+): CheckTomlValidation {
+  const fullPath = join(repoPath, checkTomlPath);
+  try {
+    const content = readFileSync(fullPath, "utf-8");
+    parseToml(content);
+    return { path: checkTomlPath, valid: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown parse error";
+    return { path: checkTomlPath, valid: false, error: msg };
+  }
+}
+
 /** Find all check.toml files in a repository. */
 export function findCheckTomlFiles(
   repoPath: string,
@@ -262,7 +289,7 @@ export function hasMetadata(repoPath: string): boolean {
  * Determine if a repository is scannable by drift-toolkit.
  * A repository is scannable if it has both:
  * 1. A repo-metadata.yaml file
- * 2. At least one check.toml file
+ * 2. At least one valid check.toml file
  *
  * @param repoPath - Path to the repository root
  * @returns ScannabilityResult with details about the repository
@@ -277,15 +304,33 @@ export function isScannableRepo(repoPath: string): ScannabilityResult {
     const checkTomlPaths = findCheckTomlFiles(repoPath);
     const hasCheckTomlFile = checkTomlPaths.length > 0;
 
-    // Both required for scannability
-    const scannable = hasMetadataFile && hasCheckTomlFile;
+    // Validate all check.toml files
+    const checkTomlValidations = checkTomlPaths.map((path) =>
+      validateCheckToml(repoPath, path)
+    );
+
+    // Check if any check.toml files have parse errors
+    const invalidToml = checkTomlValidations.filter((v) => !v.valid);
+    const hasValidCheckToml =
+      hasCheckTomlFile && checkTomlValidations.every((v) => v.valid);
+
+    // Both required for scannability (and check.toml must be valid)
+    const scannable = hasMetadataFile && hasValidCheckToml;
+
+    // Build error message if check.toml is invalid
+    let error: string | undefined;
+    if (invalidToml.length > 0) {
+      error = `Invalid TOML in ${invalidToml[0].path}: ${invalidToml[0].error}`;
+    }
 
     return {
       scannable,
       hasMetadata: hasMetadataFile,
       hasCheckToml: hasCheckTomlFile,
       checkTomlPaths,
+      checkTomlValidations,
       metadata: metadataResult.metadata ?? undefined,
+      error,
     };
   } catch (error) {
     return {
