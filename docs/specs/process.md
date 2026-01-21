@@ -84,18 +84,14 @@ GitHub Action
 ## CLI Interface
 
 ```bash
-# Scan current repo
-drift process scan
+# Scan a specific repo
+drift process scan --repo <owner/repo>
 
 # Scan all repos in org
 drift process scan --org <org>
 
-# Scan specific repo
+# Scan specific repo in org
 drift process scan --org <org> --repo <repo>
-
-# Scan specific category only
-drift process scan --category branches
-drift process scan --category required_files
 
 # JSON output
 drift process scan --json
@@ -222,23 +218,6 @@ Missing: `build`
 
 _Created by drift-toolkit_
 ```
-
----
-
-## Validation Categories
-
-drift-toolkit can request specific categories from check-my-toolkit:
-
-| Category          | What It Validates                       |
-| ----------------- | --------------------------------------- |
-| `branches`        | Branch protection settings              |
-| `required_files`  | CODEOWNERS, PR template, etc.           |
-| `forbidden_files` | Files that must NOT exist (.env, etc.)  |
-| `commits`         | Commit message format                   |
-| `pull_requests`   | PR requirements (labels, linked issues) |
-| `ci`              | Workflow files and required commands    |
-
-**Note:** Full configuration reference is in check-my-toolkit's process spec.
 
 ---
 
