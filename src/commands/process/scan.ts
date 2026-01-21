@@ -8,10 +8,14 @@ import {
   getProcessViolationsIssueTitle,
   getProcessViolationsIssueLabel,
 } from "../../github/process-issue-formatter.js";
+import { CONCURRENCY } from "../../constants.js";
 import type {
   ProcessViolationsDetection,
   ProcessCheckSummary,
   ProcessViolation,
+  ProcessRepoScanResult,
+  ProcessOrgScanResults,
+  ProcessOrgScanSummary,
 } from "../../types.js";
 
 export interface ProcessScanOptions {
@@ -82,6 +86,45 @@ function mapToDetection(
 }
 
 /**
+ * Run async tasks with a concurrency limit.
+ * Executes tasks in parallel while respecting the max concurrent limit.
+ */
+async function parallelLimit<T, R>(
+  items: T[],
+  fn: (item: T, index: number) => Promise<R>,
+  concurrency: number = CONCURRENCY.maxRepoScans
+): Promise<R[]> {
+  const results: R[] = new Array<R>(items.length);
+  let currentIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (currentIndex < items.length) {
+      const index = currentIndex++;
+      results[index] = await fn(items[index], index);
+    }
+  }
+
+  const workers = Array(Math.min(concurrency, items.length))
+    .fill(null)
+    .map(() => worker());
+
+  await Promise.all(workers);
+  return results;
+}
+
+/**
+ * Create empty org scan summary
+ */
+function createEmptySummary(): ProcessOrgScanSummary {
+  return {
+    reposScanned: 0,
+    reposWithViolations: 0,
+    reposSkipped: 0,
+    issuesCreated: 0,
+  };
+}
+
+/**
  * Print scan results to console
  */
 function printResults(detection: ProcessViolationsDetection): void {
@@ -126,102 +169,6 @@ function printResults(detection: ProcessViolationsDetection): void {
   } else {
     console.log(`\n${COLORS.green}✓ All process checks passed${COLORS.reset}`);
   }
-}
-
-interface DiscoverOrgReposOptions {
-  org: string;
-  token: string;
-  json: boolean;
-  includeAll: boolean;
-  sinceHours: number;
-}
-
-/**
- * Discover repos with check.toml in an organization.
- * This is the first step of org-wide scanning.
- */
-async function discoverOrgRepos(
-  options: DiscoverOrgReposOptions
-): Promise<string[]> {
-  const { org, token, json, includeAll, sinceHours } = options;
-
-  if (!json) {
-    if (includeAll) {
-      console.log(`Discovering repos with check.toml in ${org}...`);
-    } else {
-      console.log(
-        `Discovering repos with check.toml in ${org} (commits in last ${sinceHours}h)...`
-      );
-    }
-  }
-
-  const result = await discoverProcessRepos({
-    org,
-    token,
-    includeAll,
-    sinceHours,
-    onProgress: (checked, total) => {
-      if (!json) {
-        process.stdout.write(
-          `\rChecking repos for check.toml: ${checked}/${total}`
-        );
-      }
-    },
-    onActivityProgress: (checked, total) => {
-      if (!json) {
-        process.stdout.write(
-          `\rFiltering by recent activity: ${checked}/${total}`
-        );
-      }
-    },
-  });
-
-  if (!json) {
-    // Clear the progress line
-    process.stdout.write("\r" + " ".repeat(50) + "\r");
-  }
-
-  const repoNames = result.repos.map((r) => r.full_name);
-
-  if (json) {
-    console.log(
-      JSON.stringify(
-        {
-          org,
-          isOrg: result.isOrg,
-          totalRepos: result.totalRepos,
-          reposWithCheckToml: result.reposWithCheckToml,
-          filteredByActivity: result.filteredByActivity,
-          activityWindowHours: result.activityWindowHours,
-          activeRepos: repoNames.length,
-          repos: repoNames,
-        },
-        null,
-        2
-      )
-    );
-  } else {
-    if (result.filteredByActivity) {
-      console.log(
-        `Found ${result.reposWithCheckToml}/${result.totalRepos} repos with check.toml`
-      );
-      console.log(
-        `Active in last ${result.activityWindowHours}h: ${repoNames.length} repos`
-      );
-    } else {
-      console.log(
-        `Found ${repoNames.length}/${result.totalRepos} repos with check.toml`
-      );
-    }
-    if (repoNames.length > 0) {
-      console.log("");
-      for (const name of repoNames) {
-        console.log(`  ${name}`);
-      }
-    }
-  }
-
-  return repoNames;
 }
 
 interface SingleRepoScanOptions {
@@ -297,6 +244,296 @@ async function scanSingleRepo(
   return false; // no violations
 }
 
+interface ScanOrgReposOptions {
+  org: string;
+  token: string;
+  json: boolean;
+  dryRun: boolean;
+  includeAll: boolean;
+  sinceHours: number;
+}
+
+interface ScanRepoContext {
+  repo: string;
+  token: string;
+  dryRun: boolean;
+}
+
+/**
+ * Scan a single repo for process violations (for parallel execution).
+ * Returns ProcessRepoScanResult instead of printing directly.
+ */
+async function scanRepoForOrg(
+  ctx: ScanRepoContext
+): Promise<ProcessRepoScanResult> {
+  const { repo, token, dryRun } = ctx;
+  const [owner, repoName] = repo.split("/");
+
+  try {
+    const result = await validateProcess({ repo });
+    const detection = mapToDetection(result, repo);
+
+    const scanResult: ProcessRepoScanResult = {
+      repo,
+      detection,
+    };
+
+    // Create issue if there are violations
+    if (detection.violations.length > 0) {
+      if (dryRun) {
+        scanResult.issueCreated = false;
+      } else {
+        const issueResult = await createIssue(
+          {
+            owner,
+            repo: repoName,
+            title: getProcessViolationsIssueTitle(),
+            body: formatProcessViolationsIssueBody(detection),
+            labels: [getProcessViolationsIssueLabel()],
+          },
+          token
+        );
+        scanResult.issueCreated = true;
+        scanResult.issueNumber = issueResult.number;
+        scanResult.issueUrl = issueResult.html_url;
+      }
+    }
+
+    return scanResult;
+  } catch (error) {
+    return {
+      repo,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Print org-wide scan results
+ */
+function printOrgResults(results: ProcessOrgScanResults): void {
+  console.log("");
+  console.log(`${COLORS.bold}RESULTS BY REPOSITORY${COLORS.reset}`);
+  console.log("═".repeat(60));
+
+  for (const repoResult of results.repos) {
+    if (repoResult.error) {
+      console.log(`\n${repoResult.repo}`);
+      console.log("─".repeat(60));
+      console.log(
+        `  ${COLORS.yellow}⚠ Skipped: ${repoResult.error}${COLORS.reset}`
+      );
+      continue;
+    }
+
+    const hasViolations =
+      repoResult.detection && repoResult.detection.violations.length > 0;
+
+    if (!hasViolations) {
+      continue; // Skip repos with no violations
+    }
+
+    console.log(`\n${repoResult.repo}`);
+    console.log("─".repeat(60));
+
+    if (repoResult.detection) {
+      console.log(
+        `  ${COLORS.red}✗ ${repoResult.detection.violations.length} violation(s)${COLORS.reset}`
+      );
+      for (const v of repoResult.detection.violations) {
+        const severityIcon = v.severity === "error" ? "✗" : "⚠";
+        console.log(`    ${severityIcon} [${v.category}] ${v.message}`);
+      }
+    }
+
+    if (repoResult.issueCreated && repoResult.issueNumber) {
+      console.log(
+        `  ${COLORS.green}✓ Created issue #${repoResult.issueNumber}${COLORS.reset}`
+      );
+    }
+  }
+
+  // Summary
+  console.log("");
+  console.log(`${COLORS.bold}SUMMARY${COLORS.reset}`);
+  console.log("═".repeat(60));
+  console.log(`  Organization: ${results.org}`);
+  console.log(
+    `  Repos: ${results.summary.reposScanned} scanned` +
+      (results.summary.reposSkipped > 0
+        ? `, ${results.summary.reposSkipped} skipped`
+        : "") +
+      (results.summary.reposWithViolations > 0
+        ? `, ${COLORS.red}${results.summary.reposWithViolations} with violations${COLORS.reset}`
+        : "")
+  );
+  if (results.summary.issuesCreated > 0) {
+    console.log(
+      `  Issues created: ${COLORS.green}${results.summary.issuesCreated}${COLORS.reset}`
+    );
+  }
+
+  console.log("");
+
+  if (results.summary.reposWithViolations > 0) {
+    console.log(
+      `${COLORS.red}✗ VIOLATIONS DETECTED IN ${results.summary.reposWithViolations} REPO${results.summary.reposWithViolations > 1 ? "S" : ""}${COLORS.reset}`
+    );
+    actionsOutput.error(
+      `Process violations detected in ${results.summary.reposWithViolations} repository(s)`
+    );
+  } else {
+    console.log(`${COLORS.green}✓ All repos passed${COLORS.reset}`);
+    actionsOutput.notice("All repositories passed process checks");
+  }
+}
+
+/**
+ * Scan all repos in an organization for process violations.
+ */
+async function scanOrgRepos(
+  options: ScanOrgReposOptions
+): Promise<ProcessOrgScanResults> {
+  const { org, token, json, dryRun, includeAll, sinceHours } = options;
+
+  // Initialize results
+  const results: ProcessOrgScanResults = {
+    org,
+    timestamp: new Date().toISOString(),
+    repos: [],
+    summary: createEmptySummary(),
+  };
+
+  // Discover repos with check.toml
+  if (!json) {
+    if (includeAll) {
+      console.log(`Discovering repos with check.toml in ${org}...`);
+    } else {
+      console.log(
+        `Discovering repos with check.toml in ${org} (commits in last ${sinceHours}h)...`
+      );
+    }
+  }
+
+  const discoveryResult = await discoverProcessRepos({
+    org,
+    token,
+    includeAll,
+    sinceHours,
+    onProgress: (checked, total) => {
+      if (!json) {
+        process.stdout.write(
+          `\rChecking repos for check.toml: ${checked}/${total}`
+        );
+      }
+    },
+    onActivityProgress: (checked, total) => {
+      if (!json) {
+        process.stdout.write(
+          `\rFiltering by recent activity: ${checked}/${total}`
+        );
+      }
+    },
+  });
+
+  if (!json) {
+    process.stdout.write("\r" + " ".repeat(50) + "\r");
+  }
+
+  const repoNames = discoveryResult.repos.map((r) => r.full_name);
+
+  if (!json) {
+    if (discoveryResult.filteredByActivity) {
+      console.log(
+        `Found ${discoveryResult.reposWithCheckToml}/${discoveryResult.totalRepos} repos with check.toml`
+      );
+      console.log(
+        `Active in last ${discoveryResult.activityWindowHours}h: ${repoNames.length} repos`
+      );
+    } else {
+      console.log(
+        `Found ${repoNames.length}/${discoveryResult.totalRepos} repos with check.toml`
+      );
+    }
+  }
+
+  if (repoNames.length === 0) {
+    if (json) {
+      console.log(JSON.stringify(results, null, 2));
+    } else {
+      console.log("\nNo repos to scan.");
+    }
+    return results;
+  }
+
+  // Scan repos in parallel
+  if (!json) {
+    console.log(
+      `\nScanning ${repoNames.length} repos with concurrency: ${Math.min(CONCURRENCY.maxRepoScans, repoNames.length)}\n`
+    );
+  }
+
+  const repoResults = await parallelLimit(
+    repoNames,
+    async (repo) => {
+      if (!json) {
+        process.stdout.write(`Scanning ${repo}... `);
+      }
+
+      const result = await scanRepoForOrg({ repo, token, dryRun });
+
+      // Print inline status
+      if (!json) {
+        if (result.error) {
+          console.log(
+            `${COLORS.yellow}⚠ skipped (${result.error})${COLORS.reset}`
+          );
+        } else if (result.detection && result.detection.violations.length > 0) {
+          const issueInfo = result.issueCreated
+            ? ` → issue #${result.issueNumber}`
+            : dryRun
+              ? " [dry-run]"
+              : "";
+          console.log(
+            `${COLORS.red}✗ ${result.detection.violations.length} violation(s)${issueInfo}${COLORS.reset}`
+          );
+          actionsOutput.warning(`Process violations detected in ${repo}`);
+        } else {
+          console.log(`${COLORS.green}✓ ok${COLORS.reset}`);
+        }
+      }
+
+      return result;
+    },
+    CONCURRENCY.maxRepoScans
+  );
+
+  // Aggregate results
+  for (const repoResult of repoResults) {
+    if (repoResult.error) {
+      results.summary.reposSkipped++;
+    } else {
+      results.summary.reposScanned++;
+      if (repoResult.detection && repoResult.detection.violations.length > 0) {
+        results.summary.reposWithViolations++;
+      }
+      if (repoResult.issueCreated) {
+        results.summary.issuesCreated++;
+      }
+    }
+    results.repos.push(repoResult);
+  }
+
+  // Output results
+  if (json) {
+    console.log(JSON.stringify(results, null, 2));
+  } else {
+    printOrgResults(results);
+  }
+
+  return results;
+}
+
 export async function scan(options: ProcessScanOptions): Promise<void> {
   const { repo, org, config, json, dryRun, all, since } = options;
   const sinceHours = parseInt(since ?? "24", 10);
@@ -351,26 +588,20 @@ export async function scan(options: ProcessScanOptions): Promise<void> {
       return;
     }
 
-    // Case 2: Org-wide discovery (--org without --repo)
-    // This discovers repos with check.toml - actual scanning is done in #118
+    // Case 2: Org-wide scanning (--org without --repo)
     if (org) {
-      const repoNames = await discoverOrgRepos({
+      const results = await scanOrgRepos({
         org,
         token,
         json: json ?? false,
+        dryRun: dryRun ?? false,
         includeAll: all ?? false,
         sinceHours,
       });
 
-      // For now, just discover. Parallel scanning will be added in #118.
-      // If user wants to scan, they should use --repo to scan individual repos.
-      if (!json && repoNames.length > 0) {
-        console.log(
-          `\n${COLORS.dim}To scan these repos, use: drift process scan --repo <owner/repo>${COLORS.reset}`
-        );
-        console.log(
-          `${COLORS.dim}Parallel org-wide scanning coming soon.${COLORS.reset}`
-        );
+      // Exit with error code if there are violations
+      if (results.summary.reposWithViolations > 0) {
+        process.exit(1);
       }
     }
   } catch (error) {
