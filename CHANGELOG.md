@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.3
+
+### Patch Changes
+
+- ebc2a5b: Fix flaky tests in dependencies.test.ts that failed when cm (check-my-toolkit) is not installed
+
 ## 3.4.2
 
 ### Patch Changes
