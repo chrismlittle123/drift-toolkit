@@ -8,16 +8,6 @@
     "drift-toolkit": "dist/cli.js",
     "drift": "dist/cli.js"
   },
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./constants": {
-      "import": "./dist/constants.js",
-      "types": "./dist/constants.d.ts"
-    }
-  },
   "files": [
     "dist"
   ],

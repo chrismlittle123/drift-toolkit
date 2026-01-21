@@ -14,16 +14,6 @@ export const TIMEOUTS = {
 } as const;
 
 /**
- * Buffer sizes in bytes
- */
-export const BUFFERS = {
-  /** Maximum buffer for scan command output (10MB) */
-  scanOutput: 10 * 1024 * 1024,
-  /** Maximum buffer for diff output (1MB) */
-  diffOutput: 1 * 1024 * 1024,
-} as const;
-
-/**
  * Display limits for terminal output
  */
 export const DISPLAY_LIMITS = {
