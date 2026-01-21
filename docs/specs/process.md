@@ -23,11 +23,11 @@ GitHub Action
 
 **Required from check-my-toolkit:**
 
-| Feature           | Command/API                              | Purpose                           |
-| ----------------- | ---------------------------------------- | --------------------------------- |
-| Process scanning  | `validateProcess()` / `cm process scan`  | Validate repo settings via API    |
-| JSON output       | `--json` flag                            | Structured results for parsing    |
-| Remote validation | `--repo owner/repo` flag                 | Scan repos without cloning        |
+| Feature           | Command/API                             | Purpose                        |
+| ----------------- | --------------------------------------- | ------------------------------ |
+| Process scanning  | `validateProcess()` / `cm process scan` | Validate repo settings via API |
+| JSON output       | `--json` flag                           | Structured results for parsing |
+| Remote validation | `--repo owner/repo` flag                | Scan repos without cloning     |
 
 **Blocked until:** `cm process scan --repo` is available in check-my-toolkit.
 
@@ -41,12 +41,12 @@ GitHub Action
 
 **Goal:** Call check-my-toolkit and create issues
 
-| Task             | Description                                          |
-| ---------------- | ---------------------------------------------------- |
+| Task             | Description                                               |
+| ---------------- | --------------------------------------------------------- |
 | Programmatic API | Import and call `validateProcess()` from check-my-toolkit |
-| Parse results    | Extract violations from JSON response                |
-| Issue creation   | Create GitHub issue with violations                  |
-| Error handling   | Handle missing config, permission errors             |
+| Parse results    | Extract violations from JSON response                     |
+| Issue creation   | Create GitHub issue with violations                       |
+| Error handling   | Handle missing config, permission errors                  |
 
 **Output:** `drift process scan` creates issues for a single repo
 
@@ -229,14 +229,14 @@ _Created by drift-toolkit_
 
 drift-toolkit can request specific categories from check-my-toolkit:
 
-| Category          | What It Validates                           |
-| ----------------- | ------------------------------------------- |
-| `branches`        | Branch protection settings                  |
-| `required_files`  | CODEOWNERS, PR template, etc.               |
-| `forbidden_files` | Files that must NOT exist (.env, etc.)      |
-| `commits`         | Commit message format                       |
-| `pull_requests`   | PR requirements (labels, linked issues)     |
-| `ci`              | Workflow files and required commands        |
+| Category          | What It Validates                       |
+| ----------------- | --------------------------------------- |
+| `branches`        | Branch protection settings              |
+| `required_files`  | CODEOWNERS, PR template, etc.           |
+| `forbidden_files` | Files that must NOT exist (.env, etc.)  |
+| `commits`         | Commit message format                   |
+| `pull_requests`   | PR requirements (labels, linked issues) |
+| `ci`              | Workflow files and required commands    |
 
 **Note:** Full configuration reference is in check-my-toolkit's process spec.
 
@@ -244,10 +244,10 @@ drift-toolkit can request specific categories from check-my-toolkit:
 
 ## Dependencies
 
-| Package          | Purpose                                   |
-| ---------------- | ----------------------------------------- |
-| check-my-toolkit | `validateProcess()` API for scanning      |
-| @octokit/rest    | GitHub API for issue creation (existing)  |
+| Package          | Purpose                                  |
+| ---------------- | ---------------------------------------- |
+| check-my-toolkit | `validateProcess()` API for scanning     |
+| @octokit/rest    | GitHub API for issue creation (existing) |
 
 ---
 

@@ -23,12 +23,12 @@ GitHub Action
 
 **Required from check-my-toolkit:**
 
-| Feature          | Command/API                        | Purpose                        |
-| ---------------- | ---------------------------------- | ------------------------------ |
-| Infra scanning   | `scanInfra()` / `cm infra scan`    | Compare CDK vs AWS state       |
-| JSON output      | `--json` flag                      | Structured results for parsing |
-| Multi-account    | `--account all`                    | Scan dev/staging/prod          |
-| Status-awareness | Reads `repo-metadata.yaml` status  | Handle deprecated projects     |
+| Feature          | Command/API                       | Purpose                        |
+| ---------------- | --------------------------------- | ------------------------------ |
+| Infra scanning   | `scanInfra()` / `cm infra scan`   | Compare CDK vs AWS state       |
+| JSON output      | `--json` flag                     | Structured results for parsing |
+| Multi-account    | `--account all`                   | Scan dev/staging/prod          |
+| Status-awareness | Reads `repo-metadata.yaml` status | Handle deprecated projects     |
 
 **Blocked until:** `cm infra scan` is available in check-my-toolkit.
 
@@ -42,12 +42,12 @@ GitHub Action
 
 **Goal:** Call check-my-toolkit and create issues
 
-| Task                 | Description                                     |
-| -------------------- | ----------------------------------------------- |
-| Programmatic API     | Import and call `scanInfra()` from check-my-toolkit |
-| Parse results        | Extract issues from JSON response               |
-| Issue creation       | Create GitHub issue with violations             |
-| Error handling       | Handle missing config, permission errors        |
+| Task             | Description                                         |
+| ---------------- | --------------------------------------------------- |
+| Programmatic API | Import and call `scanInfra()` from check-my-toolkit |
+| Parse results    | Extract issues from JSON response                   |
+| Issue creation   | Create GitHub issue with violations                 |
+| Error handling   | Handle missing config, permission errors            |
 
 **Output:** `drift infra scan` creates issues for a single repo
 
@@ -57,11 +57,11 @@ GitHub Action
 
 **Goal:** Handle different project statuses appropriately
 
-| Task                 | Description                                          |
-| -------------------- | ---------------------------------------------------- |
-| Read status          | Get `status` from repo-metadata.yaml                 |
-| Deprecated handling  | Use cleanup issue format for deprecated projects     |
-| Pre-release handling | Skip prod account for pre-release projects           |
+| Task                 | Description                                      |
+| -------------------- | ------------------------------------------------ |
+| Read status          | Get `status` from repo-metadata.yaml             |
+| Deprecated handling  | Use cleanup issue format for deprecated projects |
+| Pre-release handling | Skip prod account for pre-release projects       |
 
 **Status behaviors:**
 
@@ -79,12 +79,12 @@ GitHub Action
 
 **Goal:** Scan all repos in an organization
 
-| Task               | Description                                      |
-| ------------------ | ------------------------------------------------ |
-| Repo discovery     | Find repos with `[infra]` in check.toml          |
-| Parallel execution | Scan multiple repos concurrently                 |
-| Rate limiting      | Respect AWS API limits across parallel scans     |
-| Per-repo issues    | Create separate issue in each repo               |
+| Task               | Description                                  |
+| ------------------ | -------------------------------------------- |
+| Repo discovery     | Find repos with `[infra]` in check.toml      |
+| Parallel execution | Scan multiple repos concurrently             |
+| Rate limiting      | Respect AWS API limits across parallel scans |
+| Per-repo issues    | Create separate issue in each repo           |
 
 **Output:** `drift infra scan --org <org>` works end-to-end
 
@@ -94,12 +94,12 @@ GitHub Action
 
 **Goal:** Run as scheduled GitHub Action
 
-| Task                | Description                               |
-| ------------------- | ----------------------------------------- |
-| Action workflow     | Add infra scan to drift-config workflow   |
-| AWS credentials     | Document IAM role setup for Actions       |
-| Multi-account roles | Configure cross-account role assumption   |
-| Error handling      | Skip repos where credentials fail         |
+| Task                | Description                             |
+| ------------------- | --------------------------------------- |
+| Action workflow     | Add infra scan to drift-config workflow |
+| AWS credentials     | Document IAM role setup for Actions     |
+| Multi-account roles | Configure cross-account role assumption |
+| Error handling      | Skip repos where credentials fail       |
 
 **Output:** Scheduled infra scans via GitHub Action
 
@@ -291,10 +291,10 @@ _Created by drift-toolkit_
 
 ## Dependencies
 
-| Package          | Purpose                                    |
-| ---------------- | ------------------------------------------ |
-| check-my-toolkit | `scanInfra()` API for drift detection      |
-| @octokit/rest    | GitHub API for issue creation (existing)   |
+| Package          | Purpose                                  |
+| ---------------- | ---------------------------------------- |
+| check-my-toolkit | `scanInfra()` API for drift detection    |
+| @octokit/rest    | GitHub API for issue creation (existing) |
 
 **Note:** All AWS SDK dependencies are in check-my-toolkit, not drift-toolkit.
 
@@ -302,12 +302,12 @@ _Created by drift-toolkit_
 
 ## Risks & Mitigations
 
-| Risk                        | Mitigation                                     |
-| --------------------------- | ---------------------------------------------- |
-| check-my-toolkit not ready  | Block on milestone completion                  |
-| AWS credentials in Actions  | Document IAM role setup, use OIDC              |
-| Too many issues per org     | Rate limit issue creation, summarize in single issue option |
-| Scan timeouts               | Set reasonable timeout, report partial results |
+| Risk                       | Mitigation                                                  |
+| -------------------------- | ----------------------------------------------------------- |
+| check-my-toolkit not ready | Block on milestone completion                               |
+| AWS credentials in Actions | Document IAM role setup, use OIDC                           |
+| Too many issues per org    | Rate limit issue creation, summarize in single issue option |
+| Scan timeouts              | Set reasonable timeout, report partial results              |
 
 ---
 
