@@ -152,3 +152,52 @@ export interface ProcessOrgScanResults {
   repos: ProcessRepoScanResult[];
   summary: ProcessOrgScanSummary;
 }
+
+// Infrastructure drift detection
+
+export interface InfraResourceResult {
+  arn: string;
+  exists: boolean;
+  error?: string;
+  service: string;
+  resourceType: string;
+  resourceId: string;
+}
+
+export interface InfraScanSummary {
+  total: number;
+  found: number;
+  missing: number;
+  errors: number;
+}
+
+export interface InfraDriftDetection {
+  repository: string;
+  scanTime: string;
+  manifest: string;
+  summary: InfraScanSummary;
+  resources: InfraResourceResult[];
+}
+
+export interface InfraRepoScanResult {
+  repo: string;
+  detection?: InfraDriftDetection;
+  issueCreated?: boolean;
+  issueNumber?: number;
+  issueUrl?: string;
+  error?: string;
+}
+
+export interface InfraOrgScanSummary {
+  reposScanned: number;
+  reposWithDrift: number;
+  reposSkipped: number;
+  issuesCreated: number;
+}
+
+export interface InfraOrgScanResults {
+  org: string;
+  timestamp: string;
+  repos: InfraRepoScanResult[];
+  summary: InfraOrgScanSummary;
+}
