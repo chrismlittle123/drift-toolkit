@@ -3,6 +3,7 @@
  * Uses GitHub Content API to verify file existence without cloning.
  */
 
+import { parse as parseToml } from "smol-toml";
 import { GITHUB_API, FILE_PATTERNS } from "../constants.js";
 import { fetchWithRetry } from "./api-utils.js";
 
@@ -120,4 +121,46 @@ export async function hasRecentCommits(
 
   // If both fail, assume no recent commits (or repo has no commits)
   return false;
+}
+
+/**
+ * Check if a repository has an [infra] section enabled in check.toml.
+ * Fetches the check.toml file and parses it to check for infra configuration.
+ *
+ * @param org - GitHub organization or user
+ * @param repo - Repository name
+ * @param token - GitHub token (optional)
+ * @returns true if check.toml exists and has [infra] section with enabled = true
+ */
+export async function hasRemoteInfraConfig(
+  org: string,
+  repo: string,
+  token?: string
+): Promise<boolean> {
+  const headers = buildApiHeaders(token);
+  // Request raw content
+  headers.Accept = "application/vnd.github.raw+json";
+
+  try {
+    const response = await fetchWithRetry(
+      `${GITHUB_API.baseUrl}/repos/${org}/${repo}/contents/${FILE_PATTERNS.checkToml}`,
+      { headers },
+      token
+    );
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const content = await response.text();
+
+    // Parse TOML and check for [infra] section with enabled = true
+    const config = parseToml(content) as Record<string, unknown>;
+    const infraConfig = config.infra as Record<string, unknown> | undefined;
+
+    return infraConfig?.enabled === true;
+  } catch {
+    // Parse errors or network errors - treat as not configured
+    return false;
+  }
 }

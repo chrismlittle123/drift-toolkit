@@ -60,7 +60,7 @@
     "vitest": "^4.0.17"
   },
   "dependencies": {
-    "check-my-toolkit": "^1.8.0",
+    "check-my-toolkit": "^2.1.0",
     "commander": "^14.0.0",
     "minimatch": "^10.1.1",
     "smol-toml": "^1.6.0",

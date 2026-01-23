@@ -93,6 +93,10 @@ export const GITHUB_ISSUES = {
   processViolationsTitle: "[drift:process] Process violations detected",
   /** Default label for process violations issues */
   processViolationsLabel: "drift:process",
+  /** Issue title for infrastructure drift */
+  infraDriftTitle: "[drift:infra] Infrastructure drift detected",
+  /** Default label for infrastructure drift issues */
+  infraDriftLabel: "drift:infra",
 } as const;
 
 /**

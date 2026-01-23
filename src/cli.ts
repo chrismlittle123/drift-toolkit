@@ -4,6 +4,7 @@ import { program } from "commander";
 import { version } from "./version.js";
 import { registerCodeCommands } from "./commands/code/index.js";
 import { registerProcessCommands } from "./commands/process/index.js";
+import { registerInfraCommands } from "./commands/infra/index.js";
 
 program
   .name("drift")
@@ -24,5 +25,11 @@ const processCmd = program
   .description("Process standards and compliance");
 
 registerProcessCommands(processCmd);
+
+const infraCmd = program
+  .command("infra")
+  .description("Infrastructure drift detection");
+
+registerInfraCommands(infraCmd);
 
 program.parse();
