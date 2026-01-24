@@ -92,6 +92,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/repo-a.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
         {
           name: "repo-b",
@@ -99,6 +100,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/repo-b.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
       ];
 
@@ -145,6 +147,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/repo-with-violations.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
       ];
 
@@ -211,6 +214,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/repo-with-violations.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
       ];
 
@@ -265,6 +269,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/error-repo.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
         {
           name: "good-repo",
@@ -272,6 +277,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/good-repo.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
       ];
 
@@ -314,6 +320,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/failing-repo.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
       ];
 
@@ -372,6 +379,7 @@ describe("process/scan", () => {
           clone_url: "https://github.com/test-org/passing-repo.git",
           archived: false,
           disabled: false,
+            owner: { login: "test-org" },
         },
       ];
 
