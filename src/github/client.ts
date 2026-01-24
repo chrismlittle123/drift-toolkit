@@ -13,6 +13,9 @@ export interface GitHubRepo {
   clone_url: string;
   archived: boolean;
   disabled: boolean;
+  owner: {
+    login: string;
+  };
 }
 
 const GITHUB_REPO_SCHEMA = z.object({
@@ -21,6 +24,9 @@ const GITHUB_REPO_SCHEMA = z.object({
   clone_url: z.string(),
   archived: z.boolean(),
   disabled: z.boolean(),
+  owner: z.object({
+    login: z.string(),
+  }),
 });
 
 const GITHUB_REPO_ARRAY_SCHEMA = z.array(GITHUB_REPO_SCHEMA);
@@ -40,7 +46,7 @@ export function listOrgRepos(
   org: string,
   token?: string
 ): Promise<GitHubRepo[]> {
-  return listReposFromEndpoint(`/orgs/${org}/repos`, token);
+  return listReposFromEndpoint(`/orgs/${org}/repos`, org, token);
 }
 
 /** List all repositories for a GitHub user. */
@@ -48,7 +54,7 @@ export function listUserRepos(
   username: string,
   token?: string
 ): Promise<GitHubRepo[]> {
-  return listReposFromEndpoint(`/users/${username}/repos`, token);
+  return listReposFromEndpoint(`/users/${username}/repos`, username, token);
 }
 
 /** List repositories with auto-detection of org vs user account. */
@@ -110,6 +116,7 @@ async function parseRepoResponse(
 
 async function listReposFromEndpoint(
   endpoint: string,
+  expectedOwner: string,
   token?: string
 ): Promise<GitHubRepo[]> {
   const repos: GitHubRepo[] = [];
@@ -122,7 +129,16 @@ async function listReposFromEndpoint(
     if (pageRepos.length === 0) {
       break;
     }
-    repos.push(...pageRepos.filter((r) => !r.archived && !r.disabled));
+    // Filter by owner to exclude repos from other orgs where user is a collaborator
+    // Also exclude archived and disabled repos
+    repos.push(
+      ...pageRepos.filter(
+        (r) =>
+          !r.archived &&
+          !r.disabled &&
+          r.owner.login.toLowerCase() === expectedOwner.toLowerCase()
+      )
+    );
     if (pageRepos.length < GITHUB_API.perPage) {
       break;
     }

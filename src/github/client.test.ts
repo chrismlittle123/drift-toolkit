@@ -186,12 +186,18 @@ describe("github client API functions", () => {
     mockFetchWithRetry.mockReset();
   });
 
-  const mockRepo = (name: string, archived = false, disabled = false) => ({
+  const mockRepo = (
+    name: string,
+    archived = false,
+    disabled = false,
+    ownerLogin = "test-org"
+  ) => ({
     name,
-    full_name: `test-org/${name}`,
-    clone_url: `https://github.com/test-org/${name}.git`,
+    full_name: `${ownerLogin}/${name}`,
+    clone_url: `https://github.com/${ownerLogin}/${name}.git`,
     archived,
     disabled,
+    owner: { login: ownerLogin },
   });
 
   describe("listOrgRepos", () => {
@@ -275,7 +281,7 @@ describe("github client API functions", () => {
   describe("listUserRepos", () => {
     it("fetches repos from user endpoint", async () => {
       const { listUserRepos } = await import("./client.js");
-      const repos = [mockRepo("user-repo")];
+      const repos = [mockRepo("user-repo", false, false, "test-user")];
 
       mockFetchWithRetry.mockResolvedValueOnce(
         new Response(JSON.stringify(repos), { status: 200 })
@@ -293,7 +299,7 @@ describe("github client API functions", () => {
 
     it("works without token", async () => {
       const { listUserRepos } = await import("./client.js");
-      const repos = [mockRepo("public-repo")];
+      const repos = [mockRepo("public-repo", false, false, "test-user")];
 
       mockFetchWithRetry.mockResolvedValueOnce(
         new Response(JSON.stringify(repos), { status: 200 })
@@ -330,7 +336,7 @@ describe("github client API functions", () => {
 
     it("falls back to user endpoint on 404", async () => {
       const { listRepos } = await import("./client.js");
-      const userRepos = [mockRepo("user-repo")];
+      const userRepos = [mockRepo("user-repo", false, false, "test-user")];
 
       // First call: org endpoint returns 404
       mockFetchWithRetry.mockResolvedValueOnce(

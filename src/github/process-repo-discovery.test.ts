@@ -31,6 +31,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-a.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
           {
             name: "repo-b",
@@ -38,6 +39,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-b.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
           {
             name: "repo-c",
@@ -45,6 +47,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-c.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
         ],
         isOrg: true,
@@ -82,6 +85,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-a.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
         ],
         isOrg: true,
@@ -133,6 +137,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-user/my-repo.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-user" },
           },
         ],
         isOrg: false,
@@ -162,6 +167,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-a.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
           {
             name: "repo-b",
@@ -169,6 +175,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-b.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
         ],
         isOrg: true,
@@ -202,6 +209,7 @@ describe("process-repo-discovery", () => {
         clone_url: `https://github.com/test-org/repo-${i}.git`,
         archived: false,
         disabled: false,
+        owner: { login: "test-org" },
       }));
 
       mockListRepos.mockResolvedValueOnce({
@@ -245,6 +253,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/active-repo.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
           {
             name: "inactive-repo",
@@ -252,6 +261,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/inactive-repo.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
         ],
         isOrg: true,
@@ -290,6 +300,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-a.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
         ],
         isOrg: true,
@@ -326,6 +337,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-a.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
           {
             name: "repo-b",
@@ -333,6 +345,7 @@ describe("process-repo-discovery", () => {
             clone_url: "https://github.com/test-org/repo-b.git",
             archived: false,
             disabled: false,
+            owner: { login: "test-org" },
           },
         ],
         isOrg: true,
