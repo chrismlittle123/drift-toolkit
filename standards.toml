@@ -1,6 +1,6 @@
 # Extend from community registry
 [extends]
-registry = "github:chrismlittle123/check-my-toolkit-registry-community"
+registry = "github:chrismlittle123/standards-community"
 rulesets = ["typescript-internal"]
 
 # Local overrides
@@ -81,3 +81,6 @@ allowlist = [
   ".changeset/README.md",
 ]
 max_files = 5
+
+[metadata]
+tier = "internal"
